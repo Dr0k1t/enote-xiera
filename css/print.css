@@ -1,0 +1,142 @@
+@media print {
+  /* Ocultar todo excepto la vista de detalle */
+  #view-login,
+  #view-dashboard,
+  .modal-overlay,
+  .app-header,
+  .detail-toolbar,
+  .toast-container,
+  .btn,
+  a[href] { display: none !important; }
+
+  body {
+    background: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 12pt;
+    color: #000;
+  }
+
+  #view-detail { display: block !important; }
+
+  .detail-wrapper {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .detail-card {
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* Encabezado de impresión */
+  .detail-header {
+    background: #fff;
+    border-bottom: 2pt solid #2C1810;
+    padding: 12pt 16pt;
+    page-break-inside: avoid;
+  }
+
+  .detail-brand-name {
+    font-size: 22pt;
+    color: #2C1810;
+    font-family: Georgia, serif;
+  }
+
+  .detail-brand-sub {
+    font-size: 8pt;
+    color: #555;
+  }
+
+  .detail-numero {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #000;
+  }
+
+  /* Metadatos */
+  .detail-body { padding: 12pt 16pt; }
+
+  .detail-meta-grid {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 12pt;
+    padding-bottom: 10pt;
+    border-bottom: 1pt solid #ccc;
+  }
+
+  .detail-meta-label { font-size: 7pt; color: #666; }
+  .detail-meta-value { font-size: 11pt; font-weight: bold; }
+
+  /* Tabla de productos */
+  .detail-products-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 12pt;
+  }
+
+  .detail-products-table th {
+    background: #f0f0f0;
+    border: 1pt solid #ccc;
+    padding: 4pt 8pt;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .detail-products-table td {
+    border: 1pt solid #ccc;
+    padding: 5pt 8pt;
+    font-size: 11pt;
+  }
+
+  /* Observaciones */
+  .detail-obs {
+    border: 1pt solid #ccc;
+    padding: 6pt 8pt;
+    background: #fff;
+    min-height: 36pt;
+    font-size: 10pt;
+  }
+
+  /* Estatus */
+  .badge {
+    border: 1pt solid #000;
+    border-radius: 0;
+    background: #fff;
+    color: #000;
+    font-size: 8pt;
+    padding: 2pt 6pt;
+  }
+
+  /* Footer firmas */
+  .detail-footer {
+    margin-top: 36pt;
+    padding-top: 12pt;
+    border-top: 1pt solid #ccc;
+    page-break-inside: avoid;
+  }
+
+  .detail-sig-line {
+    border-top: 1pt solid #333;
+    padding-top: 4pt;
+    font-size: 8pt;
+    color: #444;
+  }
+
+  /* Timestamps */
+  .detail-timestamps {
+    background: #fff;
+    border-top: 1pt solid #ddd;
+    padding: 4pt 16pt;
+    font-size: 7pt;
+    color: #666;
+  }
+
+  .detail-section-title { font-size: 7pt; }
+
+  @page {
+    margin: 1.5cm;
+    size: letter portrait;
+  }
+}

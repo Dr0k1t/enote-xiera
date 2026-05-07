@@ -1,0 +1,12 @@
+{
+  "name": "enote-audit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright audit script for Enote demo",
+  "scripts": {
+    "audit": "node audit.js"
+  },
+  "dependencies": {
+    "playwright": "^1.44.0"
+  }
+}
