@@ -1,0 +1,27 @@
+Concepto,Plan Básico,Mensual,Plan Completo,Mensual,Notas
+Pago Inicial,$2,500 - $3,000,N/A,$2,500 - $3,000,N/A,50% inicio / 50% entrega
+Mantenimiento,$0,No tiene,$1,000 /mes,Incluye,Bug fixes + soporte 2-4h/mes
+Dominio,$0,Xiera gestiona,Incluido,Cubre renovación ~$30-40/año,
+Hosting (Vercel),$0,Xiera,$0,Xiera,Free tier suficiente
+Nueva Feature,N/A,N/A,1 cada 2 meses,Incluida,Features pequeños 1-2 días
+,,,,"Rate efectivo: $50/h (20hrs/mes útil)"
+,,,,"Contrato mínimo: 6 meses"
+,,,,,
+AÑO 1,,,,""
+Mes 1 (upfront),$2,500 - $3,000,,"$2,500 - $3,000",,""
+Meses 2-12,$0 x 11 = $0,,"$1,000 x 11 = $11,000",,""
+TOTAL AÑO 1,$2,500 - $3,000,,"$13,500 - $14,000",,""
+,,,,,
+DETALLE HORAS,,,,""
+Semana 1 - Setup Supabase,25-30h,,,"Schema, RLS, Auth"
+Semana 2 - Frontend + Offline,25-35h,,,""
+Semana 3 - Repartidor UI,25-30h,,,""
+Semana 4 - Deploy + Testing,25-30h,,,""
+Semana 5 - Buffer + Docs,20-35h,,,""
+TOTAL HORAS,120-160h,,,""
+,,,,,
+CONDICIONES,,,,""
+Contrato mínimo,6 meses,,,""
+Pago upfront,50% inicio / 50% entrega,,,""
+Feature >2 días,Cotiza aparte,,,"No incluye en mensual"
+Refactorizaciones,Cotiza aparte,,,"Fuera de alcance"
