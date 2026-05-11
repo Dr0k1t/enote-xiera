@@ -7,12 +7,76 @@
 
 ---
 
+## 🔍 Análisis de Estado — 11 Mayo 2026
+
+> Auditoría automática del código base vs. lo planeado en el roadmap.
+
+### v1.0 — Lo que ya existe y funciona (localStorage demo)
+
+| Archivo | Estado | Notas |
+|---------|--------|-------|
+| `js/config.js` | ✅ Completo | Solo roles admin/planta — sin sucursal/repartidor |
+| `js/auth.js` | ✅ Funcional (⚠ bug) | `clearSession()` usa `sessionStorage` en lugar de `localStorage` (línea 17) |
+| `js/store.js` | ✅ Completo | CRUD sobre localStorage |
+| `js/ui.js` | ✅ Completo | Templates HTML, toasts, diff view |
+| `js/app.js` | ✅ Completo | Orquestador, RBAC, filtros, debounce |
+| `index.html` | ✅ Completo | SPA funcional |
+| `css/` (3 archivos) | ✅ Completo | variables, main, print |
+| `audit/audit.js` | ✅ Completo | Playwright E2E para roles admin/planta |
+
+### v1.2 — Lo que falta (todo pendiente)
+
+| Archivo | Semana | Bloqueante para |
+|---------|--------|-----------------|
+| `sw.js` + `manifest.json` | Sem 1, Tarea 5 | PWA offline funcional |
+| `js/supabase.js` | Sem 2, Tarea 1 | Todo Supabase |
+| `js/env.js` (en .gitignore) | Sem 2, Tarea 1 | Credenciales seguras |
+| `js/offline.js` | Sem 2, Tarea 5 | Cola offline + cache lectura |
+| Adaptación `auth.js` → Supabase Auth | Sem 2, Tarea 2 | Login real |
+| Adaptación `store.js` → Supabase CRUD | Sem 2, Tarea 3 | CRUD real |
+| Adaptación `app.js` → async/await | Sem 2, Tarea 4 | Todo lo anterior |
+| Vista repartidor en `ui.js` | Sem 3, Tarea 2 | Rol repartidor |
+| Roles sucursal/repartidor en `config.js` | Sem 2/3 | Nuevos roles |
+
+### Semana 0 — Verificación de pre-requisitos
+
+| Tarea | Estado verificable desde código | Acción requerida |
+|-------|--------------------------------|-----------------|
+| Cuenta Supabase creada | ❓ Sin credenciales en ningún archivo | **Verificar manualmente** |
+| Dominio comprado | ❓ No verificable en código | **Preguntar al cliente** |
+| Acceso a repo GitHub | ✅ Branch `sprint/v1.2-produccion` activo | Hecho |
+| Rutas de reparto confirmadas | ⚠ Rutas placeholder en sprint | **Confirmar con cliente antes del SQL** |
+
+---
+
+## 🚀 PRIMER PASO HOY — 11 Mayo 2026
+
+> **Regla:** No puedes ejecutar el SQL (Sem 1, Tarea 1) sin las rutas confirmadas y las credenciales de Supabase.  
+> **Regla:** Sí puedes escribir `sw.js` hoy sin ninguna dependencia externa.
+
+### Orden de ataque recomendado para HOY:
+
+1. **[~30 min, manual]** Confirmar con el cliente las rutas exactas de reparto → actualizar el SQL en este archivo
+2. **[~30 min, manual]** Verificar que la cuenta de Supabase está creada y tienes URL + anon key
+3. **[~4 h, código]** Implementar `sw.js` + `manifest.json` — sin Supabase, sin esperar al cliente ← **EMPIEZA AQUÍ si no tienes las credenciales aún**
+4. **[~1 h, manual]** Si tienes credenciales: ejecutar el SQL en Supabase SQL Editor
+
+### La primera tarea de código ejecutable ahora mismo:
+
+```
+Semana 1 → Tarea 5 → sw.js + manifest.json
+Estimado: ~4 horas
+Dependencias: ninguna (100% local)
+```
+
+---
+
 ## Estado General
 
 | Semana | Periodo | Estado | Avance |
 |--------|---------|--------|--------|
-| 0 — Pre-arranque | Antes del 11 mayo | 🔴 Pendiente | 0 / 4 tareas |
-| 1 — Infraestructura | 11–16 mayo | 🔴 Pendiente | 0 / 6 tareas |
+| 0 — Pre-arranque | Antes del 11 mayo | 🟡 En progreso | 1 / 4 tareas confirmadas |
+| 1 — Infraestructura | 11–16 mayo | 🟡 En progreso | 0 / 6 tareas |
 | 2 — Supabase + Offline | 18–23 mayo | 🔴 Pendiente | 0 / 8 tareas |
 | 3 — Repartidor + Pruebas | 25–30 mayo | 🔴 Pendiente | 0 / 6 tareas |
 | 4 — Deploy + Entrega | 01–06 junio | 🔴 Pendiente | 0 / 7 tareas |
@@ -28,7 +92,8 @@
 
 | Fecha | Quién | Cambio |
 |-------|-------|--------|
-| — | — | Sprint creado |
+| 2026-05-11 | Elius | Sprint creado |
+| 2026-05-11 | Claude Code | Auditoría v1.0: 8 archivos completos. Falta: sw.js, supabase.js, offline.js, env.js. Bug confirmado en auth.js:17. Semana 0: GitHub ✅, Supabase y dominio sin verificar. |
 
 ---
 
