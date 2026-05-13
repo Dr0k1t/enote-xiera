@@ -150,8 +150,71 @@ async function run() {
         .map(img => img.src)
     );
 
-    // ── 10. Screenshot final ───────────────────────────────────────────────
-    await page.screenshot({ path: path.join(SHOTS_DIR, '06-final-state.png') });
+    // ── 10. Bug fix — sucursal1 destino default ────────────────────────────
+    console.log('\n[ Bug fix — sucursal1 destino default ]');
+    await page.click('.btn-logout');
+    await page.waitForSelector('#view-login.active', { timeout: 3000 });
+    await page.fill('#inp-user', 'sucursal1');
+    await page.fill('#inp-pass', 'pass');
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('#view-dashboard.active', { timeout: 5000 });
+    await page.screenshot({ path: path.join(SHOTS_DIR, '07-dashboard-sucursal1.png') });
+
+    await page.click('.btn-nueva');
+    await page.waitForSelector('.modal-overlay.visible', { timeout: 3000 });
+    const destinoValue = await page.$eval('#nf-destino', s => s.value);
+    check('sucursal1 destino default = Sucursal 1', destinoValue === 'Sucursal 1', `Actual: ${destinoValue}`);
+    // Llenar al menos un producto (validación lo requiere)
+    await page.fill('.prod-nombre-inp', 'Conchas');
+    await page.fill('.prod-cantidad-inp', '10');
+    await page.screenshot({ path: path.join(SHOTS_DIR, '08-form-sucursal1.png') });
+    await page.click('[data-action="save"]');
+    // Esperar cierre real del modal (no solo que el dashboard esté activo)
+    await page.waitForFunction(() => !document.getElementById('modal-overlay')?.classList.contains('visible'), { timeout: 3000 });
+    await page.waitForSelector('#view-dashboard.active', { timeout: 3000 });
+    const sucursalCards = await page.locator('.note-card').count();
+    check('sucursal1 ve su nota creada en dashboard', sucursalCards >= 1, `${sucursalCards} nota(s)`);
+
+    // ── 11. Vista repartidor ────────────────────────────────────────────────
+    console.log('\n[ Vista repartidor ]');
+    await page.click('.btn-logout');
+    await page.waitForSelector('#view-login.active', { timeout: 3000 });
+    await page.fill('#inp-user', 'repartidor1');
+    await page.fill('#inp-pass', 'pass');
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('#view-repartidor.active', { timeout: 5000 });
+    await page.screenshot({ path: path.join(SHOTS_DIR, '09-repartidor-view.png') });
+
+    check('repartidor ve vista correcta', await page.locator('#view-repartidor.active').isVisible());
+    check('dropdown de sucursal visible', await page.locator('#repartidor-sucursal').isVisible());
+
+    // ── 12. Repartidor selecciona sucursal ─────────────────────────────────
+    console.log('\n[ Repartidor — selección de sucursal ]');
+    await page.selectOption('#repartidor-sucursal', 'Sucursal 1');
+    await page.waitForTimeout(300);
+    const repCards = await page.locator('.repartidor-card').count();
+    check('repartidor ve notas de Sucursal 1', repCards >= 1, `${repCards} nota(s)`);
+    await page.screenshot({ path: path.join(SHOTS_DIR, '10-repartidor-sucursal1.png') });
+
+    // ── 13. Toggle Tomada ──────────────────────────────────────────────────
+    console.log('\n[ Repartidor — toggle Tomada ]');
+    const firstRepCard = page.locator('.repartidor-card').first();
+    await firstRepCard.click();
+    await page.waitForTimeout(300);
+    const isTomada = await firstRepCard.evaluate(el => el.classList.contains('repartidor-card--tomada'));
+    check('click en card → clase tomada aplicada', isTomada);
+    const tomadaBadgeVisible = await firstRepCard.locator('.tomada-badge').isVisible();
+    check('badge "Tomada" visible tras primer click', tomadaBadgeVisible);
+    await page.screenshot({ path: path.join(SHOTS_DIR, '11-repartidor-tomada.png') });
+
+    await firstRepCard.click();
+    await page.waitForTimeout(300);
+    const isUntomada = await firstRepCard.evaluate(el => !el.classList.contains('repartidor-card--tomada'));
+    check('segundo click → tomada removida', isUntomada);
+    await page.screenshot({ path: path.join(SHOTS_DIR, '12-repartidor-untomada.png') });
+
+    // ── 14. Screenshot final ───────────────────────────────────────────────
+    await page.screenshot({ path: path.join(SHOTS_DIR, '13-final-state.png') });
 
   } catch (err) {
     console.error('\n  ERROR en audit:', err.message);

@@ -281,7 +281,7 @@ export function renderNoteForm(note, session) {
   const title = isEdit ? `Editar ${esc(note.numero)}` : 'Nueva nota';
   const today = new Date().toISOString().slice(0, 10);
   const fecha = isEdit ? note.fecha : today;
-  const destino = isEdit ? note.destino : CONFIG.defaultDestino;
+  const destino = isEdit ? note.destino : (session.destino || CONFIG.defaultDestino);
   const obs = isEdit ? note.observaciones : '';
   const productos = isEdit && note.productos.length > 0
     ? note.productos
@@ -526,6 +526,48 @@ export function renderDeleteConfirm(note) {
     <div class="modal-footer">
       <button type="button" class="btn btn-ghost btn-cancelar-modal">Cancelar</button>
       <button type="button" class="btn btn-danger btn-confirmar-delete" data-note-id="${note.id}">Eliminar</button>
+    </div>
+  </div>`;
+}
+
+// ─── Repartidor View ─────────────────────────────────────────────────────────
+
+export function renderRepartidorView(session) {
+  const sucursalOpts = CONFIG.locations
+    .filter(l => l !== 'Planta de Producción')
+    .map(l => `<option value="${esc(l)}">${esc(l)}</option>`)
+    .join('');
+
+  return `
+  ${renderHeader(session)}
+  <main class="repartidor-main">
+    <div class="repartidor-header">
+      <label class="form-label" for="repartidor-sucursal">Sucursal a entregar</label>
+      <select class="form-select" id="repartidor-sucursal">
+        <option value="">— Selecciona sucursal —</option>
+        ${sucursalOpts}
+      </select>
+    </div>
+    <div class="repartidor-notes" id="repartidor-notes">
+      <div class="repartidor-empty">Selecciona una sucursal para ver sus notas.</div>
+    </div>
+  </main>`;
+}
+
+export function renderRepartidorCard(note) {
+  const tomada = !!note.tomada;
+  return `
+  <div class="repartidor-card${tomada ? ' repartidor-card--tomada' : ''}" data-note-id="${note.id}">
+    <div class="repartidor-card__check">
+      <span class="repartidor-checkbox-icon">${tomada ? '✓' : ''}</span>
+    </div>
+    <div class="repartidor-card__info">
+      <div class="repartidor-card__id">
+        ${esc(note.numero)}
+        ${tomada ? '<span class="tomada-badge">Tomada</span>' : ''}
+      </div>
+      <div class="repartidor-card__cliente">${esc(note.destino)}</div>
+      <div class="repartidor-card__fecha">${esc(formatFecha(note.fecha))}</div>
     </div>
   </div>`;
 }

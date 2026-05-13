@@ -1,3 +1,5 @@
+import { log } from './logger.js';
+
 const MAX_IMAGES = 3;
 const MAX_SIZE_MB = 5;
 const QUALITY = 0.4;
@@ -34,13 +36,15 @@ export function compressImage(file) {
         ctx.drawImage(img, 0, 0, width, height);
         // toDataURL produce base64 persistente en localStorage (no blob URL efímera)
         const url = canvas.toDataURL('image/webp', QUALITY);
-        resolve({
+        const result = {
           id: crypto.randomUUID(),
           url,
           width,
           height,
           nombre: file.name.replace(/\.[^/.]+$/, '') + '.webp',
-        });
+        };
+        log.imageCompressed(file, result);
+        resolve(result);
       };
       img.onerror = () => reject(new Error('Error al cargar imagen'));
       img.src = e.target.result;

@@ -35,6 +35,9 @@ export function createNote(fields, user) {
     observaciones: (fields.observaciones || '').trim(),
     estatus:       'Nueva',
     imagenes:      fields.imagenes || [],
+    tomada:        false,
+    tomadaPor:     null,
+    tomadaEn:      null,
     unreadNew:     true,
     unreadModified: false,
     creadoPor:     user.username,
@@ -73,7 +76,10 @@ export function updateNote(id, fields, user) {
     ...(fields.productos    !== undefined && { productos: fields.productos.filter(p => p.nombre.trim()) }),
     ...(fields.observaciones!== undefined && { observaciones: fields.observaciones.trim() }),
     ...(fields.estatus      !== undefined && { estatus: fields.estatus }),
-    ...(fields.imagenes     !== undefined && { imagenes: fields.imagenes }),
+    ...(fields.imagenes  !== undefined && { imagenes:  fields.imagenes }),
+    ...(fields.tomada    !== undefined && { tomada:    fields.tomada }),
+    ...(fields.tomadaPor !== undefined && { tomadaPor: fields.tomadaPor }),
+    ...(fields.tomadaEn  !== undefined && { tomadaEn:  fields.tomadaEn }),
     unreadNew: newUnreadNew,
     unreadModified: newUnreadModified,
     modificadoPor: user.username,
@@ -118,23 +124,44 @@ function _swapPrioridad(sortedNotes, i, j) {
   _save('notes', allNotes);
 }
 
+// ─── Tomada toggle (repartidor) ──────────────────────────────────────────────
+export function toggleTomada(id, user) {
+  const notes = _load('notes', []);
+  const idx = notes.findIndex(n => n.id === id);
+  if (idx === -1) return null;
+  const now = new Date().toISOString();
+  const newTomada = !notes[idx].tomada;
+  notes[idx] = {
+    ...notes[idx],
+    tomada:    newTomada,
+    tomadaPor: newTomada ? user.username : null,
+    tomadaEn:  newTomada ? now : null,
+  };
+  _save('notes', notes);
+  return notes[idx];
+}
+
 // ─── Seed data ───────────────────────────────────────────────────────────────
 export function seedDemoNotes() {
   if (_load('notes', []).length > 0) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const today     = new Date().toISOString().slice(0, 10);
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  const base = { imagenes: [], tomada: false, tomadaPor: null, tomadaEn: null,
+                 unreadNew: false, unreadModified: false };
+
   const seeds = [
     {
-      id: 1, numero: CONFIG.noteNumberFormat(1), prioridad: 1,
+      ...base, id: 1, numero: CONFIG.noteNumberFormat(1), prioridad: 1,
       fecha: today, destino: 'Planta de Producción',
       productos: [{ nombre: 'Conchas', cantidad: '20' }, { nombre: 'Cuernos', cantidad: '15' }, { nombre: 'Polvorones', cantidad: '30' }],
-      observaciones: 'Entregar antes de las 6:00 pm. Polvorones solo si hay material.',
+      observaciones: 'Entregar antes de las 6:00 pm.',
       estatus: 'En Proceso',
       creadoPor: 'admin1', creadoEn: yesterday + 'T09:00:00.000Z',
       modificadoPor: 'planta1', modificadoEn: today + 'T08:15:00.000Z',
     },
     {
-      id: 2, numero: CONFIG.noteNumberFormat(2), prioridad: 2,
+      ...base, id: 2, numero: CONFIG.noteNumberFormat(2), prioridad: 2,
       fecha: today, destino: 'Planta de Producción',
       productos: [{ nombre: 'Pay de queso', cantidad: '8' }, { nombre: 'Carlota de limón', cantidad: '4' }],
       observaciones: '',
@@ -143,24 +170,52 @@ export function seedDemoNotes() {
       modificadoPor: 'admin1', modificadoEn: today + 'T07:30:00.000Z',
     },
     {
-      id: 3, numero: CONFIG.noteNumberFormat(3), prioridad: 3,
+      ...base, id: 3, numero: CONFIG.noteNumberFormat(3), prioridad: 3,
       fecha: yesterday, destino: 'Planta de Producción',
       productos: [{ nombre: 'Pastel de chocolate', cantidad: '2' }, { nombre: 'Tres leches', cantidad: '1' }],
-      observaciones: 'El pastel de chocolate lleva decoración especial (ver foto en WhatsApp).',
+      observaciones: '',
       estatus: 'Completada',
       creadoPor: 'admin1', creadoEn: yesterday + 'T10:00:00.000Z',
       modificadoPor: 'planta1', modificadoEn: yesterday + 'T16:45:00.000Z',
     },
     {
-      id: 4, numero: CONFIG.noteNumberFormat(4), prioridad: 4,
+      ...base, id: 4, numero: CONFIG.noteNumberFormat(4), prioridad: 4,
       fecha: yesterday, destino: 'Planta de Producción',
       productos: [{ nombre: 'Orejas', cantidad: '50' }],
-      observaciones: 'Pedido cancelado por el cliente.',
+      observaciones: '',
       estatus: 'Cancelada',
       creadoPor: 'admin1', creadoEn: yesterday + 'T11:00:00.000Z',
       modificadoPor: 'admin1', modificadoEn: yesterday + 'T12:00:00.000Z',
     },
+    // Notas de sucursales (para demo del repartidor)
+    {
+      ...base, id: 5, numero: CONFIG.noteNumberFormat(5), prioridad: 5,
+      fecha: today, destino: 'Sucursal 1',
+      productos: [{ nombre: 'Conchas', cantidad: '12' }, { nombre: 'Bolillos', cantidad: '24' }],
+      observaciones: '',
+      estatus: 'Nueva',
+      creadoPor: 'sucursal1', creadoEn: today + 'T06:00:00.000Z',
+      modificadoPor: 'sucursal1', modificadoEn: today + 'T06:00:00.000Z',
+    },
+    {
+      ...base, id: 6, numero: CONFIG.noteNumberFormat(6), prioridad: 6,
+      fecha: today, destino: 'Sucursal 1',
+      productos: [{ nombre: 'Cuernos', cantidad: '18' }, { nombre: 'Polvorones', cantidad: '20' }],
+      observaciones: '',
+      estatus: 'En Proceso',
+      creadoPor: 'sucursal1', creadoEn: today + 'T06:30:00.000Z',
+      modificadoPor: 'sucursal1', modificadoEn: today + 'T07:00:00.000Z',
+    },
+    {
+      ...base, id: 7, numero: CONFIG.noteNumberFormat(7), prioridad: 7,
+      fecha: today, destino: 'Sucursal 3',
+      productos: [{ nombre: 'Pan dulce surtido', cantidad: '40' }],
+      observaciones: '',
+      estatus: 'Nueva',
+      creadoPor: 'sucursal3', creadoEn: today + 'T07:15:00.000Z',
+      modificadoPor: 'sucursal3', modificadoEn: today + 'T07:15:00.000Z',
+    },
   ];
-  _save('nextId', 4);
+  _save('nextId', 7);
   _save('notes', seeds);
 }

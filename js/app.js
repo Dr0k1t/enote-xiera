@@ -1,12 +1,14 @@
 import { CONFIG } from './config.js';
-import { getNotes, getNote, createNote, updateNote, deleteNote, moveNoteUp, moveNoteDown, seedDemoNotes } from './store.js';
+import { getNotes, getNote, createNote, updateNote, deleteNote, moveNoteUp, moveNoteDown, seedDemoNotes, toggleTomada } from './store.js';
 import { login, clearSession, requireAuth, canSeeAll } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
+import { log } from './logger.js';
 import {
   showView, openModal, closeModal, renderToast,
   renderLoginView, renderDashboardView, refreshGrid,
   renderNoteForm, renderProductRow,
   renderDetailView, renderDiffView, renderDeleteConfirm,
+  renderRepartidorView, renderRepartidorCard,
   getFormData, formatFecha,
 } from './ui.js';
 
@@ -32,10 +34,11 @@ function init() {
 
   // Create permanent view containers
   document.getElementById('app').innerHTML = `
-    <div id="view-login"     class="view"></div>
-    <div id="view-dashboard" class="view"></div>
-    <div id="view-detail"    class="view"></div>
-    <div id="modal-overlay"  class="modal-overlay"></div>`;
+    <div id="view-login"       class="view"></div>
+    <div id="view-dashboard"   class="view"></div>
+    <div id="view-detail"      class="view"></div>
+    <div id="view-repartidor"  class="view"></div>
+    <div id="modal-overlay"    class="modal-overlay"></div>`;
 
   // Wire all events once
   setupEventDelegation();
@@ -45,7 +48,7 @@ function init() {
   if (!currentSession) {
     showLoginView();
   } else {
-    showDashboard();
+    routeByRole();
   }
 
   window.addEventListener('storage', (e) => {
@@ -92,6 +95,13 @@ function setupEventDelegation() {
 
   // Detail view
   detail.addEventListener('click', handleDetailClick);
+
+  // Repartidor view
+  const repartidor = document.getElementById('view-repartidor');
+  repartidor.addEventListener('click', handleRepartidorClick);
+  repartidor.addEventListener('change', e => {
+    if (e.target.id === 'repartidor-sucursal') renderNotasRepartidor(e.target.value);
+  });
 
   // Modal
   modal.addEventListener('click', handleModalClick);
@@ -160,6 +170,13 @@ function handleLogin() {
     return;
   }
   currentSession = result.session;
+  log.sessionStart(currentSession);
+  routeByRole();
+}
+
+// ─── Route por rol ───────────────────────────────────────────────────────────
+function routeByRole() {
+  if (currentSession.role === 'repartidor') { showRepartidor(); return; }
   showDashboard();
 }
 
@@ -353,7 +370,8 @@ async function handleFormSubmit(action) {
         return;
       }
     }
-    updateNote(editingNoteId, fields, currentSession);
+    const result = updateNote(editingNoteId, fields, currentSession);
+    if (result) log.noteUpdated(result.new);
     closeModal();
     if (action === 'preview') {
       showDetail(editingNoteId);
@@ -364,6 +382,7 @@ async function handleFormSubmit(action) {
     editingNoteId = null;
   } else {
     const note = createNote(fields, currentSession);
+    log.noteCreated(note);
     closeModal();
     editingNoteId = null;
     if (action === 'preview') {
@@ -432,6 +451,43 @@ function handleModalClick(e) {
   }
 }
 
+// ─── Repartidor view ─────────────────────────────────────────────────────────
+function showRepartidor() {
+  document.getElementById('view-repartidor').innerHTML = renderRepartidorView(currentSession);
+  showView('repartidor');
+}
+
+function renderNotasRepartidor(sucursal) {
+  const container = document.getElementById('repartidor-notes');
+  if (!container) return;
+  if (!sucursal) {
+    container.innerHTML = '<div class="repartidor-empty">Selecciona una sucursal para ver sus notas.</div>';
+    return;
+  }
+  const notes = getNotes().filter(n => n.destino === sucursal && n.estatus !== 'Cancelada');
+  container.innerHTML = notes.length > 0
+    ? notes.map(renderRepartidorCard).join('')
+    : '<div class="repartidor-empty">Sin notas activas para esta sucursal.</div>';
+}
+
+function handleRepartidorClick(e) {
+  if (e.target.closest('.btn-logout')) { handleLogout(); return; }
+
+  const card = e.target.closest('.repartidor-card');
+  if (!card) return;
+
+  const noteId  = parseInt(card.dataset.noteId);
+  const updated = toggleTomada(noteId, currentSession);
+  if (!updated) return;
+
+  // Reemplazar solo esa card en el DOM
+  const newCard = document.createElement('div');
+  newCard.innerHTML = renderRepartidorCard(updated).trim();
+  card.replaceWith(newCard.firstElementChild);
+
+  log.noteTomada(updated);
+}
+
 // ─── Image preview overlay ────────────────────────────────────────────────────
 function showImagePreview(index) {
   const note = getNote(currentDetailNoteId);
@@ -469,8 +525,9 @@ function handleLogout() {
   editingNoteId   = null;
   pendingFormData = null;
   // Clear stale view content to prevent cross-session data leaks in DOM
-  document.getElementById('view-dashboard').innerHTML = '';
-  document.getElementById('view-detail').innerHTML    = '';
+  document.getElementById('view-dashboard').innerHTML  = '';
+  document.getElementById('view-detail').innerHTML     = '';
+  document.getElementById('view-repartidor').innerHTML = '';
   closeModal();
   showLoginView();
 }
