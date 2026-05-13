@@ -248,7 +248,9 @@ a { color: var(--color-primary); text-decoration: none; }
   color: var(--color-text-muted);
 }
 
-.role-chip--admin { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+.role-chip--admin       { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+.role-chip--sucursal    { background: #1A5C32; color: white; border-color: #1A5C32; }
+.role-chip--repartidor  { background: #2563EB; color: white; border-color: #2563EB; }
 
 /* === DASHBOARD === */
 .dashboard-main {
@@ -840,11 +842,267 @@ a { color: var(--color-primary); text-decoration: none; }
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+/* === FORM HINTS === */
+.form-label-hint {
+  font-size: 0.8em;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+/* === IMAGE UPLOAD (Form) === */
+.image-file-input {
+  padding: var(--space-2) var(--space-3);
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.image-previews {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.image-preview-item {
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview-item img {
+  display: block;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.btn-remove-image {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #c0392b;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+  padding: 0;
+  transition: background var(--transition-fast);
+}
+
+.btn-remove-image:hover { background: #a93226; }
+
+/* === DETAIL LAYOUT (with image panel) === */
+.detail-layout {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.detail-layout .detail-card {
+  flex: 1;
+  min-width: 0;
+}
+
+/* === IMAGE SELECTOR PANEL (Detail view) === */
+.image-selector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 110px;
+  padding-top: var(--space-2);
+}
+
+.image-selector-title {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.image-selector-btn {
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+}
+
+/* === IMAGE PREVIEW OVERLAY === */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 24, 16, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  cursor: zoom-out;
+}
+
+.image-preview-container {
+  position: relative;
+  cursor: default;
+}
+
+.image-preview-container img {
+  display: block;
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-modal);
+}
+
+.btn-close-preview {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-warm-white);
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-border);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+}
+
 /* === DIVIDER === */
 .form-divider {
   height: 1px;
   background: var(--color-border);
   margin: var(--space-4) 0;
+}
+
+/* === REPARTIDOR VIEW === */
+.repartidor-main {
+  max-width: 580px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5);
+}
+
+.repartidor-header {
+  margin-bottom: var(--space-6);
+}
+
+.repartidor-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.repartidor-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: var(--space-8) 0;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.repartidor-card {
+  background: var(--color-warm-white);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+              transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-card);
+  user-select: none;
+}
+
+.repartidor-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(44, 24, 16, 0.12);
+}
+
+.repartidor-card--tomada {
+  background: var(--color-status-completada-bg);
+  border-color: var(--color-status-completada-border);
+}
+
+.repartidor-card--tomada:hover {
+  border-color: var(--color-status-completada-text);
+}
+
+.repartidor-checkbox-icon {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-status-completada-text);
+  background: var(--color-warm-white);
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.repartidor-card--tomada .repartidor-checkbox-icon {
+  background: var(--color-status-completada-bg);
+  border-color: var(--color-status-completada-text);
+}
+
+.repartidor-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.repartidor-card__id {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  line-height: 1.2;
+}
+
+.tomada-badge {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--color-status-completada-bg);
+  color: var(--color-status-completada-text);
+  border: 1px solid var(--color-status-completada-border);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+.repartidor-card__cliente {
+  font-size: 0.92rem;
+  color: var(--color-text-dark);
+  font-weight: 500;
+  margin-top: var(--space-1);
+}
+
+.repartidor-card__fecha {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
 }
 
 /* === RESPONSIVE === */

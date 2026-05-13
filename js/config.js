@@ -4,7 +4,7 @@ export const CONFIG = {
   appName:        'Enote',
   storagePrefix:  'enote_',
 
-  locations: ['Sucursal', 'Planta de Producción'],
+  locations: ['Sucursal 1', 'Sucursal 2', 'Sucursal 3', 'Sucursal 4', 'Sucursal 5', 'Planta de Producción'],
   defaultDestino: 'Planta de Producción',
 
   statuses: ['Nueva', 'En Proceso', 'Completada', 'Cancelada'],
@@ -12,13 +12,21 @@ export const CONFIG = {
   confirmEditStatuses: ['En Proceso', 'Completada'],
 
   users: [
-    { username: 'admin1',  password: 'pass', role: 'admin',  destino: null },
-    { username: 'planta1', password: 'pass', role: 'planta', destino: 'Planta de Producción' },
+    { username: 'admin1',      password: 'pass', role: 'admin',      destino: null },
+    { username: 'planta1',     password: 'pass', role: 'planta',     destino: 'Planta de Producción' },
+    { username: 'sucursal1',   password: 'pass', role: 'sucursal',   destino: 'Sucursal 1' },
+    { username: 'sucursal2',   password: 'pass', role: 'sucursal',   destino: 'Sucursal 2' },
+    { username: 'sucursal3',   password: 'pass', role: 'sucursal',   destino: 'Sucursal 3' },
+    { username: 'sucursal4',   password: 'pass', role: 'sucursal',   destino: 'Sucursal 4' },
+    { username: 'sucursal5',   password: 'pass', role: 'sucursal',   destino: 'Sucursal 5' },
+    { username: 'repartidor1', password: 'pass', role: 'repartidor', destino: null },
   ],
 
   roles: {
-    admin:  { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: true  },
-    planta: { canCreate: false, canEdit: false,  canDelete: false, canSeeAll: false },
+    admin:      { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: true  },
+    planta:     { canCreate: false, canEdit: false, canDelete: false, canSeeAll: false },
+    sucursal:   { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: false },
+    repartidor: { canCreate: false, canEdit: false, canDelete: false, canSeeAll: true  },
   },
 
   noteNumberFormat: (id) => `#${String(id).padStart(4, '0')}`,
