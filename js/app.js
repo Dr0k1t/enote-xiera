@@ -215,7 +215,7 @@ async function showDashboard() {
 async function getBaseNotes() {
   let notes = await getNotes();
   if (!canSeeAll(currentSession)) {
-    notes = notes.filter(n => n.destino === currentSession.destino);
+    notes = notes.filter(n => n.destino === currentSession.destino || n.creadoPor === currentSession.username);
   }
   return notes;
 }
@@ -329,6 +329,8 @@ async function showDetail(noteId) {
     if (Object.keys(updates).length > 0) {
       const result = await updateNote(noteId, updates, currentSession);
       if (result) note = result.new;
+      // Refrescar el dashboard en segundo plano para que los badges se actualicen
+      await applyFilters();
     }
   }
 
@@ -344,8 +346,11 @@ async function handleDetailClick(e) {
   if (e.target.closest('.btn-imprimir')) { window.print(); return; }
   if (e.target.closest('.btn-editar')) {
     const btn = e.target.closest('.btn-editar');
-    const id = parseInt(btn.dataset.noteId);
-    if (!isNaN(id)) await showForm(id);
+    const rawId = btn.dataset.noteId;
+    if (rawId) {
+      const id = isNaN(rawId) ? rawId : Number(rawId);
+      await showForm(id);
+    }
     return;
   }
   if (e.target.closest('.image-selector-btn')) {
@@ -360,8 +365,20 @@ async function handleDetailClick(e) {
 async function showForm(noteId) {
   editingNoteId = noteId !== undefined ? noteId : null;
   const note = editingNoteId !== null ? await getNote(editingNoteId) : null;
-  pendingImages = note?.imagenes ? [...note.imagenes] : [];
-  openModal(renderNoteForm(note, currentSession));
+  
+  // Resolver URLs de imágenes existentes para que se vean offline en el formulario
+  if (note?.imagenes) {
+    const resolvedImagenes = await Promise.all(note.imagenes.map(async img => {
+      const url = typeof img === 'string' ? img : img.url;
+      const resolvedUrl = await resolveImageUrl(url);
+      return typeof img === 'string' ? resolvedUrl : { ...img, url: resolvedUrl };
+    }));
+    pendingImages = resolvedImagenes;
+  } else {
+    pendingImages = [];
+  }
+
+  openModal(renderNoteForm(note ? { ...note, imagenes: pendingImages } : null, currentSession));
   document.getElementById('nf-fecha')?.focus();
 }
 
@@ -435,7 +452,16 @@ async function handleModalClick(e) {
   if (e.target.closest('.btn-remove-image')) {
     const btn     = e.target.closest('.btn-remove-image');
     const imageId = btn.dataset.imageId;
-    pendingImages = pendingImages.filter(img => img.id !== imageId);
+    const imageUrl = btn.dataset.imageUrl;
+
+    // Filtrar pendingImages (pueden ser strings o objetos)
+    pendingImages = pendingImages.filter(img => {
+      const url = typeof img === 'string' ? img : img.url;
+      const id = typeof img === 'string' ? `img-${pendingImages.indexOf(img)}` : img.id;
+      // Si tenemos URL (Supabase), comparamos por URL. Si no, por ID (locales).
+      return imageUrl ? url !== imageUrl : id !== imageId;
+    });
+
     btn.closest('.image-preview-item').remove();
     const counter = document.getElementById('image-counter');
     if (counter) {
@@ -527,7 +553,8 @@ async function handleRepartidorClick(e) {
 async function showImagePreview(index) {
   const note = await getNote(currentDetailNoteId);
   if (!note?.imagenes?.[index]) return;
-  const img = note.imagenes[index];
+  const imgData = note.imagenes[index];
+  const imgUrl = typeof imgData === 'string' ? imgData : imgData?.url;
 
   const overlay = document.createElement('div');
   overlay.className = 'image-preview-overlay';
@@ -537,7 +564,8 @@ async function showImagePreview(index) {
     </div>`;
 
   const imgEl = document.createElement('img');
-  imgEl.src = img.url;
+  // Resolvemos la URL (local o remota) antes de mostrarla
+  imgEl.src = await resolveImageUrl(imgUrl);
   imgEl.alt = `Imagen ${index + 1}`;
   overlay.querySelector('.image-preview-container').appendChild(imgEl);
 

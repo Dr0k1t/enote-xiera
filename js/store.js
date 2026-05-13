@@ -1,12 +1,78 @@
 import { CONFIG } from './config.js';
-import { supabase, isSupabaseConfigured } from './supabase.js';
+import { supabase, isSupabaseConfigured, uploadImage } from './supabase.js';
 import { isDemoMode, login as authLogin, clearSession, requireAuth } from './auth.js';
+import { cacheImages, saveImageToCache } from './offline.js';
 
 const P = CONFIG.storagePrefix;
 const NOTES_KEY = P + 'notes';
 
+/**
+ * Procesa las imágenes de una nota: las sube a Supabase si estamos online
+ * y las guarda en el caché local de IndexedDB.
+ */
+async function processImages(imagenes) {
+  if (!imagenes || !Array.isArray(imagenes)) return [];
+
+  const processed = [];
+  for (const img of imagenes) {
+    // Si ya es una URL de Supabase (string), la mantenemos
+    if (typeof img === 'string') {
+      processed.push(img);
+      continue;
+    }
+
+    // Si es un objeto de imagen nueva (con Blob)
+    if (img.blob) {
+      if (!isDemoMode()) {
+        try {
+          // Subir a Supabase Storage
+          const publicUrl = await uploadImage(img.blob, img.nombre);
+          // Guardar en caché local usando la nueva URL como llave
+          await saveImageToCache(publicUrl, img.blob);
+          processed.push(publicUrl);
+        } catch (err) {
+          console.error('Error al subir imagen a Supabase:', err);
+          throw new Error('No se pudo subir la imagen. Revisa tu conexión.');
+        }
+      } else {
+        // En modo Demo, generamos una URL local persistente (simulada) 
+        // y guardamos el Blob en IndexedDB.
+        const demoUrl = `demo://${img.id}/${img.nombre}`;
+        await saveImageToCache(demoUrl, img.blob);
+        processed.push(demoUrl);
+      }
+    } else {
+      // Caso de fallback para objetos de imagen antiguos
+      const url = img.url || img;
+      if (typeof url === 'string' && !url.startsWith('blob:')) {
+        processed.push(url);
+      }
+    }
+  }
+  return processed;
+}
+
 function delay(ms = 100) {
   return new Promise(r => setTimeout(r, ms));
+}
+
+function mapDbNote(note) {
+  if (!note) return null;
+  let imagenes = note.imagenes;
+  if (typeof imagenes === 'string') {
+    try { imagenes = JSON.parse(imagenes); } catch { imagenes = []; }
+  }
+  if (!Array.isArray(imagenes)) imagenes = [];
+  return {
+    ...note,
+    imagenes,
+    unreadNew: note.unread_new,
+    unreadModified: note.unread_modified,
+    creadoPor: note.creado_por,
+    modificadoPor: note.modificado_por,
+    creadoEn: note.creado_en,
+    modificadoEn: note.modificado_en,
+  };
 }
 
 async function getLocalNotes() {
@@ -34,22 +100,28 @@ async function getNextNumero() {
 }
 
 export async function getNotes() {
+  let notes;
   if (!isDemoMode()) {
     const { data, error } = await supabase
       .from('notes')
       .select('*')
       .order('prioridad', { ascending: true });
     if (error) throw error;
-    return data || [];
+    notes = (data || []).map(mapDbNote);
+  } else {
+    notes = await getLocalNotes();
   }
-  return getLocalNotes();
+
+  // Iniciar el cacheo de imágenes en segundo plano para asegurar disponibilidad offline
+  cacheImages(notes);
+  return notes;
 }
 
 export async function getNote(id) {
   if (!isDemoMode()) {
     const { data, error } = await supabase.from('notes').select('*').eq('id', id).single();
     if (error) return null;
-    return data;
+    return mapDbNote(data);
   }
   const notes = await getLocalNotes();
   return notes.find(n => n.id === id) || null;
@@ -58,6 +130,10 @@ export async function getNote(id) {
 export async function createNote(fields, session) {
   const numero = await getNextNumero();
   const now = new Date().toISOString();
+  
+  // Procesar imágenes antes de crear el objeto de la nota
+  const imagenes = await processImages(fields.imagenes);
+
   const note = {
     id: Date.now(),
     numero,
@@ -66,7 +142,7 @@ export async function createNote(fields, session) {
     productos: fields.productos,
     observaciones: fields.observaciones || '',
     estatus: 'Nueva',
-    imagenes: fields.imagenes || [],
+    imagenes: imagenes,
     tomada: false,
     tomadaPor: null,
     tomadaEn: null,
@@ -111,10 +187,12 @@ export async function updateNote(id, fields, session) {
   const now = new Date().toISOString();
   const notes = await getLocalNotes();
   const idx = notes.findIndex(n => n.id === id);
-  if (idx === -1) return null;
+  if (idx === -1 && isDemoMode()) return null;
 
-  const old = { ...notes[idx] };
-  const updated = { ...old, ...fields, modificadoPor: session.username, modificadoEn: now };
+  // Procesar imágenes si vienen en los campos
+  if (fields.imagenes) {
+    fields.imagenes = await processImages(fields.imagenes);
+  }
 
   if (!isDemoMode()) {
     const dbFields = {};
@@ -134,8 +212,15 @@ export async function updateNote(id, fields, session) {
       .select()
       .single();
     if (error) throw error;
-    return { old, new: data };
+    
+    // Si la actualización fue exitosa, cacheamos las nuevas imágenes localmente
+    if (data.imagenes) cacheImages([data]);
+    
+    return { old: null, new: data };
   }
+
+  const old = { ...notes[idx] };
+  const updated = { ...old, ...fields, modificadoPor: session.username, modificadoEn: now };
 
   if (CONFIG.confirmEditStatuses.includes(old.estatus) && session.role === 'admin') {
     updated.unreadModified = true;
