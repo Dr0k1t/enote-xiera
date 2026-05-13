@@ -1,0 +1,65 @@
+const CACHE_VERSION = 'enote-v1.0.0';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/css/variables.css',
+  '/css/main.css',
+  '/css/print.css',
+  '/js/app.js',
+  '/js/config.js',
+  '/js/auth.js',
+  '/js/store.js',
+  '/js/imageUtils.js',
+  '/js/logger.js',
+  '/js/supabase.js',
+  '/js/offline.js',
+  'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap',
+];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_VERSION)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  const { request } = e;
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET') return;
+  if (url.origin === 'https://supabase.co' || url.origin === 'https://*.supabase.co') return;
+
+  if (request.destination === 'document' || request.destination === 'style' ||
+      request.destination === 'script' || request.destination === 'font' ||
+      request.destination === 'image') {
+    e.respondWith(
+      caches.match(request)
+        .then(r => r || fetch(request)
+          .then(res => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+            }
+            return res;
+          })
+        )
+        .catch(() => caches.match(request))
+    );
+  }
+});
+
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});

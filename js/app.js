@@ -1,8 +1,10 @@
 import { CONFIG } from './config.js';
 import { getNotes, getNote, createNote, updateNote, deleteNote, moveNoteUp, moveNoteDown, seedDemoNotes, toggleTomada } from './store.js';
-import { login, clearSession, requireAuth, canSeeAll } from './auth.js';
+import { login, clearSession, requireAuth, canSeeAll, logout, isDemoMode } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
+import { syncPendingNotes } from './offline.js';
+import { isOnline } from './offline.js';
 
 import {
   showView, openModal, closeModal, renderToast, formatFecha,
@@ -20,6 +22,13 @@ let editingNoteId      = null;
 let pendingFormData    = null;
 let pendingImages      = [];   // imágenes del formulario activo (existing - removed)
 let currentDetailNoteId = null;
+
+// ─── Service Worker ───────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(reg => console.log('SW registered:', reg.scope))
+    .catch(err => console.warn('SW registration failed:', err));
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 init();
@@ -60,6 +69,18 @@ async function init() {
         await applyFilters(); 
       }
     }
+  });
+
+  window.addEventListener('online', async () => {
+    updateOnlineIndicator(true);
+    renderToast('Conexión restaurada', 'success');
+    if (currentSession) {
+      await syncPendingNotes(createNote);
+    }
+  });
+  window.addEventListener('offline', () => {
+    updateOnlineIndicator(false);
+    renderToast('Sin conexión — modo offline', 'info');
   });
 }
 
@@ -166,7 +187,7 @@ async function handleLogin() {
   const password = form.querySelector('[name="password"]').value;
   const errorEl  = document.getElementById('login-error');
 
-  const result = login(username, password);
+  const result = await login(username, password);
   if (!result.ok) {
     errorEl.textContent = result.error;
     form.querySelector('[name="password"]').value = '';
@@ -533,8 +554,8 @@ async function confirmDelete(noteId) {
 }
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
-function handleLogout() {
-  clearSession();
+async function handleLogout() {
+  await logout();
   currentSession  = null;
   editingNoteId   = null;
   pendingFormData = null;
@@ -585,4 +606,16 @@ function validateForm(fields) {
 function debounce(fn, delay) {
   let timer;
   return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
+}
+
+// ─── Online/Offline indicator ──────────────────────────────────────────────────
+function updateOnlineIndicator(online) {
+  let indicator = document.querySelector('.online-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.className = 'online-indicator';
+    document.body.prepend(indicator);
+  }
+  indicator.textContent = online ? '' : 'Sin conexión';
+  indicator.className = 'online-indicator' + (online ? '' : ' offline');
 }

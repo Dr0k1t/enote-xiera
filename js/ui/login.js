@@ -1,21 +1,21 @@
 import { CONFIG } from '../config.js';
+import { isDemoMode } from '../auth.js';
 import { esc } from './shared.js';
 
-/**
- * Renderiza la vista de inicio de sesión.
- */
 export function renderLoginView() {
+  const demoMode = isDemoMode();
   return `
   <main class="login-card">
     <div class="login-brand">
       <h1 class="login-brand-name">${esc(CONFIG.clientName)}</h1>
       <p class="login-brand-sub">${esc(CONFIG.clientSubtitle)}</p>
     </div>
+    ${demoMode ? '<div class="demo-badge">Modo demo local</div>' : ''}
     <form class="login-form" id="login-form" novalidate>
       <div class="form-group">
-        <label class="form-label" for="inp-user">Usuario</label>
+        <label class="form-label" for="inp-user">${demoMode ? 'Usuario' : 'Email'}</label>
         <input class="form-input" id="inp-user" name="username"
-          type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+          type="${demoMode ? 'text' : 'email'}" autocomplete="${demoMode ? 'username' : 'email'}" autocapitalize="none" spellcheck="false" required>
       </div>
       <div class="form-group">
         <label class="form-label" for="inp-pass">Contraseña</label>
