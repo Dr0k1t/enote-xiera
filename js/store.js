@@ -1,230 +1,218 @@
 import { CONFIG } from './config.js';
+import { supabase, isSupabaseConfigured } from './supabase.js';
+import { isDemoMode, login as authLogin, clearSession, requireAuth } from './auth.js';
 
 const P = CONFIG.storagePrefix;
+const NOTES_KEY = P + 'notes';
 
-const delay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms));
-
-function _key(k)    { return P + k; }
-function _load(k, d){ try { return JSON.parse(localStorage.getItem(_key(k))) ?? d; } catch { return d; } }
-function _save(k, v){ localStorage.setItem(_key(k), JSON.stringify(v)); }
-
-// ─── Auto-increment ──────────────────────────────────────────────────────────
-async function getNextId() {
-  await delay(10);
-  const next = (_load('nextId', 0)) + 1;
-  _save('nextId', next);
-  return next;
+function delay(ms = 100) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
-// ─── CRUD ────────────────────────────────────────────────────────────────────
-export async function getNotes() {
+async function getLocalNotes() {
   await delay();
-  const notes = _load('notes', []);
-  return notes.slice().sort((a, b) => a.prioridad - b.prioridad);
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); } catch { return []; }
+}
+
+async function setLocalNotes(notes) {
+  await delay();
+  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+}
+
+let _counter = null;
+async function getNextNumero() {
+  const notes = await getLocalNotes();
+  if (_counter === null) {
+    const max = notes.reduce((m, n) => {
+      const m2 = parseInt(n.numero.replace('#', ''));
+      return isNaN(m2) ? m : Math.max(m, m2);
+    }, 0);
+    _counter = max;
+  }
+  _counter++;
+  return '#' + String(_counter).padStart(4, '0');
+}
+
+export async function getNotes() {
+  if (!isDemoMode()) {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('prioridad', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+  return getLocalNotes();
 }
 
 export async function getNote(id) {
-  await delay();
-  return _load('notes', []).find(n => n.id === id) ?? null;
+  if (!isDemoMode()) {
+    const { data, error } = await supabase.from('notes').select('*').eq('id', id).single();
+    if (error) return null;
+    return data;
+  }
+  const notes = await getLocalNotes();
+  return notes.find(n => n.id === id) || null;
 }
 
-export async function createNote(fields, user) {
-  const id = await getNextId();
+export async function createNote(fields, session) {
+  const numero = await getNextNumero();
   const now = new Date().toISOString();
   const note = {
-    id,
-    numero:        CONFIG.noteNumberFormat(id),
-    fecha:         fields.fecha,
-    destino:       fields.destino,
-    productos:     fields.productos.filter(p => p.nombre.trim()),
-    observaciones: (fields.observaciones || '').trim(),
-    estatus:       'Nueva',
-    imagenes:      fields.imagenes || [],
-    tomada:        false,
-    tomadaPor:     null,
-    tomadaEn:      null,
-    unreadNew:     true,
+    id: Date.now(),
+    numero,
+    fecha: fields.fecha,
+    destino: fields.destino,
+    productos: fields.productos,
+    observaciones: fields.observaciones || '',
+    estatus: 'Nueva',
+    imagenes: fields.imagenes || [],
+    tomada: false,
+    tomadaPor: null,
+    tomadaEn: null,
+    unreadNew: true,
     unreadModified: false,
-    creadoPor:     user.username,
-    creadoEn:      now,
-    modificadoPor: user.username,
-    modificadoEn:  now,
-    prioridad:     id,
+    prioridad: 0,
+    creadoPor: session.username,
+    creadoEn: now,
+    modificadoPor: null,
+    modificadoEn: null,
   };
-  const notes = _load('notes', []);
-  notes.push(note);
-  _save('notes', notes);
+
+  if (!isDemoMode()) {
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([{
+        numero: note.numero,
+        fecha: note.fecha,
+        destino: note.destino,
+        productos: note.productos,
+        observaciones: note.observaciones,
+        estatus: note.estatus,
+        imagenes: note.imagenes,
+        unread_new: note.unreadNew,
+        unread_modified: note.unreadModified,
+        prioridad: note.prioridad,
+        creado_por: note.creadoPor,
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  const notes = await getLocalNotes();
+  notes.unshift(note);
+  await setLocalNotes(notes);
   return note;
 }
 
-export async function updateNote(id, fields, user) {
-  await delay();
-  const notes = _load('notes', []);
+export async function updateNote(id, fields, session) {
+  const now = new Date().toISOString();
+  const notes = await getLocalNotes();
   const idx = notes.findIndex(n => n.id === id);
   if (idx === -1) return null;
-  const oldNote = { ...notes[idx], productos: [...notes[idx].productos] };
 
-  // Ignorar banderas si el cambio es solo marcar como leído
-  const isReadUpdate = fields.unreadNew !== undefined || fields.unreadModified !== undefined;
-  
-  let newUnreadModified = fields.unreadModified !== undefined ? fields.unreadModified : oldNote.unreadModified;
-  let newUnreadNew = fields.unreadNew !== undefined ? fields.unreadNew : oldNote.unreadNew;
+  const old = { ...notes[idx] };
+  const updated = { ...old, ...fields, modificadoPor: session.username, modificadoEn: now };
 
-  // Modificación por admin en estado 'En Proceso' dispara notificación
-  if (user.role === 'admin' && !isReadUpdate && oldNote.estatus === 'En Proceso') {
-    newUnreadModified = true;
+  if (!isDemoMode()) {
+    const dbFields = {};
+    for (const [key, val] of Object.entries(fields)) {
+      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      dbFields[dbKey] = val;
+    }
+    dbFields.modificado_por = session.username;
+    dbFields.modificado_en = now;
+    if (fields.unreadNew !== undefined) dbFields.unread_new = fields.unreadNew;
+    if (fields.unreadModified !== undefined) dbFields.unread_modified = fields.unreadModified;
+
+    const { data, error } = await supabase
+      .from('notes')
+      .update(dbFields)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return { old, new: data };
   }
 
-  const updated = {
-    ...notes[idx],
-    ...(fields.fecha        !== undefined && { fecha: fields.fecha }),
-    ...(fields.destino      !== undefined && { destino: fields.destino }),
-    ...(fields.productos    !== undefined && { productos: fields.productos.filter(p => p.nombre.trim()) }),
-    ...(fields.observaciones!== undefined && { observaciones: fields.observaciones.trim() }),
-    ...(fields.estatus      !== undefined && { estatus: fields.estatus }),
-    ...(fields.imagenes  !== undefined && { imagenes:  fields.imagenes }),
-    ...(fields.tomada    !== undefined && { tomada:    fields.tomada }),
-    ...(fields.tomadaPor !== undefined && { tomadaPor: fields.tomadaPor }),
-    ...(fields.tomadaEn  !== undefined && { tomadaEn:  fields.tomadaEn }),
-    unreadNew: newUnreadNew,
-    unreadModified: newUnreadModified,
-    modificadoPor: user.username,
-    modificadoEn:  new Date().toISOString(),
-  };
+  if (CONFIG.confirmEditStatuses.includes(old.estatus) && session.role === 'admin') {
+    updated.unreadModified = true;
+  }
   notes[idx] = updated;
-  _save('notes', notes);
-  return { old: oldNote, new: updated };
+  await setLocalNotes(notes);
+  return { old, new: updated };
 }
 
 export async function deleteNote(id) {
-  await delay();
-  const notes = _load('notes', []);
-  const filtered = notes.filter(n => n.id !== id);
-  if (filtered.length === notes.length) return false;
-  _save('notes', filtered);
-  return true;
+  if (!isDemoMode()) {
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (error) throw error;
+    return;
+  }
+  const notes = await getLocalNotes();
+  await setLocalNotes(notes.filter(n => n.id !== id));
 }
 
-// ─── Priority reorder ────────────────────────────────────────────────────────
 export async function moveNoteUp(id) {
-  const notes = await getNotes(); // sorted by prioridad
-  const idx = notes.findIndex(n => n.id === id);
-  if (idx <= 0) return;
-  await _swapPrioridad(notes, idx - 1, idx);
+  if (isDemoMode()) {
+    const notes = await getLocalNotes();
+    const idx = notes.findIndex(n => n.id === id);
+    if (idx > 0) {
+      [notes[idx - 1], notes[idx]] = [notes[idx], notes[idx - 1]];
+      notes.forEach((n, i) => n.prioridad = i);
+      await setLocalNotes(notes);
+    }
+  }
 }
 
 export async function moveNoteDown(id) {
-  const notes = await getNotes();
-  const idx = notes.findIndex(n => n.id === id);
-  if (idx === -1 || idx >= notes.length - 1) return;
-  await _swapPrioridad(notes, idx, idx + 1);
+  if (isDemoMode()) {
+    const notes = await getLocalNotes();
+    const idx = notes.findIndex(n => n.id === id);
+    if (idx < notes.length - 1) {
+      [notes[idx], notes[idx + 1]] = [notes[idx + 1], notes[idx]];
+      notes.forEach((n, i) => n.prioridad = i);
+      await setLocalNotes(notes);
+    }
+  }
 }
 
-async function _swapPrioridad(sortedNotes, i, j) {
-  await delay(50);
-  const allNotes = _load('notes', []);
-  const pI = sortedNotes[i].prioridad;
-  const pJ = sortedNotes[j].prioridad;
-  const nI = allNotes.find(n => n.id === sortedNotes[i].id);
-  const nJ = allNotes.find(n => n.id === sortedNotes[j].id);
-  if (nI) nI.prioridad = pJ;
-  if (nJ) nJ.prioridad = pI;
-  _save('notes', allNotes);
+export async function toggleTomada(id, session) {
+  const note = await getNote(id);
+  if (!note) return null;
+  const tomada = !note.tomada;
+  const updated = await updateNote(id, {
+    tomada,
+    tomadaPor: tomada ? session.username : null,
+    tomadaEn: tomada ? new Date().toISOString() : null,
+  }, session);
+  return updated?.new;
 }
 
-// ─── Tomada toggle (repartidor) ──────────────────────────────────────────────
-export async function toggleTomada(id, user) {
-  await delay();
-  const notes = _load('notes', []);
-  const idx = notes.findIndex(n => n.id === id);
-  if (idx === -1) return null;
+export async function seedDemoNotes() {
+  if (!isDemoMode()) return;
+  const existing = await getLocalNotes();
+  if (existing.length > 0) return;
+
   const now = new Date().toISOString();
-  const newTomada = !notes[idx].tomada;
-  notes[idx] = {
-    ...notes[idx],
-    tomada:    newTomada,
-    tomadaPor: newTomada ? user.username : null,
-    tomadaEn:  newTomada ? now : null,
-  };
-  _save('notes', notes);
-  return notes[idx];
-}
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-// ─── Seed data ───────────────────────────────────────────────────────────────
-export function seedDemoNotes() {
-  if (_load('notes', []).length > 0) return;
-  const today     = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-
-  const base = { imagenes: [], tomada: false, tomadaPor: null, tomadaEn: null,
-                 unreadNew: false, unreadModified: false };
-
-  const seeds = [
-    {
-      ...base, id: 1, numero: CONFIG.noteNumberFormat(1), prioridad: 1,
-      fecha: today, destino: 'Planta de Producción',
-      productos: [{ nombre: 'Conchas', cantidad: '20' }, { nombre: 'Cuernos', cantidad: '15' }, { nombre: 'Polvorones', cantidad: '30' }],
-      observaciones: 'Entregar antes de las 6:00 pm.',
-      estatus: 'En Proceso',
-      creadoPor: 'admin1', creadoEn: yesterday + 'T09:00:00.000Z',
-      modificadoPor: 'planta1', modificadoEn: today + 'T08:15:00.000Z',
-    },
-    {
-      ...base, id: 2, numero: CONFIG.noteNumberFormat(2), prioridad: 2,
-      fecha: today, destino: 'Planta de Producción',
-      productos: [{ nombre: 'Pay de queso', cantidad: '8' }, { nombre: 'Carlota de limón', cantidad: '4' }],
-      observaciones: '',
-      estatus: 'Nueva',
-      creadoPor: 'admin1', creadoEn: today + 'T07:30:00.000Z',
-      modificadoPor: 'admin1', modificadoEn: today + 'T07:30:00.000Z',
-    },
-    {
-      ...base, id: 3, numero: CONFIG.noteNumberFormat(3), prioridad: 3,
-      fecha: yesterday, destino: 'Planta de Producción',
-      productos: [{ nombre: 'Pastel de chocolate', cantidad: '2' }, { nombre: 'Tres leches', cantidad: '1' }],
-      observaciones: '',
-      estatus: 'Completada',
-      creadoPor: 'admin1', creadoEn: yesterday + 'T10:00:00.000Z',
-      modificadoPor: 'planta1', modificadoEn: yesterday + 'T16:45:00.000Z',
-    },
-    {
-      ...base, id: 4, numero: CONFIG.noteNumberFormat(4), prioridad: 4,
-      fecha: yesterday, destino: 'Planta de Producción',
-      productos: [{ nombre: 'Orejas', cantidad: '50' }],
-      observaciones: '',
-      estatus: 'Cancelada',
-      creadoPor: 'admin1', creadoEn: yesterday + 'T11:00:00.000Z',
-      modificadoPor: 'admin1', modificadoEn: yesterday + 'T12:00:00.000Z',
-    },
-    // Notas de sucursales (para demo del repartidor)
-    {
-      ...base, id: 5, numero: CONFIG.noteNumberFormat(5), prioridad: 5,
-      fecha: today, destino: 'Sucursal 1',
-      productos: [{ nombre: 'Conchas', cantidad: '12' }, { nombre: 'Bolillos', cantidad: '24' }],
-      observaciones: '',
-      estatus: 'Nueva',
-      creadoPor: 'sucursal1', creadoEn: today + 'T06:00:00.000Z',
-      modificadoPor: 'sucursal1', modificadoEn: today + 'T06:00:00.000Z',
-    },
-    {
-      ...base, id: 6, numero: CONFIG.noteNumberFormat(6), prioridad: 6,
-      fecha: today, destino: 'Sucursal 1',
-      productos: [{ nombre: 'Cuernos', cantidad: '18' }, { nombre: 'Polvorones', cantidad: '20' }],
-      observaciones: '',
-      estatus: 'En Proceso',
-      creadoPor: 'sucursal1', creadoEn: today + 'T06:30:00.000Z',
-      modificadoPor: 'sucursal1', modificadoEn: today + 'T07:00:00.000Z',
-    },
-    {
-      ...base, id: 7, numero: CONFIG.noteNumberFormat(7), prioridad: 7,
-      fecha: today, destino: 'Sucursal 3',
-      productos: [{ nombre: 'Pan dulce surtido', cantidad: '40' }],
-      observaciones: '',
-      estatus: 'Nueva',
-      creadoPor: 'sucursal3', creadoEn: today + 'T07:15:00.000Z',
-      modificadoPor: 'sucursal3', modificadoEn: today + 'T07:15:00.000Z',
-    },
+  const demos = [
+    { numero: '#0001', fecha: today, destino: 'Sucursal 1', estatus: 'Nueva', observaciones: 'Pedido regular de la semana', productos: [{ nombre: 'Conchas', cantidad: 20, unidad: 'pzas' }, { nombre: 'Cuernos', cantidad: 15, unidad: 'pzas' }], prioridad: 0, unreadNew: true, unreadModified: false },
+    { numero: '#0002', fecha: today, destino: 'Sucursal 2', estatus: 'En Proceso', observaciones: 'pedido urgente', productos: [{ nombre: 'Polvorones', cantidad: 50, unidad: 'pzas' }], prioridad: 1, unreadNew: false, unreadModified: false },
+    { numero: '#0003', fecha: today, destino: 'Planta de Producción', estatus: 'Nueva', observaciones: '', productos: [{ nombre: 'Harina', cantidad: 100, unidad: 'kg' }], prioridad: 2, unreadNew: true, unreadModified: false },
+    { numero: '#0004', fecha: yesterday, destino: 'Sucursal 3', estatus: 'Completada', observaciones: 'Entregado a tiempo', productos: [{ nombre: 'Donas', cantidad: 30, unidad: 'pzas' }], prioridad: 3, unreadNew: false, unreadModified: false },
+    { numero: '#0005', fecha: yesterday, destino: 'Sucursal 1', estatus: 'Nueva', observaciones: '', productos: [{ nombre: 'Mantecadas', cantidad: 25, unidad: 'pzas' }], prioridad: 4, unreadNew: true, unreadModified: false },
   ];
-  _save('nextId', 7);
-  _save('notes', seeds);
+
+  let id = 1;
+  for (const d of demos) {
+    const notes = await getLocalNotes();
+    const note = { id: id++, ...d, creadoPor: 'admin', creadoEn: now, modificadoPor: null, modificadoEn: null, tomada: false, tomadaPor: null, tomadaEn: null, imagenes: [] };
+    notes.push(note);
+    await setLocalNotes(notes);
+  }
 }
