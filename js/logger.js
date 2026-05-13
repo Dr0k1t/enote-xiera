@@ -2,11 +2,14 @@
 // POST silencioso a /api/log — no afecta la UI si el servidor no está disponible.
 async function post(data) {
   try {
-    await fetch('/api/log', {
+    // Solo intentar si no estamos en un servidor estático simple (opcional)
+    // O simplemente ignorar si la respuesta no es OK
+    const resp = await fetch('/api/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ts: new Date().toISOString(), ...data }),
     });
+    if (!resp.ok) { /* ignore error status */ }
   } catch { /* servidor estático o sin endpoint — falla silenciosa */ }
 }
 

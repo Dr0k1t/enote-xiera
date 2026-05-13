@@ -3,14 +3,16 @@ import { getNotes, getNote, createNote, updateNote, deleteNote, moveNoteUp, move
 import { login, clearSession, requireAuth, canSeeAll } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
+
 import {
-  showView, openModal, closeModal, renderToast,
-  renderLoginView, renderDashboardView, refreshGrid,
-  renderNoteForm, renderProductRow,
-  renderDetailView, renderDiffView, renderDeleteConfirm,
-  renderRepartidorView, renderRepartidorCard,
-  getFormData, formatFecha,
-} from './ui.js';
+  showView, openModal, closeModal, renderToast, formatFecha,
+} from './ui/shared.js';
+
+import { renderLoginView } from './ui/login.js';
+import { renderDashboardView, refreshGrid } from './ui/dashboard.js';
+import { renderNoteForm, renderProductRow, getFormData } from './ui/form.js';
+import { renderDetailView, renderDiffView, renderDeleteConfirm } from './ui/detail.js';
+import { renderRepartidorView, renderRepartidorCard } from './ui/repartidor.js';
 
 // ─── Module state ─────────────────────────────────────────────────────────────
 let currentSession     = null;
@@ -22,7 +24,7 @@ let currentDetailNoteId = null;
 // ─── Init ─────────────────────────────────────────────────────────────────────
 init();
 
-function init() {
+async function init() {
   // Load Google Fonts
   const fontLink = document.createElement('link');
   fontLink.rel  = 'stylesheet';
@@ -48,14 +50,14 @@ function init() {
   if (!currentSession) {
     showLoginView();
   } else {
-    routeByRole();
+    await routeByRole();
   }
 
-  window.addEventListener('storage', (e) => {
+  window.addEventListener('storage', async (e) => {
     // Escuchar específicamente cambios en las notas
     if (e.key === CONFIG.storagePrefix + 'notes') {
       if (currentSession) {
-        applyFilters(); 
+        await applyFilters(); 
       }
     }
   });
@@ -69,26 +71,27 @@ function setupEventDelegation() {
   const modal     = document.getElementById('modal-overlay');
 
   // Login
-  loginView.addEventListener('submit', e => {
-    if (e.target.id === 'login-form') { e.preventDefault(); handleLogin(); }
+  loginView.addEventListener('submit', async e => {
+    if (e.target.id === 'login-form') { e.preventDefault(); await handleLogin(); }
   });
 
   // Dashboard clicks
   dash.addEventListener('click', handleDashboardClick);
 
   // Dashboard status select change
-  dash.addEventListener('change', e => {
+  dash.addEventListener('change', async e => {
     if (e.target.closest('.filter-estatus') || e.target.closest('.filter-destino')) {
-      applyFilters();
+      await applyFilters();
     } else if (e.target.closest('.status-select')) {
       const card = e.target.closest('[data-note-id]');
-      if (!card) return;
-      handleStatusChangeInit(parseInt(card.dataset.noteId), e.target.value, card);
+      const id = card ? parseInt(card.dataset.noteId) : NaN;
+      if (isNaN(id)) return;
+      await handleStatusChangeInit(id, e.target.value, card);
     }
   });
 
   // Search input (debounced)
-  const debouncedSearch = debounce(applyFilters, 280);
+  const debouncedSearch = debounce(async () => await applyFilters(), 280);
   dash.addEventListener('input', e => {
     if (e.target.closest('.filter-search')) debouncedSearch();
   });
@@ -99,16 +102,16 @@ function setupEventDelegation() {
   // Repartidor view
   const repartidor = document.getElementById('view-repartidor');
   repartidor.addEventListener('click', handleRepartidorClick);
-  repartidor.addEventListener('change', e => {
-    if (e.target.id === 'repartidor-sucursal') renderNotasRepartidor(e.target.value);
+  repartidor.addEventListener('change', async e => {
+    if (e.target.id === 'repartidor-sucursal') await renderNotasRepartidor(e.target.value);
   });
 
   // Modal
   modal.addEventListener('click', handleModalClick);
-  modal.addEventListener('submit', e => {
+  modal.addEventListener('submit', async e => {
     if (e.target.id === 'note-form') {
       e.preventDefault();
-      handleFormSubmit(e.submitter?.dataset.action ?? 'save');
+      await handleFormSubmit(e.submitter?.dataset.action ?? 'save');
     }
   });
 
@@ -157,7 +160,7 @@ function showLoginView() {
   document.getElementById('inp-user')?.focus();
 }
 
-function handleLogin() {
+async function handleLogin() {
   const form = document.getElementById('login-form');
   const username = form.querySelector('[name="username"]').value.trim();
   const password = form.querySelector('[name="password"]').value;
@@ -171,33 +174,33 @@ function handleLogin() {
   }
   currentSession = result.session;
   log.sessionStart(currentSession);
-  routeByRole();
+  await routeByRole();
 }
 
 // ─── Route por rol ───────────────────────────────────────────────────────────
-function routeByRole() {
-  if (currentSession.role === 'repartidor') { showRepartidor(); return; }
-  showDashboard();
+async function routeByRole() {
+  if (currentSession.role === 'repartidor') { await showRepartidor(); return; }
+  await showDashboard();
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-function showDashboard() {
+async function showDashboard() {
   // Render with ALL notes for this user — filters reset to default with new DOM
-  const notes = getBaseNotes();
+  const notes = await getBaseNotes();
   document.getElementById('view-dashboard').innerHTML = renderDashboardView(notes, currentSession);
   showView('dashboard');
 }
 
-function getBaseNotes() {
-  let notes = getNotes();
+async function getBaseNotes() {
+  let notes = await getNotes();
   if (!canSeeAll(currentSession)) {
     notes = notes.filter(n => n.destino === currentSession.destino);
   }
   return notes;
 }
 
-function getFilteredNotes() {
-  let notes = getBaseNotes();
+async function getFilteredNotes() {
+  let notes = await getBaseNotes();
   const statusFilter  = document.querySelector('.filter-estatus')?.value  ?? '';
   const destinoFilter = document.querySelector('.filter-destino')?.value  ?? '';
   const searchFilter  = (document.querySelector('.filter-search')?.value ?? '').trim().toLowerCase();
@@ -215,46 +218,47 @@ function getFilteredNotes() {
   return notes;
 }
 
-function applyFilters() {
-  refreshGrid(getFilteredNotes(), currentSession);
+async function applyFilters() {
+  const notes = await getFilteredNotes();
+  refreshGrid(notes, currentSession);
 }
 
 // ─── Dashboard click handler ──────────────────────────────────────────────────
-function handleDashboardClick(e) {
+async function handleDashboardClick(e) {
   const card   = e.target.closest('[data-note-id]');
-  const noteId = card ? parseInt(card.dataset.noteId) : null;
+  const noteId = card ? parseInt(card.dataset.noteId) : NaN;
 
   if (e.target.closest('.btn-logout'))         { handleLogout(); return; }
-  if (e.target.closest('.btn-nueva'))          { showForm(null); return; }
-  if (e.target.closest('.btn-ver') && noteId)  { showDetail(noteId); return; }
-  if (e.target.closest('.btn-editar') && noteId) { showForm(noteId); return; }
-  if (e.target.closest('.btn-eliminar') && noteId) { confirmDelete(noteId); return; }
+  if (e.target.closest('.btn-nueva'))          { await showForm(null); return; }
 
-  if (e.target.closest('.btn-priority-up') && noteId) {
-    moveNoteUp(noteId);
-    applyFilters();
-    return;
-  }
-  if (e.target.closest('.btn-priority-down') && noteId) {
-    moveNoteDown(noteId);
-    applyFilters();
+  if (isNaN(noteId)) {
+    if (e.target.closest('.btn-confirm-status')) {
+      const btn = e.target.closest('.btn-confirm-status');
+      const id = parseInt(btn.dataset.noteId);
+      if (!isNaN(id)) await handleConfirmStatus(id, btn.dataset.status);
+    }
     return;
   }
 
-  if (e.target.closest('.btn-confirm-status')) {
-    const btn = e.target.closest('.btn-confirm-status');
-    handleConfirmStatus(parseInt(btn.dataset.noteId), btn.dataset.status);
+  if (e.target.closest('.btn-ver'))  { await showDetail(noteId); return; }
+  if (e.target.closest('.btn-editar')) { await showForm(noteId); return; }
+  if (e.target.closest('.btn-eliminar')) { await confirmDelete(noteId); return; }
+
+  if (e.target.closest('.btn-priority-up')) {
+    await moveNoteUp(noteId);
+    await applyFilters();
     return;
   }
-  if (e.target.closest('.btn-cancel-status')) {
-    applyFilters();
+  if (e.target.closest('.btn-priority-down')) {
+    await moveNoteDown(noteId);
+    await applyFilters();
     return;
   }
 }
 
 // ─── Status change (planta) ──────────────────────────────────────────────────
-function handleStatusChangeInit(noteId, newStatus, cardEl) {
-  const note = getNote(noteId);
+async function handleStatusChangeInit(noteId, newStatus, cardEl) {
+  const note = await getNote(noteId);
   if (!note) return;
 
   if (CONFIG.confirmEditStatuses.includes(note.estatus)) {
@@ -271,22 +275,22 @@ function handleStatusChangeInit(noteId, newStatus, cardEl) {
       <button type="button" class="btn btn-sm btn-ghost btn-cancel-status">Cancelar</button>`;
     footer?.insertBefore(bar, footer.firstChild);
   } else {
-    updateNote(noteId, { estatus: newStatus }, currentSession);
-    applyFilters();
+    await updateNote(noteId, { estatus: newStatus }, currentSession);
+    await applyFilters();
     renderToast(`Estado: ${newStatus}`, 'success');
   }
 }
 
-function handleConfirmStatus(noteId, newStatus) {
-  updateNote(noteId, { estatus: newStatus }, currentSession);
-  applyFilters();
+async function handleConfirmStatus(noteId, newStatus) {
+  await updateNote(noteId, { estatus: newStatus }, currentSession);
+  await applyFilters();
   renderToast(`Estado cambiado a "${newStatus}"`, 'success');
 }
 
 // ─── Detail view ─────────────────────────────────────────────────────────────
-function showDetail(noteId) {
-  let note = getNote(noteId);
-  if (!note) { showDashboard(); return; }
+async function showDetail(noteId) {
+  let note = await getNote(noteId);
+  if (!note) { await showDashboard(); return; }
 
   // Lógica de auto-lectura y transición de estado para la planta
   if (currentSession.role === 'planta') {
@@ -302,37 +306,39 @@ function showDetail(noteId) {
     }
 
     if (Object.keys(updates).length > 0) {
-      updateNote(noteId, updates, currentSession);
-      note = getNote(noteId); // Refrescar datos
-      applyFilters(); // Disparar actualización de UI en background
+      const result = await updateNote(noteId, updates, currentSession);
+      if (result) note = result.new;
     }
   }
 
   currentDetailNoteId = noteId;
   document.getElementById('view-detail').innerHTML = renderDetailView(note, currentSession);
   showView('detail');
+  window.scrollTo(0, 0);
 }
 
 // ─── Detail click handler ────────────────────────────────────────────────────
-function handleDetailClick(e) {
-  if (e.target.closest('.btn-volver'))   { showDashboard(); return; }
+async function handleDetailClick(e) {
+  if (e.target.closest('.btn-volver'))   { await showDashboard(); return; }
   if (e.target.closest('.btn-imprimir')) { window.print(); return; }
   if (e.target.closest('.btn-editar')) {
     const btn = e.target.closest('.btn-editar');
-    showForm(parseInt(btn.dataset.noteId));
+    const id = parseInt(btn.dataset.noteId);
+    if (!isNaN(id)) await showForm(id);
     return;
   }
   if (e.target.closest('.image-selector-btn')) {
     const btn = e.target.closest('.image-selector-btn');
-    showImagePreview(parseInt(btn.dataset.imageIndex));
+    const idx = parseInt(btn.dataset.imageIndex);
+    if (!isNaN(idx)) await showImagePreview(idx);
     return;
   }
 }
 
 // ─── Note form ────────────────────────────────────────────────────────────────
-function showForm(noteId) {
+async function showForm(noteId) {
   editingNoteId = noteId !== undefined ? noteId : null;
-  const note = editingNoteId !== null ? getNote(editingNoteId) : null;
+  const note = editingNoteId !== null ? await getNote(editingNoteId) : null;
   pendingImages = note?.imagenes ? [...note.imagenes] : [];
   openModal(renderNoteForm(note, currentSession));
   document.getElementById('nf-fecha')?.focus();
@@ -361,7 +367,7 @@ async function handleFormSubmit(action) {
   fields.imagenes = [...pendingImages, ...newImages];
 
   if (editingNoteId !== null) {
-    const existing = getNote(editingNoteId);
+    const existing = await getNote(editingNoteId);
     if (existing && CONFIG.confirmEditStatuses.includes(existing.estatus)) {
       const diff = computeDiff(existing, fields);
       if (diff.length > 0) {
@@ -370,36 +376,40 @@ async function handleFormSubmit(action) {
         return;
       }
     }
-    const result = updateNote(editingNoteId, fields, currentSession);
+    const result = await updateNote(editingNoteId, fields, currentSession);
     if (result) log.noteUpdated(result.new);
     closeModal();
     if (action === 'preview') {
-      showDetail(editingNoteId);
+      await showDetail(editingNoteId);
     } else {
-      showDashboard();
+      await showDashboard();
       renderToast('Nota actualizada', 'success');
     }
     editingNoteId = null;
   } else {
-    const note = createNote(fields, currentSession);
+    const note = await createNote(fields, currentSession);
     log.noteCreated(note);
     closeModal();
     editingNoteId = null;
     if (action === 'preview') {
-      showDetail(note.id);
+      await showDetail(note.id);
     } else {
-      showDashboard();
+      await showDashboard();
       renderToast('Nota creada', 'success');
     }
   }
 }
 
 // ─── Modal click handler ──────────────────────────────────────────────────────
-function handleModalClick(e) {
+async function handleModalClick(e) {
   const overlay = document.getElementById('modal-overlay');
   if (e.target === overlay) { closeModal(); return; }
 
-  if (e.target.closest('.btn-cancelar-modal')) { closeModal(); return; }
+  // Corregido: capturar clics en botones de cancelar/cerrar modal
+  if (e.target.closest('.btn-cancelar-modal')) { 
+    closeModal(); 
+    return; 
+  }
 
   if (e.target.closest('.btn-remove-image')) {
     const btn     = e.target.closest('.btn-remove-image');
@@ -420,7 +430,7 @@ function handleModalClick(e) {
 
   if (e.target.closest('.btn-volver-editar')) {
     pendingFormData = null;
-    showForm(editingNoteId);
+    await showForm(editingNoteId);
     return;
   }
 
@@ -428,56 +438,60 @@ function handleModalClick(e) {
     if (!pendingFormData) return;
     const { noteId, fields, action } = pendingFormData;
     pendingFormData = null;
-    updateNote(noteId, fields, currentSession);
+    await updateNote(noteId, fields, currentSession);
     closeModal();
     if (action === 'preview') {
-      showDetail(noteId);
+      await showDetail(noteId);
     } else {
-      showDashboard();
+      await showDashboard();
       renderToast('Nota actualizada', 'success');
     }
     editingNoteId = null;
     return;
   }
 
+  // Corregido: asegurar captura de confirmación de eliminación
   if (e.target.closest('.btn-confirmar-delete')) {
     const btn    = e.target.closest('.btn-confirmar-delete');
     const noteId = parseInt(btn.dataset.noteId);
-    deleteNote(noteId);
+    if (isNaN(noteId)) return;
+    await deleteNote(noteId);
     closeModal();
-    showDashboard();
+    await showDashboard();
     renderToast('Nota eliminada', 'info');
     return;
   }
 }
 
 // ─── Repartidor view ─────────────────────────────────────────────────────────
-function showRepartidor() {
+async function showRepartidor() {
   document.getElementById('view-repartidor').innerHTML = renderRepartidorView(currentSession);
   showView('repartidor');
 }
 
-function renderNotasRepartidor(sucursal) {
+async function renderNotasRepartidor(sucursal) {
   const container = document.getElementById('repartidor-notes');
   if (!container) return;
   if (!sucursal) {
     container.innerHTML = '<div class="repartidor-empty">Selecciona una sucursal para ver sus notas.</div>';
     return;
   }
-  const notes = getNotes().filter(n => n.destino === sucursal && n.estatus !== 'Cancelada');
+  const allNotes = await getNotes();
+  const notes = allNotes.filter(n => n.destino === sucursal && n.estatus !== 'Cancelada');
   container.innerHTML = notes.length > 0
     ? notes.map(renderRepartidorCard).join('')
     : '<div class="repartidor-empty">Sin notas activas para esta sucursal.</div>';
 }
 
-function handleRepartidorClick(e) {
+async function handleRepartidorClick(e) {
   if (e.target.closest('.btn-logout')) { handleLogout(); return; }
 
   const card = e.target.closest('.repartidor-card');
   if (!card) return;
 
   const noteId  = parseInt(card.dataset.noteId);
-  const updated = toggleTomada(noteId, currentSession);
+  if (isNaN(noteId)) return;
+  const updated = await toggleTomada(noteId, currentSession);
   if (!updated) return;
 
   // Reemplazar solo esa card en el DOM
@@ -489,8 +503,8 @@ function handleRepartidorClick(e) {
 }
 
 // ─── Image preview overlay ────────────────────────────────────────────────────
-function showImagePreview(index) {
-  const note = getNote(currentDetailNoteId);
+async function showImagePreview(index) {
+  const note = await getNote(currentDetailNoteId);
   if (!note?.imagenes?.[index]) return;
   const img = note.imagenes[index];
 
@@ -512,8 +526,8 @@ function showImagePreview(index) {
 }
 
 // ─── Delete confirm ───────────────────────────────────────────────────────────
-function confirmDelete(noteId) {
-  const note = getNote(noteId);
+async function confirmDelete(noteId) {
+  const note = await getNote(noteId);
   if (!note) return;
   openModal(renderDeleteConfirm(note));
 }

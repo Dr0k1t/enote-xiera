@@ -1,0 +1,10 @@
+{"ts":"2026-05-13T06:36:39.226Z","type":"session_start","user":"admin1","role":"admin"}
+{"ts":"2026-05-13T06:36:40.928Z","type":"session_start","user":"planta1","role":"planta"}
+{"ts":"2026-05-13T06:36:41.062Z","type":"session_start","user":"sucursal1","role":"sucursal"}
+{"ts":"2026-05-13T06:39:36.456Z","type":"session_start","user":"admin1","role":"admin"}
+{"ts":"2026-05-13T06:39:38.138Z","type":"session_start","user":"planta1","role":"planta"}
+{"ts":"2026-05-13T06:39:38.326Z","type":"session_start","user":"sucursal1","role":"sucursal"}
+{"ts":"2026-05-13T06:39:38.658Z","type":"note_created","noteId":8,"noteSizeBytes":405,"imagenes":0}
+{"ts":"2026-05-13T06:39:38.820Z","type":"session_start","user":"repartidor1","role":"repartidor"}
+{"ts":"2026-05-13T06:39:39.290Z","type":"note_tomada","noteId":5,"tomada":true,"tomadaPor":"repartidor1"}
+{"ts":"2026-05-13T06:39:39.742Z","type":"note_tomada","noteId":5,"tomada":false,"tomadaPor":null}

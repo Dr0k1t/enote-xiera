@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\extre\\\\Documentos\\\\Enote\\\\enote-xiera\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Sort-Object Type, Name)",
+      "PowerShell(ls \"C:\\\\Users\\\\extre\\\\Documentos\\\\Enote\\\\enote-xiera\" -Force -File | ForEach-Object { $_.Name })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\extre\\\\Documentos\\\\Second Brain\" -Recurse -Depth 3 -Filter \"raw_sources\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object FullName)",
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh repo *)",
+      "Bash(dir C:\\\\Users\\\\extre\\\\Documentos\\\\Second Brain\\\\wiki *)",
+      "Bash(dir \"C:\\\\Users\\\\extre\\\\Documentos\\\\Second Brain\\\\wiki\\\\sources\")",
+      "Bash(dir \"C:\\\\Users\\\\extre\\\\Documentos\\\\Second Brain\\\\wiki\\\\entidades\")",
+      "Bash(dir \"C:\\\\Users\\\\extre\\\\Documentos\\\\Second Brain\\\\wiki\\\\conceptos\")",
+      "Bash(git checkout *)",
+      "Bash(gh pr create --title 'docs: Sprint de Producción v1.2 — Enote Xiera' --body ' *)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Sort-Object FullName)",
+      "Bash(node C:\\\\Users\\\\extre\\\\Documentos\\\\integracion\\\\scripts\\\\invoke-opencode-plan.js *)",
+      "Bash(node *)",
+      "Bash(opencode run *)",
+      "Bash(Get-Content *)",
+      "Bash(tasklist /FI \"IMAGENAME eq node.exe\")",
+      "Bash(ls /tmp/opencode-plan*)",
+      "Read(//c/Users/extre/AppData/Local/Temp/**)",
+      "Bash(rm \"C:/Users/extre/Documentos/Second Brain/wiki/entidades/enote-security-audit-v1.0.md\")",
+      "Bash(rm \"C:/Users/extre/Documentos/Second Brain/wiki/entidades/enote-cotizacion-v1.2.md\")",
+      "Bash(rm \"C:/Users/extre/Documentos/Second Brain/wiki/entidades/enote-sprint-v1.2.md\")",
+      "Bash(gh pr create --title 'docs: auditoría de seguridad v1.0 + sprint actualizado' --body ' *)",
+      "Bash(gh pr *)",
+      "Bash(grep -E \"^-.*\\\\.\\(js|json\\)$\")",
+      "Bash(echo \"Server PID: $!\")",
+      "Bash(Start-Process -NoNewWindow node -ArgumentList \"server.js\" -PassThru)",
+      "Bash(Select-Object Id)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(ENOTE_URL=http://localhost:3000 npm run audit)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "(planear|planificar|analizar|arquitecto|diseña|solution|genera un plan|haz un plan)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"Detectada solicitud de planificación. Usa el comando /plan-with-opencode para invocar a OpenCode como arquitecto.\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
