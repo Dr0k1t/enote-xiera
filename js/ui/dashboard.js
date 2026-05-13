@@ -1,0 +1,141 @@
+import { CONFIG } from '../config.js';
+import { esc, formatFecha, statusClass, role, renderHeader } from './shared.js';
+
+/**
+ * Renderiza la vista principal del panel de control.
+ */
+export function renderDashboardView(notes, session) {
+  const r = role(session);
+  const destinoFilter = r.canSeeAll ? `
+    <select class="form-select filter-destino" aria-label="Filtrar por destino">
+      <option value="">Todos los destinos</option>
+      ${CONFIG.locations.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('')}
+    </select>` : '';
+
+  const createBtn = r.canCreate ? `
+    <div class="toolbar-actions">
+      <button class="btn btn-primary btn-nueva" aria-label="Crear nueva nota">+ Nueva nota</button>
+    </div>` : '';
+
+  const gridContent = notes.length > 0
+    ? notes.map(n => renderNoteCard(n, session)).join('')
+    : renderEmptyState();
+
+  return `
+  ${renderHeader(session)}
+  <main class="dashboard-main">
+    <section class="dashboard-toolbar">
+      <div class="toolbar-filters">
+        <input class="form-input filter-search" type="search" placeholder="Buscar nota…" aria-label="Buscar por número, producto o destino">
+        <select class="form-select filter-estatus" aria-label="Filtrar por estado">
+          <option value="">Todos los estados</option>
+          ${CONFIG.statuses.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+        </select>
+        ${destinoFilter}
+      </div>
+      ${createBtn}
+    </section>
+    <section class="notes-grid" id="notes-grid">
+      ${gridContent}
+    </section>
+  </main>`;
+}
+
+/**
+ * Actualiza la rejilla de notas sin redibujar todo el dashboard.
+ */
+export function refreshGrid(notes, session) {
+  const grid = document.getElementById('notes-grid');
+  if (!grid) return;
+  grid.innerHTML = notes.length > 0
+    ? notes.map(n => renderNoteCard(n, session)).join('')
+    : renderEmptyState();
+}
+
+/**
+ * Renderiza el estado vacío cuando no hay notas.
+ */
+function renderEmptyState() {
+  return `
+  <div class="empty-state">
+    <div class="empty-state__icon" aria-hidden="true">📋</div>
+    <h3 class="empty-state__title">Sin notas</h3>
+    <p class="empty-state__desc">No hay notas que coincidan con los filtros o el destino.</p>
+  </div>`;
+}
+
+/**
+ * Renderiza una tarjeta individual de nota.
+ */
+export function renderNoteCard(note, session) {
+  const r = role(session);
+  const badge = `<span class="badge badge--${esc(statusClass(note.estatus))}">${esc(note.estatus)}</span>`;
+
+  // Clases de indicadores — solo para rol planta
+  const isPlanta = session.role === 'planta';
+  const isUnreadNew      = isPlanta && !!note.unreadNew;
+  const isUnreadModified = isPlanta && !!note.unreadModified;
+  let cardClass = 'note-card';
+  if (isUnreadNew)      cardClass += ' indicator-new';
+  if (isUnreadModified) cardClass += ' indicator-modified';
+
+  let footer;
+  if (isPlanta) {
+    let statusCtrl;
+    if (note.estatus === 'Cancelada') {
+      statusCtrl = `<span class="status-static-text">Cancelada</span>`;
+    } else if (note.estatus === 'Nueva') {
+      statusCtrl = `<span class="status-static-text">→ Abre para iniciar</span>`;
+    } else {
+      statusCtrl = renderStatusSelector(note);
+    }
+    footer = `
+    <div class="note-card__status-row">${statusCtrl}</div>
+    <div class="priority-controls">
+      <button class="btn btn-ghost btn-icon btn-priority-up" title="Subir prioridad" aria-label="Subir prioridad">↑</button>
+      <button class="btn btn-ghost btn-icon btn-priority-down" title="Bajar prioridad" aria-label="Bajar prioridad">↓</button>
+    </div>
+    <button class="btn btn-secondary btn-sm btn-ver" aria-label="Ver detalle de nota ${esc(note.numero)}">Ver</button>`;
+  } else {
+    footer = `
+    <div class="note-card__actions">
+      <button class="btn btn-ghost btn-sm btn-ver" aria-label="Ver detalle">Ver</button>
+      <button class="btn btn-secondary btn-sm btn-editar" aria-label="Editar nota">Editar</button>
+      <button class="btn btn-ghost btn-sm btn-eliminar" style="color:#c0392b" aria-label="Eliminar nota">Eliminar</button>
+    </div>`;
+  }
+
+  const prodCount = note.productos.length;
+  const prodLabel = prodCount === 1 ? '1 producto' : `${prodCount} productos`;
+
+  return `
+  <article class="${cardClass}" data-note-id="${note.id}">
+    <div class="note-card__top">
+      <div class="note-card__numero">${esc(note.numero)}</div>
+      ${badge}
+    </div>
+    <div class="note-card__meta">
+      <div class="note-card__meta-row">
+        <span class="meta-icon" aria-hidden="true">📅</span> ${esc(formatFecha(note.fecha))}
+      </div>
+      <div class="note-card__meta-row">
+        <span class="meta-icon" aria-hidden="true">📍</span> ${esc(note.destino)}
+      </div>
+    </div>
+    <div class="note-card__prods">
+      <strong>${esc(prodLabel)}:</strong> ${esc(note.productos.map(p => p.nombre).join(', '))}
+    </div>
+    <footer class="note-card__footer">${footer}</footer>
+  </article>`;
+}
+
+/**
+ * Renderiza el selector de estado para la planta.
+ */
+function renderStatusSelector(note) {
+  const allowedStatuses = ['En Proceso', 'Completada'];
+  const opts = allowedStatuses.map(s =>
+    `<option value="${esc(s)}" ${s === note.estatus ? 'selected' : ''}>${esc(s)}</option>`
+  ).join('');
+  return `<select class="form-select status-select" aria-label="Cambiar estado de la nota" style="font-size:0.8rem;padding:4px 28px 4px 8px">${opts}</select>`;
+}

@@ -2,29 +2,34 @@ import { CONFIG } from './config.js';
 
 const P = CONFIG.storagePrefix;
 
+const delay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms));
+
 function _key(k)    { return P + k; }
 function _load(k, d){ try { return JSON.parse(localStorage.getItem(_key(k))) ?? d; } catch { return d; } }
 function _save(k, v){ localStorage.setItem(_key(k), JSON.stringify(v)); }
 
 // ─── Auto-increment ──────────────────────────────────────────────────────────
-function getNextId() {
+async function getNextId() {
+  await delay(10);
   const next = (_load('nextId', 0)) + 1;
   _save('nextId', next);
   return next;
 }
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
-export function getNotes() {
+export async function getNotes() {
+  await delay();
   const notes = _load('notes', []);
   return notes.slice().sort((a, b) => a.prioridad - b.prioridad);
 }
 
-export function getNote(id) {
+export async function getNote(id) {
+  await delay();
   return _load('notes', []).find(n => n.id === id) ?? null;
 }
 
-export function createNote(fields, user) {
-  const id = getNextId();
+export async function createNote(fields, user) {
+  const id = await getNextId();
   const now = new Date().toISOString();
   const note = {
     id,
@@ -52,7 +57,8 @@ export function createNote(fields, user) {
   return note;
 }
 
-export function updateNote(id, fields, user) {
+export async function updateNote(id, fields, user) {
+  await delay();
   const notes = _load('notes', []);
   const idx = notes.findIndex(n => n.id === id);
   if (idx === -1) return null;
@@ -90,7 +96,8 @@ export function updateNote(id, fields, user) {
   return { old: oldNote, new: updated };
 }
 
-export function deleteNote(id) {
+export async function deleteNote(id) {
+  await delay();
   const notes = _load('notes', []);
   const filtered = notes.filter(n => n.id !== id);
   if (filtered.length === notes.length) return false;
@@ -99,21 +106,22 @@ export function deleteNote(id) {
 }
 
 // ─── Priority reorder ────────────────────────────────────────────────────────
-export function moveNoteUp(id) {
-  const notes = getNotes(); // sorted by prioridad
+export async function moveNoteUp(id) {
+  const notes = await getNotes(); // sorted by prioridad
   const idx = notes.findIndex(n => n.id === id);
   if (idx <= 0) return;
-  _swapPrioridad(notes, idx - 1, idx);
+  await _swapPrioridad(notes, idx - 1, idx);
 }
 
-export function moveNoteDown(id) {
-  const notes = getNotes();
+export async function moveNoteDown(id) {
+  const notes = await getNotes();
   const idx = notes.findIndex(n => n.id === id);
   if (idx === -1 || idx >= notes.length - 1) return;
-  _swapPrioridad(notes, idx, idx + 1);
+  await _swapPrioridad(notes, idx, idx + 1);
 }
 
-function _swapPrioridad(sortedNotes, i, j) {
+async function _swapPrioridad(sortedNotes, i, j) {
+  await delay(50);
   const allNotes = _load('notes', []);
   const pI = sortedNotes[i].prioridad;
   const pJ = sortedNotes[j].prioridad;
@@ -125,7 +133,8 @@ function _swapPrioridad(sortedNotes, i, j) {
 }
 
 // ─── Tomada toggle (repartidor) ──────────────────────────────────────────────
-export function toggleTomada(id, user) {
+export async function toggleTomada(id, user) {
+  await delay();
   const notes = _load('notes', []);
   const idx = notes.findIndex(n => n.id === id);
   if (idx === -1) return null;
