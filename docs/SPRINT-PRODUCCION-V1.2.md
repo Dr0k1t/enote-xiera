@@ -435,13 +435,50 @@ INSERT INTO profiles (id, username, role, destino) VALUES
 
 ---
 
-### Tarea 8 — Verificar Semana 2 _(manual, ~2 h)_
+### Tarea 9 — Compresión de imágenes en notas _(código, ~3 h)_
+
+> **Contexto:** Plan gratuito de Supabase ofrece 1 GB storage y 5 GB bandwidth. Sin compresión, ~15 notas/día con 3 fotos excedería ambos límites.
+
+- [ ] Crear módulo `js/imageUtils.js` con función `compressImage(file, maxWidth = 800, quality = 0.7)`:
+  - Usar `Canvas` API del navegador para redimensionar y comprimir
+  - Convertir a JPEG con calidad 70% (reduje ~4 MB → ~250 KB por imagen)
+  - Retornar `Blob` listo para upload
+- [ ] Modificar `ui.js → renderNoteForm()`: agregar `<input type="file" multiple accept="image/*">` para seleccionar fotos
+- [ ] En el manejo del submit del formulario:
+  - Por cada imagen seleccionada: llamar `compressImage()` antes de crear la nota
+  - Guardar las imágenes comprimidas en Supabase Storage (bucket `note-images`)
+  - Guardar las URLs en el campo `productos` o crear nuevo campo `imagenes` JSONB en la tabla `notes`
+- [ ] En el schema SQL (Semana 1, Tarea 1): agregar columna `imagenes TEXT[]` a la tabla `notes`
+- [ ] En `ui.js → renderDetailView()`: mostrar miniaturas de las imágenes asociadas a la nota
+
+**Referencia técnica:**
+```js
+// js/imageUtils.js
+export async function compressImage(file, maxWidth = 800, quality = 0.7) {
+  const img = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const ratio = Math.min(maxWidth / img.width, 1);
+  canvas.width = img.width * ratio;
+  canvas.height = img.height * ratio;
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+}
+```
+
+**Impacto en storage (15 notas/día, 3 fotos, 30 días):**
+- Sin comprimir: 5.4 GB/mes → ❌ Excede plan gratuito
+- Comprimido: ~340 MB/mes → ✅ Entra en 1 GB
+
+---
+
+### Tarea 10 — Verificar Semana 2 _(manual, ~2 h)_
 
 - [ ] Copiar `SUPABASE_URL` y `SUPABASE_ANON_KEY` a `js/supabase.js` (o `js/env.js`)
 - [ ] Probar login de **cada uno de los 8 usuarios** por separado
 - [ ] Probar crear nota como `admin` y verificar que aparece en Supabase Table Editor
 - [ ] Probar: activar modo avión en Chrome → login como `sucursal1` → crear nota → reconectar → verificar sync
 - [ ] Probar: activar modo avión → login como `planta` → verificar notas en cache
+- [ ] Probar subir 3 fotos en una nota → verificar tamaño en Storage (< 300 KB cada una)
 
 **Fecha real de completado:** ___________  
 **Notas / Bloqueadores:**
@@ -686,11 +723,11 @@ Crear un PDF de 1 página (o imprimir desde `window.print()` un HTML simple) con
 |--------|-----------------|--------------|
 | 0 — Pre-arranque | ~2 h | ___ h |
 | 1 — Infraestructura | ~12 h | ___ h |
-| 2 — Supabase + Offline | ~26 h | ___ h |
+| 2 — Supabase + Offline | ~29 h (+3h imágenes) | ___ h |
 | 3 — Repartidor + Pruebas | ~22 h | ___ h |
 | 4 — Deploy + Entrega | ~18 h | ___ h |
 | 5 — Buffer | ~10 h (reserva) | ___ h |
-| **Total** | **~90 h** | **___ h** |
+| **Total** | **~93 h** | **___ h** |
 
 ---
 

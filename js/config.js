@@ -12,13 +12,15 @@ export const CONFIG = {
   confirmEditStatuses: ['En Proceso', 'Completada'],
 
   users: [
-    { username: 'admin1',  password: 'pass', role: 'admin',  destino: null },
-    { username: 'planta1', password: 'pass', role: 'planta', destino: 'Planta de Producción' },
+    { username: 'admin1',    password: 'pass', role: 'admin',    destino: null },
+    { username: 'planta1',   password: 'pass', role: 'planta',   destino: 'Planta de Producción' },
+    { username: 'sucursal1', password: 'pass', role: 'sucursal', destino: 'Sucursal' },
   ],
 
   roles: {
-    admin:  { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: true  },
-    planta: { canCreate: false, canEdit: false,  canDelete: false, canSeeAll: false },
+    admin:    { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: true  },
+    planta:   { canCreate: false, canEdit: false, canDelete: false, canSeeAll: false },
+    sucursal: { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: false },
   },
 
   noteNumberFormat: (id) => `#${String(id).padStart(4, '0')}`,

@@ -36,11 +36,12 @@ SPA de un solo HTML (`index.html` → `js/app.js` como ES module). Sin framework
 
 | Archivo | Rol |
 |---------|-----|
-| `app.js` | Orquestador. Estado global (`currentSession`, `editingNoteId`, `pendingFormData`), delegación de eventos, coordinación de vistas. |
+| `app.js` | Orquestador. Estado global (`currentSession`, `editingNoteId`, `pendingFormData`, `pendingImages`, `currentDetailNoteId`), delegación de eventos, coordinación de vistas. |
 | `config.js` | Fuente de verdad de constantes: usuarios demo, roles, estatus válidos, textos UI, nombre del cliente. |
 | `store.js` | CRUD sobre `localStorage` (prefijo `enote_`). Toda persistencia pasa por aquí. |
 | `auth.js` | Sesión y permisos RBAC. Valida contra `CONFIG.users`. Helpers: `canCreate()`, `canEdit()`, `canDelete()`, `canSeeAll()`. |
-| `ui.js` | Generadores de templates HTML como strings. Rendering, toasts, diff view, formulario de productos dinámico. |
+| `ui.js` | Generadores de templates HTML como strings. Rendering, toasts, diff view, formulario de productos dinámico, upload de imágenes. |
+| `imageUtils.js` | Compresión de imágenes. `compressImage(file)` → Promise con dataURL WebP 40%. Usa `canvas.toDataURL()` (no blob URLs) para persistencia en localStorage. |
 
 ### Flujo de datos
 
@@ -61,7 +62,7 @@ Evento DOM → delegación en app.js → handler → store.js (localStorage)
 
 **`ui.js`:** `showView(id)`, `openModal(html)`, `closeModal()`, `renderToast(msg, type)`, `renderDashboardView()`, `refreshGrid()`, `renderNoteForm()`, `renderDetailView()`, `renderDiffView()`, `renderDeleteConfirm()`, `getFormData()`, `esc(str)`.
 
-**`app.js` handlers:** `handleLogin()`, `showDashboard()`, `showDetail(noteId)`, `showForm(noteId)`, `handleFormSubmit(action)`, `getBaseNotes()`, `getFilteredNotes()`, `computeDiff(oldNote, newFields)`, `validateForm(fields)`.
+**`app.js` handlers:** `handleLogin()`, `showDashboard()`, `showDetail(noteId)`, `showForm(noteId)`, `handleFormSubmit(action)` (async), `getBaseNotes()`, `getFilteredNotes()`, `computeDiff(oldNote, newFields)`, `validateForm(fields)`, `showImagePreview(index)`.
 
 ### CSS (`css/`)
 
@@ -91,6 +92,7 @@ Evento DOM → delegación en app.js → handler → store.js (localStorage)
   productos,           // [{ nombre, cantidad, unidad }]
   estatus,             // 'Nueva' | 'En Proceso' | 'Completada' | 'Cancelada'
   observaciones,
+  imagenes,            // [{ id, url, width, height, nombre }] — dataURL WebP base64, máx 3
   unreadNew,           // bool — planta no ha visto la nota nueva
   unreadModified,      // bool — admin editó en estado 'En Proceso'; planta no vio el cambio
   prioridad,           // int — orden en dashboard (menor = primero)
@@ -101,16 +103,17 @@ Evento DOM → delegación en app.js → handler → store.js (localStorage)
 
 `unreadNew` y `unreadModified` no están en el schema del ROADMAP-V1.2; deberán añadirse al SQL al migrar.
 
-## Bug conocido en `auth.js`
+## Bug en `auth.js` — CORREGIDO
 
-`clearSession()` (línea 17) llama `sessionStorage.removeItem(SESSION_KEY)` pero `setSession()` escribe en `localStorage`. El logout no borra la sesión. Fix: cambiar a `localStorage.removeItem(SESSION_KEY)`.
+`clearSession()` usaba `sessionStorage.removeItem(SESSION_KEY)` pero `setSession()` escribe en `localStorage`. El logout no borraba la sesión. Corregido en la implementación de imágenes (v1.1-local).
 
 ## Usuarios demo (`config.js`)
 
-| username | password | role | destino |
-|----------|----------|------|---------|
-| admin1 | pass | admin | null (ve todo) |
-| planta1 | pass | planta | 'Planta de Producción' |
+| username | password | role | destino | permisos imagen |
+|----------|----------|------|---------|-----------------|
+| admin1 | pass | admin | null (ve todo) | crear, editar, eliminar, ver |
+| planta1 | pass | planta | 'Planta de Producción' | solo ver |
+| sucursal1 | pass | sucursal | 'Sucursal' | crear, editar, eliminar, ver |
 
 ## Migración v1.2 (Producción)
 

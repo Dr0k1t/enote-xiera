@@ -248,7 +248,8 @@ a { color: var(--color-primary); text-decoration: none; }
   color: var(--color-text-muted);
 }
 
-.role-chip--admin { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+.role-chip--admin    { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+.role-chip--sucursal { background: #1A5C32; color: white; border-color: #1A5C32; }
 
 /* === DASHBOARD === */
 .dashboard-main {
@@ -838,6 +839,145 @@ a { color: var(--color-primary); text-decoration: none; }
 @keyframes toastIn {
   from { transform: translateX(120%); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* === FORM HINTS === */
+.form-label-hint {
+  font-size: 0.8em;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+/* === IMAGE UPLOAD (Form) === */
+.image-file-input {
+  padding: var(--space-2) var(--space-3);
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.image-previews {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.image-preview-item {
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview-item img {
+  display: block;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.btn-remove-image {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #c0392b;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+  padding: 0;
+  transition: background var(--transition-fast);
+}
+
+.btn-remove-image:hover { background: #a93226; }
+
+/* === DETAIL LAYOUT (with image panel) === */
+.detail-layout {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.detail-layout .detail-card {
+  flex: 1;
+  min-width: 0;
+}
+
+/* === IMAGE SELECTOR PANEL (Detail view) === */
+.image-selector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 110px;
+  padding-top: var(--space-2);
+}
+
+.image-selector-title {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.image-selector-btn {
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+}
+
+/* === IMAGE PREVIEW OVERLAY === */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 24, 16, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  cursor: zoom-out;
+}
+
+.image-preview-container {
+  position: relative;
+  cursor: default;
+}
+
+.image-preview-container img {
+  display: block;
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-modal);
+}
+
+.btn-close-preview {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-warm-white);
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-border);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
 }
 
 /* === DIVIDER === */

@@ -34,8 +34,9 @@ export function createNote(fields, user) {
     productos:     fields.productos.filter(p => p.nombre.trim()),
     observaciones: (fields.observaciones || '').trim(),
     estatus:       'Nueva',
-    unreadNew:     true,  // Agregado
-    unreadModified: false, // Agregado
+    imagenes:      fields.imagenes || [],
+    unreadNew:     true,
+    unreadModified: false,
     creadoPor:     user.username,
     creadoEn:      now,
     modificadoPor: user.username,
@@ -72,6 +73,7 @@ export function updateNote(id, fields, user) {
     ...(fields.productos    !== undefined && { productos: fields.productos.filter(p => p.nombre.trim()) }),
     ...(fields.observaciones!== undefined && { observaciones: fields.observaciones.trim() }),
     ...(fields.estatus      !== undefined && { estatus: fields.estatus }),
+    ...(fields.imagenes     !== undefined && { imagenes: fields.imagenes }),
     unreadNew: newUnreadNew,
     unreadModified: newUnreadModified,
     modificadoPor: user.username,

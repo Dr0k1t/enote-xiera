@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js';
 import { getNotes, getNote, createNote, updateNote, deleteNote, moveNoteUp, moveNoteDown, seedDemoNotes } from './store.js';
 import { login, clearSession, requireAuth, canSeeAll } from './auth.js';
+import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import {
   showView, openModal, closeModal, renderToast,
   renderLoginView, renderDashboardView, refreshGrid,
@@ -10,9 +11,11 @@ import {
 } from './ui.js';
 
 // ─── Module state ─────────────────────────────────────────────────────────────
-let currentSession = null;
-let editingNoteId   = null;
-let pendingFormData = null;
+let currentSession     = null;
+let editingNoteId      = null;
+let pendingFormData    = null;
+let pendingImages      = [];   // imágenes del formulario activo (existing - removed)
+let currentDetailNoteId = null;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 init();
@@ -96,6 +99,21 @@ function setupEventDelegation() {
     if (e.target.id === 'note-form') {
       e.preventDefault();
       handleFormSubmit(e.submitter?.dataset.action ?? 'save');
+    }
+  });
+
+  // File input: show count of selected files
+  modal.addEventListener('change', e => {
+    if (e.target.id === 'nf-imagenes') {
+      const fileCount = e.target.files.length;
+      const counter   = document.getElementById('image-counter');
+      const total     = pendingImages.length + fileCount;
+      if (counter) {
+        if (total > 0) {
+          counter.textContent = `${total}/3 imagen(es) (${fileCount} nueva(s) seleccionada(s))`;
+          counter.style.display = '';
+        }
+      }
     }
   });
 
@@ -273,6 +291,7 @@ function showDetail(noteId) {
     }
   }
 
+  currentDetailNoteId = noteId;
   document.getElementById('view-detail').innerHTML = renderDetailView(note, currentSession);
   showView('detail');
 }
@@ -286,19 +305,43 @@ function handleDetailClick(e) {
     showForm(parseInt(btn.dataset.noteId));
     return;
   }
+  if (e.target.closest('.image-selector-btn')) {
+    const btn = e.target.closest('.image-selector-btn');
+    showImagePreview(parseInt(btn.dataset.imageIndex));
+    return;
+  }
 }
 
 // ─── Note form ────────────────────────────────────────────────────────────────
 function showForm(noteId) {
   editingNoteId = noteId !== undefined ? noteId : null;
   const note = editingNoteId !== null ? getNote(editingNoteId) : null;
+  pendingImages = note?.imagenes ? [...note.imagenes] : [];
   openModal(renderNoteForm(note, currentSession));
   document.getElementById('nf-fecha')?.focus();
 }
 
-function handleFormSubmit(action) {
+async function handleFormSubmit(action) {
   const fields = getFormData();
   if (!fields || !validateForm(fields)) return;
+
+  // Comprimir nuevas imágenes y combinar con las que sobreviven la edición
+  const imageInput = document.getElementById('nf-imagenes');
+  let newImages = [];
+  if (imageInput && imageInput.files.length > 0) {
+    const total = pendingImages.length + imageInput.files.length;
+    if (total > MAX_IMAGES_PER_NOTE) {
+      renderToast(`Máximo ${MAX_IMAGES_PER_NOTE} imágenes por nota`, 'error');
+      return;
+    }
+    try {
+      newImages = await Promise.all(Array.from(imageInput.files).map(compressImage));
+    } catch (err) {
+      renderToast(err.message, 'error');
+      return;
+    }
+  }
+  fields.imagenes = [...pendingImages, ...newImages];
 
   if (editingNoteId !== null) {
     const existing = getNote(editingNoteId);
@@ -339,6 +382,23 @@ function handleModalClick(e) {
 
   if (e.target.closest('.btn-cancelar-modal')) { closeModal(); return; }
 
+  if (e.target.closest('.btn-remove-image')) {
+    const btn     = e.target.closest('.btn-remove-image');
+    const imageId = btn.dataset.imageId;
+    pendingImages = pendingImages.filter(img => img.id !== imageId);
+    btn.closest('.image-preview-item').remove();
+    const counter = document.getElementById('image-counter');
+    if (counter) {
+      if (pendingImages.length > 0) {
+        counter.textContent = `${pendingImages.length}/3 imagen(es) adjunta(s)`;
+        counter.style.display = '';
+      } else {
+        counter.style.display = 'none';
+      }
+    }
+    return;
+  }
+
   if (e.target.closest('.btn-volver-editar')) {
     pendingFormData = null;
     showForm(editingNoteId);
@@ -370,6 +430,29 @@ function handleModalClick(e) {
     renderToast('Nota eliminada', 'info');
     return;
   }
+}
+
+// ─── Image preview overlay ────────────────────────────────────────────────────
+function showImagePreview(index) {
+  const note = getNote(currentDetailNoteId);
+  if (!note?.imagenes?.[index]) return;
+  const img = note.imagenes[index];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-preview-overlay';
+  overlay.innerHTML = `
+    <div class="image-preview-container">
+      <button class="btn btn-ghost btn-close-preview" aria-label="Cerrar">✕</button>
+    </div>`;
+
+  const imgEl = document.createElement('img');
+  imgEl.src = img.url;
+  imgEl.alt = `Imagen ${index + 1}`;
+  overlay.querySelector('.image-preview-container').appendChild(imgEl);
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) overlay.remove(); });
+  overlay.querySelector('.btn-close-preview').addEventListener('click', () => overlay.remove());
 }
 
 // ─── Delete confirm ───────────────────────────────────────────────────────────

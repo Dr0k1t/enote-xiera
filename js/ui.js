@@ -27,7 +27,7 @@ export function formatTs(iso) {
   });
 }
 
-function role(session) { return CONFIG.roles[session.role] ?? {}; }
+function role(session) { return CONFIG.roles[session?.role] ?? {}; }
 
 // ─── View router ─────────────────────────────────────────────────────────────
 
@@ -98,7 +98,8 @@ export function renderLoginView() {
 // ─── Header ──────────────────────────────────────────────────────────────────
 
 function renderHeader(session) {
-  const chipClass = session.role === 'admin' ? 'role-chip role-chip--admin' : 'role-chip';
+  const chipClasses = { admin: 'role-chip role-chip--admin', sucursal: 'role-chip role-chip--sucursal' };
+  const chipClass = chipClasses[session.role] ?? 'role-chip';
   return `
   <header class="app-header">
     <div class="header-brand">
@@ -242,6 +243,37 @@ function renderStatusSelector(note, session) {
   return `<select class="form-select status-select" style="font-size:0.8rem;padding:4px 28px 4px 8px">${opts}</select>`;
 }
 
+// ─── Image upload section (used by renderNoteForm) ───────────────────────────
+
+function renderImageUploadSection(note, r) {
+  const canUpload = r.canCreate || r.canEdit;
+  const existing  = note?.imagenes || [];
+
+  const thumbs = existing.map((img, idx) => `
+    <div class="image-preview-item" data-image-id="${esc(img.id)}">
+      <img src="${esc(img.url)}" alt="Imagen ${idx + 1}" width="60" height="60" style="object-fit:cover;border-radius:4px;">
+      ${canUpload ? `<button type="button" class="btn-remove-image" data-image-id="${esc(img.id)}" aria-label="Eliminar imagen ${idx + 1}">✕</button>` : ''}
+    </div>`).join('');
+
+  if (!canUpload) {
+    if (!existing.length) return '';
+    return `
+    <div class="form-group">
+      <label class="form-label">Imágenes adjuntas</label>
+      <div class="image-previews">${thumbs}</div>
+    </div>`;
+  }
+
+  return `
+  <div class="form-group">
+    <label class="form-label">Imágenes <span class="form-label-hint">(máx 3 · WebP 40%)</span></label>
+    <div class="image-previews" id="existing-image-previews">${thumbs}</div>
+    <div id="image-counter" class="form-hint"${existing.length ? '' : ' style="display:none"'}>${existing.length}/3 imagen(es) adjunta(s)</div>
+    <input type="file" id="nf-imagenes" name="imagenes" accept="image/*" multiple class="form-input image-file-input">
+    <p class="form-hint">Nuevas imágenes se comprimen automáticamente a WebP.</p>
+  </div>`;
+}
+
 // ─── Note Form ───────────────────────────────────────────────────────────────
 
 export function renderNoteForm(note, session) {
@@ -305,6 +337,8 @@ export function renderNoteForm(note, session) {
             placeholder="Instrucciones especiales, horarios de entrega…"
             rows="3">${esc(obs)}</textarea>
         </div>
+
+        ${renderImageUploadSection(note, role(session))}
       </form>
     </div>
     <div class="modal-footer">
@@ -350,6 +384,17 @@ export function renderDetailView(note, session) {
     ? esc(note.observaciones)
     : '<em class="detail-obs--empty">Sin observaciones</em>';
 
+  const images = note.imagenes || [];
+  const imagePanel = images.length > 0 ? `
+    <div class="image-selector-panel">
+      <div class="image-selector-title">Imágenes</div>
+      ${images.map((img, idx) => `
+        <button type="button" class="btn btn-secondary btn-sm image-selector-btn"
+          data-image-index="${idx}">
+          Imagen ${idx + 1}
+        </button>`).join('')}
+    </div>` : '';
+
   return `
   <div class="detail-toolbar">
     <button class="btn btn-ghost btn-volver">← Volver</button>
@@ -359,6 +404,7 @@ export function renderDetailView(note, session) {
   </div>
 
   <div class="detail-wrapper">
+    <div class="detail-layout">
     <div class="detail-card">
       <div class="detail-header">
         <div>
@@ -425,6 +471,8 @@ export function renderDetailView(note, session) {
         <span>Creado: ${esc(formatTs(note.creadoEn))} por ${esc(note.creadoPor)}</span>
         <span>Modificado: ${esc(formatTs(note.modificadoEn))} por ${esc(note.modificadoPor)}</span>
       </div>
+    </div>
+    ${imagePanel}
     </div>
   </div>`;
 }

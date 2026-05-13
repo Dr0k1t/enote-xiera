@@ -6,8 +6,14 @@
   .app-header,
   .detail-toolbar,
   .toast-container,
+  .image-selector-panel,
+  .image-preview-overlay,
   .btn,
   a[href] { display: none !important; }
+
+  /* Restaurar layout lineal al imprimir */
+  .detail-layout { display: block; }
+  .detail-card   { width: 100%; }
 
   body {
     background: #fff;

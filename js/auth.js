@@ -14,7 +14,7 @@ export function setSession(user) {
 }
 
 export function clearSession() {
-  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
 }
 
 export function login(username, password) {
