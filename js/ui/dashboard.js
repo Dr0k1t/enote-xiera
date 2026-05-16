@@ -1,10 +1,8 @@
+/// <reference path="../types.js" />
 import { CONFIG } from '../config.js';
 import { esc, formatFecha, statusClass, role, renderHeader } from './shared.js';
 
-/**
- * Renderiza la vista principal del panel de control.
- */
-export function renderDashboardView(notes, session) {
+export function renderDashboardView(notes, session, total = notes.length, page = 1, totalPages = 1) {
   const r = role(session);
   const destinoFilter = r.canSeeAll ? `
     <select class="form-select filter-destino" aria-label="Filtrar por destino">
@@ -38,23 +36,43 @@ export function renderDashboardView(notes, session) {
     <section class="notes-grid" id="notes-grid">
       ${gridContent}
     </section>
+    ${renderPaginationBar(total, page, totalPages)}
   </main>`;
 }
 
-/**
- * Actualiza la rejilla de notas sin redibujar todo el dashboard.
- */
-export function refreshGrid(notes, session) {
+export function refreshGrid(notes, session, total = notes.length, page = 1, totalPages = 1) {
   const grid = document.getElementById('notes-grid');
   if (!grid) return;
   grid.innerHTML = notes.length > 0
     ? notes.map(n => renderNoteCard(n, session)).join('')
     : renderEmptyState();
+
+  // Reemplazar paginación
+  const existing = document.querySelector('.pagination-bar');
+  const newBarHtml = renderPaginationBar(total, page, totalPages);
+  if (existing) {
+    if (newBarHtml.trim()) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = newBarHtml;
+      existing.replaceWith(wrapper.firstElementChild);
+    } else {
+      existing.remove();
+    }
+  } else if (newBarHtml.trim()) {
+    grid.insertAdjacentHTML('afterend', newBarHtml);
+  }
 }
 
-/**
- * Renderiza el estado vacío cuando no hay notas.
- */
+function renderPaginationBar(total, page, totalPages) {
+  if (totalPages <= 1) return '';
+  return `
+    <section class="pagination-bar">
+      <span class="pagination-info">Página ${page} de ${totalPages} (${total} nota${total === 1 ? '' : 's'})</span>
+      <button class="btn btn-ghost btn-sm btn-prev-page" ${page <= 1 ? 'disabled' : ''}>← Anterior</button>
+      <button class="btn btn-ghost btn-sm btn-next-page" ${page >= totalPages ? 'disabled' : ''}>Siguiente →</button>
+    </section>`;
+}
+
 function renderEmptyState() {
   return `
   <div class="empty-state">
@@ -64,14 +82,10 @@ function renderEmptyState() {
   </div>`;
 }
 
-/**
- * Renderiza una tarjeta individual de nota.
- */
 export function renderNoteCard(note, session) {
   const r = role(session);
   const badge = `<span class="badge badge--${esc(statusClass(note.estatus))}">${esc(note.estatus)}</span>`;
 
-  // Clases de indicadores — solo para rol planta
   const isPlanta = session.role === 'planta';
   const isUnreadNew      = isPlanta && !!note.unreadNew;
   const isUnreadModified = isPlanta && !!note.unreadModified;
@@ -91,10 +105,6 @@ export function renderNoteCard(note, session) {
     }
     footer = `
     <div class="note-card__status-row">${statusCtrl}</div>
-    <div class="priority-controls">
-      <button class="btn btn-ghost btn-icon btn-priority-up" title="Subir prioridad" aria-label="Subir prioridad">↑</button>
-      <button class="btn btn-ghost btn-icon btn-priority-down" title="Bajar prioridad" aria-label="Bajar prioridad">↓</button>
-    </div>
     <button class="btn btn-secondary btn-sm btn-ver" aria-label="Ver detalle de nota ${esc(note.numero)}">Ver</button>`;
   } else {
     footer = `
@@ -129,9 +139,6 @@ export function renderNoteCard(note, session) {
   </article>`;
 }
 
-/**
- * Renderiza el selector de estado para la planta.
- */
 function renderStatusSelector(note) {
   const allowedStatuses = ['En Proceso', 'Completada'];
   const opts = allowedStatuses.map(s =>

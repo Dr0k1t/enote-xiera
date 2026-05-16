@@ -6,16 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — Sistema de notas de remisión para Xiera (panadería, Ocotlán, Jalisco). Genera notas digitales con flujo multi-usuario y workflow de estatus.
 
-**Estado actual:** v1.2 en producción. Supabase configurado y live. Modo demo local disponible en paralelo.
+**Estado actual:** v1.2 en producción. Supabase-only (modo demo eliminado).
 
 Docs:
 - `docs/ROADMAP-PRODUCCION-V1.2.md` — spec completa (schema SQL, RLS, roles, deploy)
-- `docs/SPRINT-PRODUCCION-V1.2.md` — desglose por semanas con horas estimadas
+- `docs/SPRINT-PRODUCCION-V1.2.md` — desglose por semanas
+- `docs/AUDIT-V1.1.md` — cierre de hardening v1.1
 
 ## Comandos
 
 ```bash
-# Desarrollo local (demo + Supabase real)
+# Generar js/supabase.js a partir de .env
+node scripts/build-config.js
+
+# Desarrollo local
 npx serve .
 
 # Tests E2E (Playwright)
@@ -23,12 +27,11 @@ cd audit
 npm install
 npm run audit
 
-# Login
-# Demo local: admin1/pass, planta1/pass, sucursal1/pass
-# Supabase real: admin@xiera.com / contraseña
+# Login (Supabase Auth — email/contraseña)
+# admin@xiera.com / contraseña
 ```
 
-`audit/audit.js` corre Playwright headless chromium. Verifica: login, dashboard admin, modales, filtros, cambio estatus, logout, rol planta, rol repartidor.
+`audit/audit.js` corre Playwright headless chromium. Verifica login, dashboard admin, modales, filtros, cambio estatus, logout, rol planta, rol repartidor.
 
 ## Arquitectura
 
@@ -38,76 +41,90 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 
 | Archivo | Rol |
 |---------|-----|
-| `app.js` | Orquestador. Estado global (`currentSession`, `editingNoteId`, `pendingFormData`, `pendingImages`), delegación de eventos, coordinación de vistas. |
-| `config.js` | Constantes: usuarios demo, roles, estatus válidos, destinos, textos UI. |
-| `store.js` | CRUD async. `isDemoMode()` → localStorage (demo) o Supabase (producción). |
-| `auth.js` | Login/logout async. Demo (`CONFIG.users`) + Supabase Auth. `canCreate()`, `canEdit()`, `canDelete()`, `canSeeAll()`. |
-| `supabase.js` | Cliente Supabase. `createClient()` con URL y anon key. `isSupabaseConfigured()`. |
-| `offline.js` | IndexedDB: `syncNotesToCache()`, `createNoteOffline()`, `syncPendingNotes()` con retry 3x. `isOnline()`. |
+| `app.js` | Orquestador. Estado global (`currentSession`, `editingNoteId`, `pendingFormData`, `pendingImages`, `currentPage`, `editingNoteModifiedEn`), delegación de eventos, paginación, conflict-view dispatch. |
+| `config.js` | Roles, estatus, destinos, `PAGE_SIZE = 20`, textos UI. Sin usuarios demo. |
+| `store.js` | CRUD async sobre Supabase. `validateNoteFields()`, conflict detection vía `_localModifiedEn`, override vía `_force`, número correlativo `MAX(numero)+1`. |
+| `auth.js` | Supabase Auth únicamente. `login()`, `logout()`, `requireAuth()`, helpers de permisos. |
+| `supabase.js` | **Generado** por `scripts/build-config.js`. `isSupabaseConfigured()` retorna `!!supabase`. |
+| `supabase.js.template` | Plantilla con `__SUPABASE_URL__` y `__SUPABASE_ANON_KEY__`. |
+| `offline.js` | IndexedDB v3 — `IMAGE_CACHE` con keyPath `url`, `cacheImages` paralelo en batches de 5. `createNoteOffline` y `syncPendingNotes` (infraestructura). |
 | `logger.js` | Logger de eventos. POST silencioso a `/api/log`. |
-| `imageUtils.js` | `compressImage()` → WebP 40% via Canvas API. `MAX_IMAGES_PER_NOTE = 3`. |
-| `ui/shared.js` | `esc()`, `showView()`, `openModal()`, `closeModal()`, `renderToast()`, `renderHeader()`, `formatFecha()`, `formatTs()`, `statusClass()`, `role()`. |
-| `ui/login.js` | Vista de login. Detecta demo vs Supabase, cambia label a "Email"/"Usuario". |
-| `ui/dashboard.js` | Grid de notas con filtros (estatus, destino, búsqueda). `renderDashboardView()`, `refreshGrid()`. |
-| `ui/form.js` | Formulario crear/editar nota. `renderNoteForm()`, `renderProductRow()`, `getFormData()`. |
-| `ui/detail.js` | Vista detalle + diff view + confirmación de eliminación. |
-| `ui/repartidor.js` | Vista repartidor: selector de sucursal + toggle `tomada`. |
+| `imageUtils.js` | `compressImage()` → WebP 40% via Canvas. `MAX_IMAGES_PER_NOTE = 3`. |
+| `types.js` | `@typedef` JSDoc (`Note`, `Session`, `Role`, `Product`, `ImageRef`). |
+| `ui/shared.js` | `esc()`, `showView()`, `openModal()`, `closeModal()` (revoca blob URLs antes de limpiar overlay), `renderToast()`, `renderHeader()`, helpers de formato, `revokeBlobUrls()`. |
+| `ui/login.js` | Vista login Supabase (email + contraseña). |
+| `ui/dashboard.js` | Grid + filtros + barra de paginación. |
+| `ui/form.js` | Formulario crear/editar nota. |
+| `ui/detail.js` | Detalle + diff view + delete confirm + **conflict view**. |
+| `ui/repartidor.js` | Vista repartidor. |
+
+### Scripts
+
+| Archivo | Rol |
+|---------|-----|
+| `scripts/build-config.js` | Lee `SUPABASE_URL` / `SUPABASE_ANON_KEY` de `process.env` o `.env`, inyecta en `js/supabase.js` desde template. |
 
 ### Flujo de datos
 
 ```
-Evento DOM → app.js (delegación) → store.js (localStorage | Supabase)
+Evento DOM → app.js (delegación) → store.js (Supabase)
                                          ↓
                                   ui/* render → DOM
                                          ↓
                                   logger.js → POST /api/log
 ```
 
-`app.js` escucha `storage` event y `online`/`offline` para sync entre pestañas y cola offline.
+`app.js` escucha `online`/`offline` para indicador y `syncPendingNotes(createNote)` al reconectar.
 
 ## Patrones Clave
 
-- **Escaping:** Toda entrada pasa por `esc()` en `ui/shared.js`.
-- **Templates:** HTML como strings (no JSX).
+- **Escaping:** Toda entrada pasa por `esc()` en `ui/shared.js` (incluye `'` → `&#39;`).
+- **Templates:** HTML como strings.
 - **Fechas:** ISO en store; `es-MX` en UI.
 - **Estatus workflow:** `Nueva` → sobrescritura. `En Proceso`/`Completada` → confirmación + diff visible.
-- **Rol `planta`:** Auto-transiciona `Nueva→En Proceso` al abrir detalle. Limpia flags `unreadNew`/`unreadModified`.
-- **Rol `repartidor`:** Vista propia (`view-repartidor`). Toggle `tomada` via `store.toggleTomada()`.
-- **`pendingFormData`:** Tercer estado en `app.js` para flujo diff. Almacena `{ noteId, fields, action }`.
-- **Filtros:** Aplicados sobre `getBaseNotes()` (ya filtrado por rol/destino). Búsqueda cubre número, observaciones, destino, productos.
-- **Debounce:** Búsqueda 280ms.
-- **`store.js` async:** Todas las funciones son async para compatibilidad con Supabase.
-- **`isDemoMode()`:** `!isSupabaseConfigured()` → localStorage. Forzable con `localStorage.setItem('enote_demo_mode', 'true')`.
+- **Rol `planta`:** Auto-transiciona `Nueva→En Proceso` al abrir detalle. Usa `_force: true` para evitar conflict spurious.
+- **Rol `repartidor`:** Vista `view-repartidor`. Toggle `tomada` vía `store.toggleTomada()`.
+- **`pendingFormData`:** Tercer estado en `app.js` para flujo diff/conflict. Estructura `{ noteId, fields, action }`.
+- **Filtros:** `getBaseNotes()` (filtro por rol/destino) → `getFilteredNotes()` (filtros UI) → `slice` por página.
+- **Paginación:** Client-side. `CONFIG.PAGE_SIZE = 20`. Reset a página 1 cuando cambian filtros.
+- **Conflict detection:** `app.js` pasa `editingNoteModifiedEn` como `_localModifiedEn` a `updateNote`. Si servidor es más nuevo → `{ conflict, serverNote }` → `renderConflictView`. Botones: **Sobrescribir** (re-llama con `_force: true`) o **Mantener servidor** (descarta cambios).
+- **Validación backend:** `validateNoteFields()` valida `fecha`, `destino` (whitelist), `productos` no vacío, `observaciones` ≤ 2000.
+- **Número de nota:** `MAX(numero) + 1` formato `#0001`. Race condition teórica aceptable.
+- **Debounce búsqueda:** 280 ms.
+- **`store.js` async:** Todo es async.
 
 ## Estructura de una Nota
 
 ```js
 {
-  id, numero,           // '#0001'
+  id, numero,           // id = SERIAL de Supabase; numero = '#0001'
   fecha,               // 'YYYY-MM-DD'
-  destino,             // 'Atequiza'|'Poncitlan'|'Tototlan'|'Ocotlan'
-  productos,           // [{ nombre, cantidad, unidad }]
+  destino,             // uno de CONFIG.locations
+  productos,           // [{ nombre, cantidad }]
   estatus,             // 'Nueva'|'En Proceso'|'Completada'|'Cancelada'
   observaciones,
-  imagenes,            // [{ id, url }] — dataURL WebP base64, máx 3
-  tomada,              // bool
-  tomadaPor, tomadaEn,
+  imagenes,            // [string|{id,url,blob?}] — URLs de Supabase Storage, máx 3
+  tomada, tomadaPor, tomadaEn,
   unreadNew, unreadModified,
   prioridad,
   creadoPor, creadoEn,
   modificadoPor, modificadoEn,
+  // cliente, pastel, entrega, financiero (ver js/types.js)
 }
 ```
 
 ## Migración v1.2 (Completada)
 
-- ✅ `sw.js` — Service Worker cache-first
-- ✅ `manifest.json` — PWA instalable
-- ✅ `js/supabase.js` — cliente Supabase configurado
-- ✅ `js/auth.js` — login/ logout async con Supabase Auth
-- ✅ `js/store.js` — CRUD async con Supabase
-- ✅ `js/offline.js` — IndexedDB cache + cola
-- ✅ Indicador online/offline en UI
+- ✅ `sw.js` cache-first con `CACHE_VERSION` dinámico (lee `self.ENOTE_VERSION` desde index.html)
+- ✅ `manifest.json` PWA instalable
+- ✅ `js/supabase.js` generado por build-config
+- ✅ `auth.js`, `store.js` solo Supabase (demo eliminado)
+- ✅ `offline.js` IndexedDB v3, `IMAGE_CACHE` keyPath, cacheImages paralelo
+- ✅ Blob URL leak fix en `closeModal`
+- ✅ JSDoc types
+- ✅ Paginación client-side
+- ✅ Conflict detection
+- ✅ Validación backend
 - ⏳ Vercel deploy
 - ⏳ Dominio propio
 
@@ -116,7 +133,6 @@ Evento DOM → app.js (delegación) → store.js (localStorage | Supabase)
 - **Proyecto:** `https://ovlhabedefwbajrnfpup.supabase.co`
 - **Auth:** Email + contraseña. Confirm email OFF.
 - **RLS:** Activo en `profiles`, `notes`, `routes`
-- **Rutas:** Atequiza, Poncitlan, Tototlan, Ocotlan
 
 ### Agregar usuario
 

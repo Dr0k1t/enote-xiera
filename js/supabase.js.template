@@ -1,0 +1,33 @@
+// GENERATED — DO NOT EDIT
+// Regenerar con: node scripts/build-config.js
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+
+export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+export function isSupabaseConfigured() {
+  return !!supabase;
+}
+
+export async function uploadImage(blob, fileName) {
+  if (!supabase) throw new Error('Supabase no está configurado');
+
+  const { data, error } = await supabase.storage
+    .from('imagenes')
+    .upload(fileName, blob, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) throw error;
+
+  const { data: publicData } = supabase.storage
+    .from('imagenes')
+    .getPublicUrl(data.path);
+
+  return publicData.publicUrl;
+}

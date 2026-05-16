@@ -1,22 +1,12 @@
+/// <reference path="./types.js" />
 import { CONFIG } from './config.js';
-import { supabase, isSupabaseConfigured } from './supabase.js';
+import { supabase } from './supabase.js';
 
-const P = CONFIG.storagePrefix;
-const SESSION_KEY = P + 'session';
-const DEMO_MODE_KEY = P + 'demo_mode';
-
-export function isDemoMode() {
-  return !isSupabaseConfigured() || localStorage.getItem(DEMO_MODE_KEY) === 'true';
-}
+const SESSION_KEY = CONFIG.storagePrefix + 'session';
 
 export async function login(email, password) {
-  if (isDemoMode()) {
-    return loginDemo(email, password);
-  }
-  return loginSupabase(email, password);
-}
+  if (!supabase) return { ok: false, error: 'Supabase no configurado' };
 
-export async function loginSupabase(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { ok: false, error: error.message };
 
@@ -35,22 +25,16 @@ export async function loginSupabase(email, password) {
     destino: profile.destino,
     email: data.user.email,
     loginAt: new Date().toISOString(),
-    supabase: true,
   };
-  setSession(session);
-  return { ok: true, session };
-}
-
-export function loginDemo(username, password) {
-  const user = CONFIG.users.find(u => u.username === username && u.password === password);
-  if (!user) return { ok: false, error: 'Usuario o contraseña incorrectos' };
-  const session = setSession(user);
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return { ok: true, session };
 }
 
 export async function logout() {
-  if (!isDemoMode() && supabase) {
-    await supabase.auth.signOut();
+  try {
+    if (supabase) await supabase.auth.signOut();
+  } catch (err) {
+    console.warn('supabase signOut failed:', err);
   }
   clearSession();
 }
@@ -59,15 +43,7 @@ export function getSession() {
   try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
 }
 
-export function setSession(user) {
-  const session = {
-    username: user.username,
-    role: user.role,
-    destino: user.destino,
-    email: user.email,
-    userId: user.userId,
-    loginAt: new Date().toISOString(),
-  };
+export function setSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;
 }
@@ -85,19 +61,14 @@ export function canEdit(session)   { return CONFIG.roles[session?.role]?.canEdit
 export function canDelete(session) { return CONFIG.roles[session?.role]?.canDelete ?? false; }
 export function canSeeAll(session) { return CONFIG.roles[session?.role]?.canSeeAll ?? false; }
 
-export function enableDemoMode() {
-  localStorage.setItem(DEMO_MODE_KEY, 'true');
-}
-
-export function disableDemoMode() {
-  localStorage.removeItem(DEMO_MODE_KEY);
-}
-
 export async function getCurrentUser() {
-  if (isDemoMode()) return getSession();
   if (!supabase) return null;
-  const { data } = await supabase.auth.getSession();
-  return data?.session ? getSession() : null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data?.session ? getSession() : null;
+  } catch {
+    return getSession();
+  }
 }
 
 export async function onAuthStateChange(callback) {

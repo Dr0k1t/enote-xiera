@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'enote-v1.0.0';
+const CACHE_VERSION = 'enote-' + (typeof self.ENOTE_VERSION !== 'undefined' ? self.ENOTE_VERSION : Date.now());
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -13,6 +13,12 @@ const STATIC_ASSETS = [
   '/js/logger.js',
   '/js/supabase.js',
   '/js/offline.js',
+  '/js/ui/shared.js',
+  '/js/ui/login.js',
+  '/js/ui/dashboard.js',
+  '/js/ui/form.js',
+  '/js/ui/detail.js',
+  '/js/ui/repartidor.js',
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap',
 ];
 

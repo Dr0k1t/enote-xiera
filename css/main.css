@@ -614,6 +614,32 @@ a { color: var(--color-primary); text-decoration: none; }
   min-height: 100vh;
 }
 
+#view-detail.detail-overlay-active {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(44, 24, 16, 0.55);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
+  display: flex !important;
+  flex-direction: column;
+}
+
+#view-detail.detail-overlay-active .detail-toolbar {
+  flex-shrink: 0;
+}
+
+#view-detail.detail-overlay-active .detail-wrapper {
+  flex: 1;
+  min-height: 0;
+  max-width: 1024px;
+  width: 100%;
+  margin: var(--space-4) auto;
+  padding: 0 var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .detail-toolbar {
   display: flex;
   align-items: center;
@@ -636,6 +662,13 @@ a { color: var(--color-primary); text-decoration: none; }
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+}
+
+.detail-card-body {
+  padding: var(--space-6) var(--space-7);
+}
+@media (max-width: 640px) {
+  .detail-card-body { padding: var(--space-5); }
 }
 
 .detail-header {
@@ -961,6 +994,12 @@ a { color: var(--color-primary); text-decoration: none; }
   padding-top: var(--space-2);
 }
 
+.image-selector-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .image-selector-title {
   font-size: 0.7rem;
   font-weight: 500;
@@ -974,6 +1013,13 @@ a { color: var(--color-primary); text-decoration: none; }
   justify-content: flex-start;
   text-align: left;
   width: 100%;
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.image-selector-btn:hover {
+  background: var(--color-primary-dk);
+  border-color: var(--color-primary-dk);
 }
 
 /* === IMAGE PREVIEW OVERLAY === */
@@ -1159,4 +1205,31 @@ a { color: var(--color-primary); text-decoration: none; }
 
   .app-header { padding: var(--space-3) var(--space-4); }
   .header-brand span { display: none; }
+}
+
+/* === PAGINATION === */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--color-border, #e5e5e5);
+  flex-wrap: wrap;
+}
+.pagination-info {
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #666);
+  margin-right: auto;
+}
+.pagination-bar .btn[disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* === ANIMATIONS === */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
