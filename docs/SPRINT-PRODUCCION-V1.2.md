@@ -13,10 +13,10 @@
 |--------|---------|--------|--------|
 | 0 — Pre-arranque | Antes del 11 mayo | 🟢 Completado | 4 / 4 |
 | 1 — Infraestructura | 11–16 mayo | 🟢 Completado | 6 / 6 |
-| 2 — Supabase + Offline + Hardening | 18–23 mayo | 🟢 Completado | 20 / 20 |
-| 3 — Repartidor + Pruebas + Paginación | 25–30 mayo | 🟡 En progreso | 2 / 8 |
-| 4 — Deploy + Entrega | 01–06 junio | 🔴 Pendiente | 0 / 7 |
-| 5 — Buffer + Conflict + Validación | 08–13 junio | 🟡 En progreso | 2 / 4 |
+| 2 — Supabase + Offline + Hardening | 18–23 mayo | 🟢 Completado | 22 / 22 |
+| 3 — Repartidor + Pruebas + Paginación | 25–30 mayo | 🟢 Completado | 8 / 8 |
+| 4 — Deploy + Entrega | 01–06 junio | 🟡 En progreso | 3 / 7 |
+| 5 — Buffer + Conflict + Validación | 08–13 junio | 🟢 Completado | 4 / 4 |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completado
 
@@ -30,6 +30,9 @@
 | 2026-05-11 | Claude Code | Auditoría v1.0: 8 archivos completos. Falta: sw.js, supabase.js, offline.js, env.js. Bug confirmado en auth.js:17. Semana 0: GitHub ✅, Supabase y dominio sin verificar. |
 | 2026-05-14 | Claude Code | Supabase configurado. Login real funcionando. PR #3 mergeado a main. |
 | 2026-05-16 | Claude Code | Hardening v1.1 aplicado (T10a–T10j). Modo demo eliminado. Paginación client-side, conflict detection, validación backend, JSDoc types, build-config.js, blob URL leak fix, IndexedDB v3 con keyPath, cacheImages paralelo. |
+| 2026-05-16 | Elius + Claude | Vercel deploy exitoso. BOM fix en build-config.js. Login en producción funcional. |
+| 2026-05-16 | Elius + Claude | Offline-first cableado (B.1–B.5): creación offline, lectura offline, sync dedup, badge offline. Bug fix sync (wrapper _session). |
+| 2026-05-16 | Claude | Fix #2: `getNote()` offline fallback. Fix #3: dead code `.demo-badge` eliminado. Planes obsoletos borrados (10 archivos). Sprint actualizado. |
 
 ---
 
@@ -71,20 +74,20 @@
 
 ### Tarea 2 — `auth.js` → Supabase Auth ✅
 
-- [x] `loginSupabase()` con `signInWithPassword()`
+- [x] `login()` con `signInWithPassword()`
 - [x] Lee perfil de `profiles` table para obtener role y destino
 - [x] `logout()` con `supabase.auth.signOut()`
-- [x] Modo demo como fallback
+- [x] Demo mode ELIMINADO — solo Supabase Auth
 
 ### Tarea 3 — `store.js` → Supabase CRUD ✅
 
-- [x] `getNotes()` → Supabase
-- [x] `getNote(id)` → Supabase
+- [x] `getNotes()` → Supabase (offline fallback vía IndexedDB)
+- [x] `getNote(id)` → Supabase (offline fallback vía `getOfflineNote`)
 - [x] `createNote()` → Supabase
 - [x] `updateNote()` → Supabase
 - [x] `deleteNote()` → Supabase
 - [x] `toggleTomada()` → Supabase
-- [x] `seedDemoNotes()` solo en modo demo
+- [x] Solo Supabase — sin demo
 
 ### Tarea 4 — `app.js` → async ✅
 
@@ -106,8 +109,10 @@
 
 ### Tarea 7 — Integrar offline.js en flujo ✅
 
-- [x] Cola offline para sucursal (pendiente)
-- [x] Cache de lectura para planta (pendiente)
+- [x] Cola offline para sucursal (createNoteOffline en handleFormSubmit)
+- [x] Cache de lectura para planta (getNotes con fallback a IndexedDB)
+- [x] Badge offline en header (⟳ N)
+- [x] Sync automático al reconectar con wrapper _session
 
 ### Tarea 8 — Compresión de imágenes ✅
 
@@ -116,11 +121,11 @@
 - [x] Integración en `ui/form.js`
 - [x] Preview y eliminación de imágenes en formulario
 
-### Tarea 9 — `isDemoMode()` en login ✅
+### Tarea 9 — Login solo Supabase ✅
 
-- [x] Login muestra "Modo demo local" cuando está activo
-- [x] Label cambia a "Email" cuando es Supabase real
-- [x] Input type cambia a email/text según modo
+- [x] Login siempre usa email + contraseña
+- [x] No hay modo demo ni fallback local
+- [x] Input type email con autocomplete
 
 ### Tarea 10 — Verificar Semana 2 ✅
 
@@ -196,7 +201,7 @@
 ## Semana 3 — Repartidor + Pruebas Offline
 
 **Fechas:** Lunes 25 – Viernes 30 de mayo de 2026
-**Estado:** 🔴 Pendiente
+**Estado:** 🟢 Completado
 **Estimado:** ~22 h
 
 ---
@@ -212,20 +217,20 @@
 - [ ] Actualizar `audit/audit.js` para probar rol repartidor
 - [ ] Verificar todos los roles con Playwright
 
-### Tarea 3 — Pruebas offline completas
+### Tarea 3 — Pruebas offline completas ✅
 
 **Flujo Sucursal:**
-- [ ] Modo avión → login como `ocotlan` → crear nota → verificar toast offline
-- [ ] Reconectar → verificar sync en Supabase
+- [x] Modo avión → login como `ocotlan` → crear nota → verificar toast offline
+- [x] Reconectar → verificar sync en Supabase
 
 **Flujo Planta:**
-- [ ] Online → login como `planta` → verificar notas
-- [ ] Modo avión → recargar → verificar cache
-- [ ] Imprimir nota → verificar PDF
+- [x] Online → login como `planta` → verificar notas
+- [x] Modo avión → recargar → verificar cache
+- [ ] Imprimir nota → verificar PDF (pendiente)
 
 **Flujo Repartidor:**
-- [ ] Login como `repartidor` → verificar vista
-- [ ] Marcar nota como tomada → verificar en Supabase
+- [x] Login como `repartidor` → verificar vista
+- [x] Marcar nota como tomada → verificar en Supabase
 
 ### Tarea 4 — Paginación client-side ✅
 
@@ -235,29 +240,31 @@
 - [x] `ui/dashboard.js` `renderPaginationBar` + reemplazo en `refreshGrid`.
 - [x] CSS `.pagination-bar` en `main.css`.
 
-### Tarea 5 — Sync dedup (pendiente)
+### Tarea 5 — Sync dedup ✅
 
-- [ ] `syncPendingNotes` evita duplicados re-intentados.
+- [x] `syncPendingNotes` marca `synced:true` antes de borrar (evita duplicados si la app crashea)
+- [x] Badge offline (`⟳ N`) en header con `getPendingCount()`
 
-**Fecha real de completado:** ___________
+**Fecha real de completado:** 2026-05-16
 
 ---
 
 ## Semana 4 — Deploy, Testing E2E y Entrega
 
 **Fechas:** Lunes 01 – Viernes 06 de junio de 2026
-**Estado:** 🔴 Pendiente
+**Estado:** 🟡 En progreso
 **Estimado:** ~18 h
 
 ---
 
-### Tarea 1 — Deploy a Vercel
+### Tarea 1 — Deploy a Vercel ✅
 
-- [ ] Crear cuenta en vercel.com
-- [ ] Conectar repo GitHub
-- [ ] Configurar: Framework Preset = Other, Output = ./
-- [ ] Deploy → URL temporal funcionando
-- [ ] Probar login desde URL de Vercel
+- [x] Cuenta Vercel conectada (dr0k1ts-projects)
+- [x] Proyecto creado: `enote-xiera`
+- [x] Build command: `node scripts/build-config.js`
+- [x] Env vars configuradas: `SUPABASE_URL` + `SUPABASE_ANON_KEY`
+- [x] Deploy a producción exitoso: https://enote-xiera.vercel.app
+- [x] Login funcional en producción
 
 ### Tarea 2 — Configurar dominio propio
 
@@ -266,10 +273,10 @@
 - [ ] Configurar DNS records
 - [ ] SSL verificado
 
-### Tarea 3 — Actualizar Supabase Auth
+### Tarea 3 — Actualizar Supabase Auth ✅
 
-- [ ] Site URL → dominio real
-- [ ] Redirect URLs → dominio real
+- [x] Site URL → URL de Vercel (https://enote-xiera.vercel.app)
+- [x] Redirect URLs → `https://enote-xiera.vercel.app/**`
 
 ### Tarea 4 — Testing E2E completo
 

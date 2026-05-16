@@ -49,7 +49,7 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 | `auth.js` | Supabase Auth únicamente. `login()`, `logout()`, `requireAuth()`, helpers permisos. |
 | `supabase.js` | **Generado** por `scripts/build-config.js`. `isSupabaseConfigured()` retorna `!!supabase`. |
 | `supabase.js.template` | Plantilla con `__SUPABASE_URL__` y `__SUPABASE_ANON_KEY__`. |
-| `offline.js` | IndexedDB v3 — `IMAGE_CACHE` keyPath `url`, `cacheImages` paralelo en batches 5. `createNoteOffline` y `syncPendingNotes` (infraestructura). |
+| `offline.js` | IndexedDB v3 — `IMAGE_CACHE` keyPath `url`, `cacheImages` paralelo en batches 5. `createNoteOffline`, `syncPendingNotes`, `syncNotesToCache`, `getOfflineNotes`, `getOfflineNote`, `getPendingCount`, `isOnline`. Cableado completo en `app.js` + `store.js`. |
 | `logger.js` | Logger eventos. POST silencioso a `/api/log`. |
 | `imageUtils.js` | `compressImage()` → WebP 40% via Canvas. `MAX_IMAGES_PER_NOTE = 3`. |
 | `types.js` | `@typedef` JSDoc (`Note`, `Session`, `Role`, `Product`, `ImageRef`). |
@@ -77,7 +77,7 @@ Evento DOM → app.js (delegación) → store.js (Supabase)
                                   logger.js → POST /api/log
 ```
 
-`app.js` escucha `online`/`offline` para indicador y `syncPendingNotes(createNote)` al reconectar.
+`app.js` escucha `online`/`offline` para indicador y `syncPendingNotes(async item => createNote(item.fields, item.session))` al reconectar (wrapper extrae `_session` del item guardado offline).
 
 ## Patrones Clave
 
@@ -96,6 +96,8 @@ Evento DOM → app.js (delegación) → store.js (Supabase)
 - **Número de nota:** `MAX(numero) + 1` formato `#0001`. Race condition teórica aceptable.
 - **Debounce búsqueda:** 280 ms.
 - **`store.js` async:** Todo es async.
+- **Offline-first:** `getNotes()` y `getNote()` retornan caché IndexedDB si `!isOnline()`. `getBaseNotes()` hace `syncNotesToCache` fire-and-forget online. `handleFormSubmit` guarda en cola offline si no hay conexión. `syncPendingNotes` procesa cola al reconectar con wrapper que extrae `_session` del item.
+- **Badge offline:** `renderHeader(session, pendingCount)` muestra `⟳ N` si hay notas pendientes. `updateOfflineBadge()` se llama desde `init()`, listener `online`, creación offline, y `showDashboard()`.
 
 ## Estructura de una Nota
 
@@ -124,6 +126,7 @@ Evento DOM → app.js (delegación) → store.js (Supabase)
 - ✅ `js/supabase.js` generado por build-config
 - ✅ `auth.js`, `store.js` solo Supabase (demo eliminado)
 - ✅ `offline.js` IndexedDB v3, `IMAGE_CACHE` keyPath, cacheImages paralelo
+- ✅ Offline-first cableado (creación, lectura, sync, badge)
 - ✅ Blob URL leak fix en `closeModal`
 - ✅ JSDoc types
 - ✅ Paginación client-side

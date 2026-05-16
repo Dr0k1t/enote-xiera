@@ -904,18 +904,6 @@ a { color: var(--color-primary); text-decoration: none; }
   z-index: 9999;
 }
 
-.demo-badge {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fcd34d;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
 .toast--success { border-left-color: #1A5C32; }
 .toast--error   { border-left-color: #c0392b; }
 .toast--info    { border-left-color: var(--color-primary); }

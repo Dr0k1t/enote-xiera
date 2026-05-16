@@ -1,7 +1,7 @@
 /// <reference path="./types.js" />
 import { CONFIG } from './config.js';
 import { supabase, uploadImage } from './supabase.js';
-import { cacheImages, saveImageToCache, isOnline, getOfflineNotes } from './offline.js';
+import { cacheImages, saveImageToCache, isOnline, getOfflineNotes, getOfflineNote } from './offline.js';
 
 async function processImages(imagenes) {
   if (!imagenes || !Array.isArray(imagenes)) return [];
@@ -87,6 +87,10 @@ export async function getNotes() {
 }
 
 export async function getNote(id) {
+  if (!isOnline()) {
+    const cached = await getOfflineNote(id);
+    return cached ? mapDbNote(cached) : null;
+  }
   const { data, error } = await supabase.from('notes').select('*').eq('id', id).single();
   if (error) return null;
   return mapDbNote(data);

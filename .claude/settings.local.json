@@ -45,7 +45,9 @@
       "Bash(npx serve *)",
       "Bash(git -C \"C:\\\\Users\\\\extre\\\\Documentos\\\\Enote\\\\enote-xiera\" status --short)",
       "Bash(git commit -m 'fix: resolve 3 bugs in detail view after Supabase integration *)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(git commit *)",
+      "Bash(npx vercel *)"
     ]
   },
   "hooks": {

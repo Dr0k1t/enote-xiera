@@ -98,6 +98,10 @@ export async function getOfflineNotes() {
   return dbGetAll(STORES.NOTES_CACHE);
 }
 
+export async function getOfflineNote(id) {
+  return dbGet(STORES.NOTES_CACHE, id);
+}
+
 export async function createNoteOffline(noteData) {
   await dbAdd(STORES.PENDING_QUEUE, { ...noteData, synced: false, createdAt: new Date().toISOString() });
 }

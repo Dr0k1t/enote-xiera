@@ -1,5 +1,6 @@
 audit/node_modules/
 audit/screenshots/
+audit/screenshots-prod/
 
 # Sandbox de pruebas locales (no se versiona)
 sandbox/
@@ -12,3 +13,6 @@ js/supabase.js
 .env.local
 
 .vercel
+
+# Planes locales de Claude
+.opencode/
