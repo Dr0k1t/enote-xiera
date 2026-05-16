@@ -10,3 +10,5 @@ js/supabase.js
 # Variables de entorno locales
 .env
 .env.local
+
+.vercel
