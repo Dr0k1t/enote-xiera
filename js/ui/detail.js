@@ -1,3 +1,4 @@
+/// <reference path="../types.js" />
 import { esc, formatFecha, formatTs, role } from './shared.js';
 
 /**
@@ -47,10 +48,11 @@ export function renderDetailView(note, session) {
         <div class="detail-brand-name">Xiera</div>
         <div style="text-align: right;">
           <div class="detail-brand-sub">Nota de Remisión</div>
-          <div class="detail-numero">#${esc(String(note.numero).padStart(4, '0'))}</div>
+          <div class="detail-numero">${esc(note.numero)}</div>
         </div>
       </header>
 
+      <div class="detail-card-body">
       <div class="detail-meta-grid">
         <div class="detail-meta-item">
           <div class="detail-meta-label">Fecha de entrega</div>
@@ -84,6 +86,70 @@ export function renderDetailView(note, session) {
       <div class="detail-section">
         <h3 class="detail-section-title">Observaciones</h3>
         <div class="detail-obs">${obsContent}</div>
+      </div>
+
+      ${note.clienteNombre || note.clienteDireccion || note.clienteTelefono ? `
+      <div class="detail-section">
+        <h3 class="detail-section-title">Datos de cliente</h3>
+        <div class="detail-meta-grid">
+          ${note.clienteNombre ? `<div class="detail-meta-item"><div class="detail-meta-label">Nombre</div><div class="detail-meta-value">${esc(note.clienteNombre)}</div></div>` : ''}
+          ${note.clienteDireccion ? `<div class="detail-meta-item"><div class="detail-meta-label">Dirección</div><div class="detail-meta-value">${esc(note.clienteDireccion)}</div></div>` : ''}
+          ${note.clienteTelefono ? `<div class="detail-meta-item"><div class="detail-meta-label">Teléfono</div><div class="detail-meta-value">${esc(note.clienteTelefono)}</div></div>` : ''}
+        </div>
+      </div>
+      ` : ''}
+
+      ${note.sabor || note.modelo || note.colores || note.kilos || note.texto || note.pisos || note.pastelCantidad ? `
+      <div class="detail-section">
+        <h3 class="detail-section-title">Datos de pastel</h3>
+        <div class="detail-meta-grid">
+          ${note.pastelCantidad ? `<div class="detail-meta-item"><div class="detail-meta-label">Cantidad de pasteles</div><div class="detail-meta-value">${esc(String(note.pastelCantidad))}</div></div>` : ''}
+          ${note.pisos ? `<div class="detail-meta-item"><div class="detail-meta-label">Pisos</div><div class="detail-meta-value">${esc(String(note.pisos))}</div></div>` : ''}
+          ${note.sabor ? `<div class="detail-meta-item"><div class="detail-meta-label">Sabor</div><div class="detail-meta-value">${esc(note.sabor)}</div></div>` : ''}
+          ${note.kilos ? `<div class="detail-meta-item"><div class="detail-meta-label">Kilos / Presentación</div><div class="detail-meta-value">${esc(note.kilos)}</div></div>` : ''}
+          ${note.modelo ? `<div class="detail-meta-item"><div class="detail-meta-label">Modelo</div><div class="detail-meta-value">${esc(note.modelo)}</div></div>` : ''}
+          ${note.texto ? `<div class="detail-meta-item"><div class="detail-meta-label">Texto en pastel</div><div class="detail-meta-value">${esc(note.texto)}</div></div>` : ''}
+          ${note.colores ? `<div class="detail-meta-item"><div class="detail-meta-label">Colores</div><div class="detail-meta-value">${esc(note.colores)}</div></div>` : ''}
+        </div>
+      </div>
+      ` : ''}
+
+      ${note.horaEntrega || note.direccionEntrega ? `
+      <div class="detail-section">
+        <h3 class="detail-section-title">Datos de entrega</h3>
+        <div class="detail-meta-grid">
+          ${note.horaEntrega ? `<div class="detail-meta-item"><div class="detail-meta-label">Hora de entrega</div><div class="detail-meta-value">${esc(note.horaEntrega)} ${esc(note.horaPeriodo || 'AM')}</div></div>` : ''}
+          ${note.direccionEntrega ? `<div class="detail-meta-item"><div class="detail-meta-label">Dirección de entrega</div><div class="detail-meta-value">${esc(note.direccionEntrega)}</div></div>` : ''}
+        </div>
+      </div>
+      ` : ''}
+
+      ${note.costoPastel || note.depositoEquipo || note.arreglosFigura || note.servicioDomicilio ? `
+      <div class="detail-section">
+        <h3 class="detail-section-title">Financiero</h3>
+        <table class="detail-products-table" style="font-size:0.95rem">
+          <tbody>
+            ${note.costoPastel ? `<tr><td>Costo pastel</td><td style="text-align:right">$${note.costoPastel.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
+            ${note.depositoEquipo ? `<tr><td>Depósito equipo</td><td style="text-align:right">$${note.depositoEquipo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
+            ${note.arreglosFigura ? `<tr><td>Arreglos y figura</td><td style="text-align:right">$${note.arreglosFigura.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
+            ${note.servicioDomicilio ? `<tr><td>Servicio a domicilio</td><td style="text-align:right">$${note.servicioDomicilio.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
+            <tr style="border-top:2px solid #333;font-weight:bold">
+              <td>TOTAL</td>
+              <td style="text-align:right">$${(
+                (note.costoPastel || 0) + (note.depositoEquipo || 0) + (note.arreglosFigura || 0) + (note.servicioDomicilio || 0)
+              ).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+            </tr>
+            ${note.anticipo ? `<tr><td>Anticipo (${esc(note.metodoPago || '')})</td><td style="text-align:right">-$${note.anticipo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
+            <tr style="background:#f0f0f0;font-weight:bold">
+              <td>SALDO A PAGAR</td>
+              <td style="text-align:right">$${(
+                (note.costoPastel || 0) + (note.depositoEquipo || 0) + (note.arreglosFigura || 0) + (note.servicioDomicilio || 0) - (note.anticipo || 0)
+              ).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
       </div>
 
       <footer class="detail-footer">
@@ -135,6 +201,58 @@ export function renderDiffView(changes, estatus) {
     <div class="modal-footer">
       <button type="button" class="btn btn-ghost btn-volver-editar">← Volver a editar</button>
       <button type="button" class="btn btn-primary btn-confirmar-diff" style="margin-left:auto">Confirmar cambios</button>
+    </div>
+  </div>`;
+}
+
+/**
+ * Renderiza modal de conflicto: dos columnas (servidor vs cliente).
+ */
+export function renderConflictView(serverNote, clientFields) {
+  const rows = [
+    { label: 'Fecha', server: formatFecha(serverNote.fecha), client: formatFecha(clientFields.fecha) },
+    { label: 'Destino', server: serverNote.destino, client: clientFields.destino },
+    { label: 'Estatus', server: serverNote.estatus, client: clientFields.estatus ?? serverNote.estatus },
+    { label: 'Observaciones',
+      server: (serverNote.observaciones || '(vacío)'),
+      client: (clientFields.observaciones || '(vacío)') },
+    { label: 'Productos',
+      server: (serverNote.productos || []).map(p => `${p.nombre} ×${p.cantidad}`).join(', '),
+      client: (clientFields.productos || []).map(p => `${p.nombre} ×${p.cantidad}`).join(', ') },
+  ];
+
+  const tableRows = rows.map(r => `
+    <tr>
+      <td><strong>${esc(r.label)}</strong></td>
+      <td>${esc(r.server)}</td>
+      <td>${esc(r.client)}</td>
+    </tr>`).join('');
+
+  return `
+  <div class="modal-card" role="alertdialog" aria-labelledby="conflict-title">
+    <div class="modal-header">
+      <h2 class="modal-title" id="conflict-title" style="color:#c0392b">Conflicto de edición</h2>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.95rem;line-height:1.6;margin-bottom:var(--space-3)">
+        Otro usuario modificó esta nota mientras la editabas.
+        Última modificación remota: <strong>${esc(formatTs(serverNote.modificadoEn))}</strong>
+        por <strong>${esc(serverNote.modificadoPor || '—')}</strong>.
+      </p>
+      <table class="detail-products-table" style="font-size:0.9rem">
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Versión servidor</th>
+            <th>Tus cambios</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost btn-conflict-keep-server">Mantener servidor</button>
+      <button type="button" class="btn btn-danger btn-conflict-overwrite" style="margin-left:auto">Sobrescribir con mis cambios</button>
     </div>
   </div>`;
 }

@@ -232,6 +232,19 @@ WITH CHECK (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'sucursal' AND destino = notes.destino)
 );
 
+-- v1.1: sucursal puede editar y eliminar sus propias notas (destino coincide)
+CREATE POLICY "Sucursal updates own destino"
+ON notes FOR UPDATE TO authenticated
+USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'sucursal' AND destino = notes.destino)
+);
+
+CREATE POLICY "Sucursal deletes own destino"
+ON notes FOR DELETE TO authenticated
+USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'sucursal' AND destino = notes.destino)
+);
+
 -- Repartidor: notas de hoy + ya cargadas
 CREATE POLICY "Repartidor sees route notes"
 ON notes FOR SELECT TO authenticated
@@ -528,6 +541,7 @@ Cambiar a: https://tudominio.com
 | **NUEVO:** Sync de cola | Envío automático |
 | **NUEVO:** Retry automático | 3 intentos si falla |
 | Probar flujos offline | Sucursal/planta sin internet |
+| **v1.1:** Paginación client-side | `PAGE_SIZE = 20` + barra |
 
 ### Semana 4 — Testing + Deploy
 
@@ -546,6 +560,8 @@ Cambiar a: https://tudominio.com
 |-------|-------------|
 | Ajustes finales | Edge cases |
 | Entrega final | Sistema listo |
+| **v1.1:** Conflict detection | `modificado_en` server vs cliente, `renderConflictView` |
+| **v1.1:** Validación backend | `validateNoteFields()` en store |
 
 ---
 
@@ -583,7 +599,7 @@ Cambiar a: https://tudominio.com
 
 | Riesgo | Impacto | Probabilidad | Mitigación |
 |--------|---------|--------------|------------|
-| Sync conflicts (sucursal + admin editan) | Bajo | Baja | Last-write-wins simple |
+| Sync conflicts (sucursal + admin editan) | Bajo | Baja | **Mitigado v1.1**: conflict detection vía `modificado_en` con UI dual (sobrescribir / mantener) |
 | IndexedDB lleno | Medio | Media | Limpiar notas >30 días |
 | Supabase downtime | Medio | Baja | UI muestra "sin conexión" |
 | Usuario olvida contraseña | Bajo | Media | Admin resetea desde panel |
@@ -637,27 +653,37 @@ Al final de la Semana 4, el sistema debe cumplir:
 ```
 enote-production/
 ├── docs/
-│   └── ROADMAP-PRODUCCION-V1.2.md
-├── frontend/
-│   ├── index.html
-│   ├── manifest.json              ← PWA manifest
-│   ├── sw.js                      ← Service Worker
-│   ├── css/
-│   │   ├── variables.css
-│   │   ├── main.css
-│   │   └── print.css
-│   └── js/
-│       ├── config.js              ← Dinámico
-│       ├── auth.js                ← Supabase Auth
-│       ├── store.js              ← CRUD API
-│       ├── supabase.js           ← Cliente Supabase
-│       ├── offline.js            ← IndexedDB + cola
-│       ├── ui.js                 ← Sin cambios
-│       └── app.js                ← Adaptado async
-├── supabase/
-│   └── migrations/
-│       └── 001_schema.sql
-└── README.md
+│   ├── ROADMAP-PRODUCCION-V1.2.md
+│   ├── SPRINT-PRODUCCION-V1.2.md
+│   └── AUDIT-V1.1.md              ← Cierre hardening v1.1
+├── scripts/
+│   └── build-config.js            ← Inyecta env → js/supabase.js
+├── index.html
+├── manifest.json                  ← PWA manifest
+├── sw.js                          ← Service Worker (CACHE_VERSION dinámico)
+├── .env                           ← gitignored (SUPABASE_URL/ANON_KEY)
+├── css/
+│   ├── variables.css
+│   ├── main.css                   ← incluye .pagination-bar
+│   └── print.css
+└── js/
+    ├── config.js                  ← PAGE_SIZE, locations, roles
+    ├── types.js                   ← @typedef JSDoc compartidos
+    ├── auth.js                    ← Supabase Auth (solo)
+    ├── store.js                   ← CRUD + validación + conflict
+    ├── supabase.js                ← GENERADO, gitignored
+    ├── supabase.js.template       ← Plantilla con placeholders
+    ├── offline.js                 ← IndexedDB v3 + cola
+    ├── imageUtils.js
+    ├── logger.js
+    ├── app.js                     ← Orquestador con paginación
+    └── ui/
+        ├── shared.js              ← + revokeBlobUrls
+        ├── login.js
+        ├── dashboard.js           ← + barra de paginación
+        ├── form.js
+        ├── detail.js              ← + renderConflictView
+        └── repartidor.js
 ```
 
 ---

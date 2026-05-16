@@ -1,0 +1,210 @@
+{
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\server.js": {
+    "mtime": 1778703653.6336246,
+    "hash": "38f7c1a4898603db45f75a0ffede4cae"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sw.js": {
+    "mtime": 1778706680.3927855,
+    "hash": "2854dc226c71bfb00ae843ac1adaa024"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\audit.js": {
+    "mtime": 1778703653.552972,
+    "hash": "9db27af2a822b9e17bced1bd59508f8a"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\app.js": {
+    "mtime": 1778720142.3054655,
+    "hash": "b7dbe32e54b75e1924d4679548a9773d"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\auth.js": {
+    "mtime": 1778703653.57061,
+    "hash": "35a0c4eceb2889456199b37ae7f9fd12"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\config.js": {
+    "mtime": 1778703653.5726228,
+    "hash": "cca1dcbf24586ad0d7f8cca6197922c4"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\imageUtils.js": {
+    "mtime": 1778706569.3380854,
+    "hash": "4966203ca95cab7554ae847d72242b6d"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\logger.js": {
+    "mtime": 1778703653.575606,
+    "hash": "21eee064f2b93a15e8c89b1f97e97dcd"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\offline.js": {
+    "mtime": 1778706592.1199808,
+    "hash": "cf6f05632bdd5aedca7966234cea3297"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\store.js": {
+    "mtime": 1778720011.625937,
+    "hash": "331bcf8aa8ec9baa6ca4fe3ff91a97bb"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\supabase.js": {
+    "mtime": 1778706576.514336,
+    "hash": "e3e7ed66c7b49ca270da9fcef910aad8"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\ui\\dashboard.js": {
+    "mtime": 1778703653.5796094,
+    "hash": "e695ecdd293d64e10aefa843c5c0213a"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\ui\\detail.js": {
+    "mtime": 1778720072.6722262,
+    "hash": "9d07b450b66042f4a33dce9f1a684767"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\ui\\form.js": {
+    "mtime": 1778720054.556013,
+    "hash": "79fe12bed48eb7967648d09100e8d486"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\ui\\login.js": {
+    "mtime": 1778703653.583612,
+    "hash": "5ab0b178bf546346d8cb5a7ff3fe3118"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\ui\\repartidor.js": {
+    "mtime": 1778703653.5856087,
+    "hash": "ee04dac542e663984ee1ce75f1e468d3"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\js\\ui\\shared.js": {
+    "mtime": 1778706618.4109783,
+    "hash": "c19bb61b2a3dc6301c621c6e288e1b69"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\image-compress.js": {
+    "mtime": 1778703653.6142592,
+    "hash": "f29cea0f217ef5d603fffefde49c399a"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\run-test.js": {
+    "mtime": 1778703653.6312008,
+    "hash": "5ef6a13dc8d055744d3577dc5fdb07eb"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\server.js": {
+    "mtime": 1778703653.6322138,
+    "hash": "b6ed356539966ecc30e8f769d77dfd1d"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\AUDIT-V1.1.md": {
+    "mtime": 1778703653.5435548,
+    "hash": "be1689e69dcd84b9e449118a35ac96fb"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\CLAUDE.md": {
+    "mtime": 1778704605.348726,
+    "hash": "5b86af3018ec3d1b7cb020a93b5fac72"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\GEMINI.md": {
+    "mtime": 1778703653.5478575,
+    "hash": "0b9716e844eee111e4d094066ef5ef3a"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\index.html": {
+    "mtime": 1778703653.5673687,
+    "hash": "b46cd4ebd90f66f2122c0c4ab96b895a"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\PLAN-IMPLEMENTACION-IMAGENES.md": {
+    "mtime": 1778703653.548879,
+    "hash": "f9ac445d77fa3c9688892b0520a02c41"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\PROMPT-IMPLEMENTACION-AGENTE.md": {
+    "mtime": 1778703653.5498588,
+    "hash": "579d7e5e474a8f812e61e6afe050c38b"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\README.md": {
+    "mtime": 1778704581.085725,
+    "hash": "49291dd1f690507233bf849a497236ea"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\docs\\COTIZACION-XIERA-ENOTE-V1.2.html": {
+    "mtime": 1778703653.5578685,
+    "hash": "17f99ba2d7ce78137509a56ea86c53d7"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\docs\\COTIZACION-XIERA-ENOTE-V1.2.md": {
+    "mtime": 1778267973.4461193,
+    "hash": "bce22ff2d0319a499b3b31b904695974"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\docs\\ROADMAP-PRODUCCION-V1.2.md": {
+    "mtime": 1778230551.8764813,
+    "hash": "3382ae60608e4a6cb29bacf4e2eec845"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\docs\\SECURITY-AUDIT-V1.0.md": {
+    "mtime": 1778703653.5592842,
+    "hash": "771d37a99f57a1162d89c5c20e356d46"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\docs\\SPRINT-PRODUCCION-V1.2.md": {
+    "mtime": 1778704643.4614952,
+    "hash": "d25efd4ccbd472b51c76e73ca1c9e740"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\index.html": {
+    "mtime": 1778703653.6162615,
+    "hash": "c1b03850bd97020037f3648d5934020b"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\01-login.png": {
+    "mtime": 1778655756.328053,
+    "hash": "63e786d9c3bb4995cce6117850f20e89"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\02-dashboard-admin.png": {
+    "mtime": 1778655756.8337533,
+    "hash": "31d276189e5f5f3bdb5f5d4c0a14df86"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\03-form-nueva.png": {
+    "mtime": 1778655757.023074,
+    "hash": "dc673f868fefdbfe1ba87066cf302057"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\04-detalle-nota.png": {
+    "mtime": 1778655757.3322625,
+    "hash": "827bf410c8baecfe1820485bb58c580a"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\05-dashboard-planta.png": {
+    "mtime": 1778655758.4474828,
+    "hash": "af749b0769e024521e4b1b12ddfda446"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\06-final-state.png": {
+    "mtime": 1778183164.6874447,
+    "hash": "2f04efbd91e986d34045f3a91f5fa945"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\07-dashboard-sucursal1.png": {
+    "mtime": 1778655758.5485394,
+    "hash": "60c91985769d72dc33f848d4076835a6"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\08-form-sucursal1.png": {
+    "mtime": 1778655758.6899917,
+    "hash": "6887bdc7b2a381bdba2f82306fcf68ef"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\09-repartidor-view.png": {
+    "mtime": 1778655758.8625848,
+    "hash": "31a5e3dda3befd514472936b1f29d0eb"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\10-repartidor-sucursal1.png": {
+    "mtime": 1778655759.202335,
+    "hash": "9bd11ed52bc3f99627d26cf79dc47ba4"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\11-repartidor-tomada.png": {
+    "mtime": 1778655759.5861824,
+    "hash": "7e576bb7f1b0c5c6b9ec0e753aba0c97"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\12-repartidor-untomada.png": {
+    "mtime": 1778655759.9649744,
+    "hash": "9d74aa8d88be180fbf9ee6c9849cc9b2"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\13-final-state.png": {
+    "mtime": 1778655759.9949098,
+    "hash": "9d74aa8d88be180fbf9ee6c9849cc9b2"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\audit\\screenshots\\final-v1.1.5.png": {
+    "mtime": 1778659456.7324884,
+    "hash": "d5e11b679444adc8cd3e105818adf477"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\docs\\ref_prueba.jpeg": {
+    "mtime": 1778703653.5663733,
+    "hash": "962dbb0943bff52f80251776d135a95c"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\Captura de pantalla 2026-05-12 172435.png": {
+    "mtime": 1778703653.6092637,
+    "hash": "0926cef55f72db43bbe17343e9378356"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\EX_DIXdXsAAewOd.jpg": {
+    "mtime": 1778703653.612259,
+    "hash": "a902e800dcb8daf2719edc11fb58be70"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\ref_prueba.jpeg": {
+    "mtime": 1778703653.6192732,
+    "hash": "962dbb0943bff52f80251776d135a95c"
+  },
+  "C:\\Users\\extre\\Documentos\\Enote\\enote-xiera\\sandbox\\ref_prueba2.jpg": {
+    "mtime": 1778703653.627691,
+    "hash": "3ecd904dc28cf189e93d708a09df113f"
+  }
+}

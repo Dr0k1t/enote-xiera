@@ -1,2 +1,12 @@
 audit/node_modules/
 audit/screenshots/
+
+# Sandbox de pruebas locales (no se versiona)
+sandbox/
+
+# Generado por scripts/build-config.js
+js/supabase.js
+
+# Variables de entorno locales
+.env
+.env.local

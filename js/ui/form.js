@@ -1,3 +1,4 @@
+/// <reference path="../types.js" />
 import { CONFIG } from '../config.js';
 import { esc, role } from './shared.js';
 
@@ -69,6 +70,144 @@ export function renderNoteForm(note, session) {
             rows="3">${esc(obs)}</textarea>
         </div>
 
+        <!-- DATOS DE CLIENTE -->
+        <fieldset style="border:none;padding:0">
+          <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Datos de cliente</legend>
+          <div class="form-group">
+            <input class="form-input" id="nf-cliente-nombre" name="clienteNombre"
+              placeholder="Nombre completo" value="${esc(isEdit && note.clienteNombre ? note.clienteNombre : '')}">
+          </div>
+          <div class="form-group">
+            <input class="form-input" id="nf-cliente-direccion" name="clienteDireccion"
+              placeholder="Dirección" value="${esc(isEdit && note.clienteDireccion ? note.clienteDireccion : '')}">
+          </div>
+          <div class="form-group">
+            <input class="form-input" id="nf-cliente-telefono" name="clienteTelefono"
+              type="tel" placeholder="Teléfono" value="${esc(isEdit && note.clienteTelefono ? note.clienteTelefono : '')}">
+          </div>
+        </fieldset>
+
+        <!-- DATOS DE PASTEL -->
+        <fieldset style="border:none;padding:0">
+          <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Datos de pastel</legend>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div class="form-group">
+              <label class="form-label" for="nf-pastel-cantidad">Cantidad de pasteles</label>
+              <input class="form-input" id="nf-pastel-cantidad" name="pastelCantidad"
+                type="number" min="1" value="${isEdit && note.pastelCantidad ? note.pastelCantidad : 1}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nf-pisos">Pisos</label>
+              <input class="form-input" id="nf-pisos" name="pisos"
+                type="number" min="1" value="${esc(isEdit && note.pisos ? note.pisos : '')}">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div class="form-group">
+              <label class="form-label" for="nf-sabor">Sabor</label>
+              <input class="form-input" id="nf-sabor" name="sabor"
+                placeholder="Chocolate, vainilla, etc." value="${esc(isEdit && note.sabor ? note.sabor : '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nf-kilos">Kilos / Presentación</label>
+              <input class="form-input" id="nf-kilos" name="kilos"
+                placeholder="Ej: 1kg, Vitrina mini" value="${esc(isEdit && note.kilos ? note.kilos : '')}">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div class="form-group">
+              <label class="form-label" for="nf-modelo">Modelo</label>
+              <input class="form-input" id="nf-modelo" name="modelo"
+                placeholder="Modelo del pastel" value="${esc(isEdit && note.modelo ? note.modelo : '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nf-texto">Texto en pastel</label>
+              <input class="form-input" id="nf-texto" name="texto"
+                placeholder="Opcional" value="${esc(isEdit && note.texto ? note.texto : '')}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nf-colores">Colores</label>
+            <input class="form-input" id="nf-colores" name="colores"
+              placeholder="Fondant, flores, etc." value="${esc(isEdit && note.colores ? note.colores : '')}">
+          </div>
+        </fieldset>
+
+        <!-- DATOS DE ENTREGA -->
+        <fieldset style="border:none;padding:0">
+          <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Datos de entrega</legend>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div class="form-group">
+              <label class="form-label" for="nf-hora-entrega">Hora de entrega</label>
+              <input class="form-input" id="nf-hora-entrega" name="horaEntrega"
+                type="time" value="${esc(isEdit && note.horaEntrega ? note.horaEntrega : '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nf-hora-periodo">AM / PM</label>
+              <select class="form-select" id="nf-hora-periodo" name="horaPeriodo">
+                <option value="AM" ${isEdit && note.horaPeriodo === 'AM' ? 'selected' : ''}>AM</option>
+                <option value="PM" ${isEdit && note.horaPeriodo === 'PM' ? 'selected' : ''}>PM</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="nf-direccion-entrega">Dirección de entrega</label>
+            <input class="form-input" id="nf-direccion-entrega" name="direccionEntrega"
+              placeholder="Dirección de entrega" value="${esc(isEdit && note.direccionEntrega ? note.direccionEntrega : '')}">
+          </div>
+        </fieldset>
+
+        <!-- DATOS FINANCIEROS -->
+        <fieldset style="border:none;padding:0">
+          <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Financiero</legend>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div class="form-group">
+              <label class="form-label" for="nf-costo-pastel">Costo pastel</label>
+              <input class="form-input nf-financiero-input" id="nf-costo-pastel" name="costoPastel"
+                type="number" step="0.01" min="0" value="${isEdit && note.costoPastel ? note.costoPastel : 0}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nf-deposito-equipo">Depósito equipo</label>
+              <input class="form-input nf-financiero-input" id="nf-deposito-equipo" name="depositoEquipo"
+                type="number" step="0.01" min="0" value="${isEdit && note.depositoEquipo ? note.depositoEquipo : 0}">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div class="form-group">
+              <label class="form-label" for="nf-arreglos-figura">Arreglos y figura</label>
+              <input class="form-input nf-financiero-input" id="nf-arreglos-figura" name="arreglosFigura"
+                type="number" step="0.01" min="0" value="${isEdit && note.arreglosFigura ? note.arreglosFigura : 0}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nf-servicio-domicilio">Servicio a domicilio</label>
+              <input class="form-input nf-financiero-input" id="nf-servicio-domicilio" name="servicioDomicilio"
+                type="number" step="0.01" min="0" value="${isEdit && note.servicioDomicilio ? note.servicioDomicilio : 0}">
+            </div>
+          </div>
+          <div class="form-group" style="background:#f9f9f9;padding:var(--space-3);border-radius:var(--radius-md);border:1px solid #eee">
+            <strong>TOTAL: \$<span id="nf-total-value">0</span></strong>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div class="form-group">
+              <label class="form-label" for="nf-anticipo">Anticipo</label>
+              <input class="form-input nf-financiero-input" id="nf-anticipo" name="anticipo"
+                type="number" step="0.01" min="0" value="${isEdit && note.anticipo ? note.anticipo : 0}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nf-metodo-pago">Método de pago</label>
+              <select class="form-select" id="nf-metodo-pago" name="metodoPago">
+                <option value="">Seleccionar...</option>
+                <option value="Efectivo" ${isEdit && note.metodoPago === 'Efectivo' ? 'selected' : ''}>Efectivo</option>
+                <option value="Tarjeta" ${isEdit && note.metodoPago === 'Tarjeta' ? 'selected' : ''}>Tarjeta</option>
+                <option value="Transferencia" ${isEdit && note.metodoPago === 'Transferencia' ? 'selected' : ''}>Transferencia</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="background:#f0f0f0;padding:var(--space-3);border-radius:var(--radius-md);border:1px solid #ddd">
+            <strong>SALDO A PAGAR: \$<span id="nf-saldo-value">0</span></strong>
+          </div>
+        </fieldset>
+
         ${renderImageUploadSection(note, role(session))}
       </form>
     </div>
@@ -107,12 +246,17 @@ export function renderProductRow(prod = { nombre: '', cantidad: '' }) {
  */
 function renderImageUploadSection(note, r) {
   const canUpload = r.canCreate || r.canEdit;
-  const existing  = note?.imagenes || [];
+  // Normalizar: las imágenes pueden venir como objetos {url, id} o como strings (URLs)
+  const existing = (note?.imagenes || []).map((img, idx) => {
+    const url = typeof img === 'string' ? img : img.url;
+    const id = typeof img === 'string' ? `img-${idx}` : img.id;
+    return { url, id };
+  });
 
   const thumbs = existing.map((img, idx) => `
     <div class="image-preview-item" data-image-id="${esc(img.id)}">
       <img src="${esc(img.url)}" alt="Miniatura ${idx + 1}" width="60" height="60" style="object-fit:cover;border-radius:4px;">
-      ${canUpload ? `<button type="button" class="btn-remove-image" data-image-id="${esc(img.id)}" aria-label="Eliminar imagen ${idx + 1}">✕</button>` : ''}
+      ${canUpload ? `<button type="button" class="btn-remove-image" data-image-id="${esc(img.id)}" data-image-url="${esc(img.url)}" aria-label="Eliminar imagen ${idx + 1}">✕</button>` : ''}
     </div>`).join('');
 
   if (!canUpload) {
@@ -130,7 +274,7 @@ function renderImageUploadSection(note, r) {
     <div class="image-previews" id="existing-image-previews">${thumbs}</div>
     <div id="image-counter" class="form-hint"${existing.length ? '' : ' style="display:none"'}>${existing.length}/3 imagen(es) adjunta(s)</div>
     <input type="file" id="nf-imagenes" name="imagenes" accept="image/*" multiple class="form-input image-file-input" aria-describedby="image-counter">
-    <p class="form-hint">Las nuevas imágenes se comprimen automáticamente para ahorrar espacio.</p>
+    <p class="form-hint">Las nuevas imágenes se comprimen automáticamente para ahorrar espacio y optimizar el almacenamiento.</p>
   </div>`;
 }
 
@@ -149,5 +293,46 @@ export function getFormData() {
     const cantidad = (row.querySelector('.prod-cantidad-inp').value || '').trim();
     if (nombre) productos.push({ nombre, cantidad });
   });
-  return { fecha, destino, productos, observaciones };
+  return {
+    fecha,
+    destino,
+    productos,
+    observaciones,
+    clienteNombre: (form.querySelector('[name="clienteNombre"]')?.value || '').trim(),
+    clienteDireccion: (form.querySelector('[name="clienteDireccion"]')?.value || '').trim(),
+    clienteTelefono: (form.querySelector('[name="clienteTelefono"]')?.value || '').trim(),
+    pastelCantidad: +form.querySelector('[name="pastelCantidad"]')?.value || 1,
+    pisos: +form.querySelector('[name="pisos"]')?.value || null,
+    sabor: (form.querySelector('[name="sabor"]')?.value || '').trim(),
+    kilos: (form.querySelector('[name="kilos"]')?.value || '').trim(),
+    modelo: (form.querySelector('[name="modelo"]')?.value || '').trim(),
+    texto: (form.querySelector('[name="texto"]')?.value || '').trim(),
+    colores: (form.querySelector('[name="colores"]')?.value || '').trim(),
+    horaEntrega: form.querySelector('[name="horaEntrega"]')?.value || '',
+    horaPeriodo: form.querySelector('[name="horaPeriodo"]')?.value || 'AM',
+    direccionEntrega: (form.querySelector('[name="direccionEntrega"]')?.value || '').trim(),
+    costoPastel: +form.querySelector('[name="costoPastel"]')?.value || 0,
+    depositoEquipo: +form.querySelector('[name="depositoEquipo"]')?.value || 0,
+    arreglosFigura: +form.querySelector('[name="arreglosFigura"]')?.value || 0,
+    servicioDomicilio: +form.querySelector('[name="servicioDomicilio"]')?.value || 0,
+    anticipo: +form.querySelector('[name="anticipo"]')?.value || 0,
+    metodoPago: form.querySelector('[name="metodoPago"]')?.value || '',
+  };
+}
+
+/**
+ * Actualiza el cálculo automático de TOTAL y SALDO A PAGAR.
+ */
+export function updateFinancialTotals() {
+  const costo = +document.getElementById('nf-costo-pastel')?.value || 0;
+  const dep = +document.getElementById('nf-deposito-equipo')?.value || 0;
+  const arr = +document.getElementById('nf-arreglos-figura')?.value || 0;
+  const svc = +document.getElementById('nf-servicio-domicilio')?.value || 0;
+  const ant = +document.getElementById('nf-anticipo')?.value || 0;
+  const total = costo + dep + arr + svc;
+  const saldo = total - ant;
+  const totalEl = document.getElementById('nf-total-value');
+  const saldoEl = document.getElementById('nf-saldo-value');
+  if (totalEl) totalEl.textContent = total.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+  if (saldoEl) saldoEl.textContent = saldo.toLocaleString('es-MX', { minimumFractionDigits: 2 });
 }

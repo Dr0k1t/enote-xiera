@@ -36,7 +36,16 @@
       "Bash(Start-Process -NoNewWindow node -ArgumentList \"server.js\" -PassThru)",
       "Bash(Select-Object Id)",
       "Bash(curl -s http://localhost:3000)",
-      "Bash(ENOTE_URL=http://localhost:3000 npm run audit)"
+      "Bash(ENOTE_URL=http://localhost:3000 npm run audit)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx playwright *)",
+      "Bash(timeout 120 tail *)",
+      "Bash(pkill -f \"npx serve\")",
+      "Bash(npx serve *)",
+      "Bash(git -C \"C:\\\\Users\\\\extre\\\\Documentos\\\\Enote\\\\enote-xiera\" status --short)",
+      "Bash(git commit -m 'fix: resolve 3 bugs in detail view after Supabase integration *)",
+      "Bash(git check-ignore *)"
     ]
   },
   "hooks": {
@@ -52,5 +61,9 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
+  },
+  "outputStyle": "default"
 }

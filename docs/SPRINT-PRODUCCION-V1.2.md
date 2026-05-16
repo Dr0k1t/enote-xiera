@@ -13,10 +13,10 @@
 |--------|---------|--------|--------|
 | 0 — Pre-arranque | Antes del 11 mayo | 🟢 Completado | 4 / 4 |
 | 1 — Infraestructura | 11–16 mayo | 🟢 Completado | 6 / 6 |
-| 2 — Supabase + Offline | 18–23 mayo | 🟡 En progreso | 7 / 10 |
-| 3 — Repartidor + Pruebas | 25–30 mayo | 🔴 Pendiente | 0 / 6 |
+| 2 — Supabase + Offline + Hardening | 18–23 mayo | 🟢 Completado | 20 / 20 |
+| 3 — Repartidor + Pruebas + Paginación | 25–30 mayo | 🟡 En progreso | 2 / 8 |
 | 4 — Deploy + Entrega | 01–06 junio | 🔴 Pendiente | 0 / 7 |
-| 5 — Buffer | 08–13 junio | 🔴 Pendiente | — |
+| 5 — Buffer + Conflict + Validación | 08–13 junio | 🟡 En progreso | 2 / 4 |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completado
 
@@ -29,6 +29,7 @@
 | 2026-05-11 | Elius | Sprint creado |
 | 2026-05-11 | Claude Code | Auditoría v1.0: 8 archivos completos. Falta: sw.js, supabase.js, offline.js, env.js. Bug confirmado en auth.js:17. Semana 0: GitHub ✅, Supabase y dominio sin verificar. |
 | 2026-05-14 | Claude Code | Supabase configurado. Login real funcionando. PR #3 mergeado a main. |
+| 2026-05-16 | Claude Code | Hardening v1.1 aplicado (T10a–T10j). Modo demo eliminado. Paginación client-side, conflict detection, validación backend, JSDoc types, build-config.js, blob URL leak fix, IndexedDB v3 con keyPath, cacheImages paralelo. |
 
 ---
 
@@ -121,15 +122,74 @@
 - [x] Label cambia a "Email" cuando es Supabase real
 - [x] Input type cambia a email/text según modo
 
-### Tarea 10 — Verificar Semana 2
+### Tarea 10 — Verificar Semana 2 ✅
 
-- [ ] Probar login de cada usuario (admin, planta, sucursal, repartidor)
-- [ ] Probar crear nota como admin → verificar en Supabase Table Editor
-- [ ] Probar modo avión → sucursal crea nota offline
-- [ ] Probar modo avión → planta ve notas cache
-- [ ] Probar subir 3 fotos en una nota
+- [x] Probar login de cada usuario (admin, planta, sucursal, repartidor)
+- [x] Probar crear nota como admin → verificar en Supabase Table Editor
+- [x] Probar modo avión → sucursal crea nota offline
+- [x] Probar modo avión → planta ve notas cache
+- [x] Probar subir 3 fotos en una nota
 
-**Fecha real de completado:** ___________
+### Tarea 11 — T10a Eliminar modo demo ✅
+
+- [x] `config.js`: borrar `CONFIG.users`, `noteNumberFormat`. Agregar `PAGE_SIZE = 20`.
+- [x] `auth.js`: solo Supabase. `login()`, `logout()` sin rama demo.
+- [x] `store.js`: solo Supabase. `getNotes`/`getNote`/`updateNote`/`deleteNote` sin demo branch. `createNote` con `MAX(numero) + 1`.
+- [x] `app.js`: quitar imports demo, listener `storage`, handlers `btn-priority-up/down`, `seedDemoNotes()`.
+- [x] `ui/login.js`: hardcodear Email + autocomplete + spellcheck.
+- [x] `ui/dashboard.js`: quitar bloque `.priority-controls`.
+
+### Tarea 12 — T10b build-config.js + .env ✅
+
+- [x] `scripts/build-config.js` lee `SUPABASE_URL`/`SUPABASE_ANON_KEY`.
+- [x] `js/supabase.js.template` con placeholders.
+- [x] `.gitignore`: `js/supabase.js`, `.env`, `sandbox/`.
+- [x] `git rm -r --cached sandbox/` ejecutado.
+
+### Tarea 13 — T10d IndexedDB keyPath + DB v3 ✅
+
+- [x] `DB_VERSION = 3`.
+- [x] `onupgradeneeded` recrea `IMAGE_CACHE` con `{ keyPath: 'url' }`.
+- [x] `saveImageToCache` usa `put({ url, blob })`.
+- [x] `getImageFromCache` retorna `{ url, blob }`; `resolveImageUrl` consume `.blob`.
+
+### Tarea 14 — T10e Blob URL leak ✅
+
+- [x] `_blobUrls` Set en `ui/shared.js`.
+- [x] `revokeBlobUrls()` export.
+- [x] `closeModal` limpia overlay y luego revoca.
+
+### Tarea 15 — T10f cacheImages paralelo ✅
+
+- [x] `flatMap` recolecta URLs únicas.
+- [x] Batches de 5 vía `Promise.all`.
+- [x] Fire-and-forget desde `getNotes()`.
+
+### Tarea 16 — T10i JSDoc types ✅
+
+- [x] `js/types.js` con `@typedef` Note/Session/Role/Product/ImageRef.
+- [x] `/// <reference path="..." />` en store/auth/app/shared/dashboard/detail/form/login/offline.
+
+### Tarea 17 — T10j SW version sync ✅
+
+- [x] `index.html` define `self.ENOTE_VERSION = '1.2.0'` antes del módulo.
+- [x] `sw.js` `CACHE_VERSION` lee `self.ENOTE_VERSION` (fallback `Date.now()`).
+
+### Tarea 18 — sandbox/ fuera del repo ✅
+
+- [x] `.gitignore` incluye `sandbox/`.
+- [x] `git rm -r --cached sandbox/`.
+
+### Tarea 19 — Verificar `esc()` y `clearSession()` ✅
+
+- [x] `esc()` escapa `'` → `&#39;`.
+- [x] `clearSession()` usa `localStorage.removeItem`.
+
+### Tarea 20 — Regenerar js/supabase.js ✅
+
+- [x] `node scripts/build-config.js` genera con creds de `.env`.
+
+**Fecha real de completado:** 2026-05-16
 
 ---
 
@@ -166,6 +226,18 @@
 **Flujo Repartidor:**
 - [ ] Login como `repartidor` → verificar vista
 - [ ] Marcar nota como tomada → verificar en Supabase
+
+### Tarea 4 — Paginación client-side ✅
+
+- [x] `CONFIG.PAGE_SIZE = 20`.
+- [x] `app.js` `currentPage`, handlers `btn-prev-page`/`btn-next-page`.
+- [x] `applyFilters()` aplica `slice` por página.
+- [x] `ui/dashboard.js` `renderPaginationBar` + reemplazo en `refreshGrid`.
+- [x] CSS `.pagination-bar` en `main.css`.
+
+### Tarea 5 — Sync dedup (pendiente)
+
+- [ ] `syncPendingNotes` evita duplicados re-intentados.
 
 **Fecha real de completado:** ___________
 
@@ -235,8 +307,21 @@
 
 - [ ] Edge cases (nota con 0 productos, sync conflict)
 - [ ] Ajustes de UX post-feedback
-- [ ] Limpiar seedDemoNotes para producción
 - [ ] Entrega formal al cliente
+
+### Tarea 4 — Conflict detection ✅
+
+- [x] `updateNote()` compara `modificado_en` servidor vs `_localModifiedEn` cliente.
+- [x] Retorna `{ conflict, serverNote }` si hay divergencia.
+- [x] `renderConflictView` en `ui/detail.js` (servidor vs cliente).
+- [x] Botones Sobrescribir (`_force: true`) / Mantener servidor.
+- [x] Planta `_force: true` para auto-transición silenciosa.
+
+### Tarea 5 — Validación backend ✅
+
+- [x] `validateNoteFields()` en `store.js`.
+- [x] Llamada en `createNote()` y `updateNote()` (validación parcial).
+- [x] Errores: fecha YYYY-MM-DD, destino whitelist, productos no vacío, observaciones ≤2000.
 
 **Fecha de entrega real:** ___________
 

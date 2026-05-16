@@ -1,6 +1,11 @@
+/// <reference path="./types.js" />
 const DB_NAME = 'enote-local';
-const DB_VERSION = 1;
-const STORES = { NOTES_CACHE: 'notes_cache', PENDING_QUEUE: 'pending_queue' };
+const DB_VERSION = 3;
+const STORES = {
+  NOTES_CACHE: 'notes_cache',
+  PENDING_QUEUE: 'pending_queue',
+  IMAGE_CACHE: 'image_cache',
+};
 
 let db = null;
 
@@ -18,9 +23,23 @@ async function openDB() {
       if (!database.objectStoreNames.contains(STORES.PENDING_QUEUE)) {
         database.createObjectStore(STORES.PENDING_QUEUE, { keyPath: 'localId', autoIncrement: true });
       }
+      // v3: recrear IMAGE_CACHE con keyPath 'url' (pierde caché previo — aceptable).
+      if (database.objectStoreNames.contains(STORES.IMAGE_CACHE)) {
+        database.deleteObjectStore(STORES.IMAGE_CACHE);
+      }
+      database.createObjectStore(STORES.IMAGE_CACHE, { keyPath: 'url' });
     };
   });
   return db;
+}
+
+async function dbGet(storeName, key) {
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const req = database.transaction(storeName, 'readonly').objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
 async function dbGetAll(storeName) {
@@ -116,4 +135,55 @@ export async function syncPendingNotes(createNoteFn) {
 
 export function isOnline() {
   return navigator.onLine;
+}
+
+/**
+ * Guarda un Blob en IMAGE_CACHE con keyPath 'url'.
+ */
+export async function saveImageToCache(url, blob) {
+  return dbPut(STORES.IMAGE_CACHE, { url, blob });
+}
+
+/**
+ * Recupera el registro completo { url, blob } del caché.
+ */
+export async function getImageFromCache(url) {
+  return dbGet(STORES.IMAGE_CACHE, url);
+}
+
+/**
+ * Descarga en paralelo (batches de 5) las imágenes de un set de notas.
+ * Fire-and-forget — no se espera a que termine.
+ */
+export async function cacheImages(notes) {
+  if (!isOnline()) return;
+
+  const allUrls = notes.flatMap(n =>
+    (n.imagenes || [])
+      .map(img => typeof img === 'string' ? img : img.url)
+      .filter(u => u && !u.startsWith('blob:') && !u.startsWith('data:'))
+  );
+  if (allUrls.length === 0) return;
+
+  const batch = (arr, size) => {
+    const result = [];
+    for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
+    return result;
+  };
+
+  for (const urlBatch of batch(allUrls, 5)) {
+    await Promise.all(urlBatch.map(async url => {
+      try {
+        const cached = await getImageFromCache(url);
+        if (!cached) {
+          const res = await fetch(url);
+          if (res.ok) {
+            await saveImageToCache(url, await res.blob());
+          }
+        }
+      } catch {
+        // ignorar fallos individuales
+      }
+    }));
+  }
 }
