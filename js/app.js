@@ -1,27 +1,29 @@
+/// <reference path="./types.js" />
 import { CONFIG } from './config.js';
-import { getNotes, getNote, createNote, updateNote, deleteNote, moveNoteUp, moveNoteDown, seedDemoNotes, toggleTomada } from './store.js';
-import { login, clearSession, requireAuth, canSeeAll, logout, isDemoMode } from './auth.js';
+import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada } from './store.js';
+import { login, requireAuth, canSeeAll, logout } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
 import { syncPendingNotes } from './offline.js';
-import { isOnline } from './offline.js';
 
 import {
-  showView, openModal, closeModal, renderToast, formatFecha,
+  showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl,
 } from './ui/shared.js';
 
 import { renderLoginView } from './ui/login.js';
 import { renderDashboardView, refreshGrid } from './ui/dashboard.js';
-import { renderNoteForm, renderProductRow, getFormData } from './ui/form.js';
-import { renderDetailView, renderDiffView, renderDeleteConfirm } from './ui/detail.js';
+import { renderNoteForm, renderProductRow, getFormData, updateFinancialTotals } from './ui/form.js';
+import { renderDetailView, renderDiffView, renderDeleteConfirm, renderConflictView } from './ui/detail.js';
 import { renderRepartidorView, renderRepartidorCard } from './ui/repartidor.js';
 
 // ─── Module state ─────────────────────────────────────────────────────────────
-let currentSession     = null;
-let editingNoteId      = null;
-let pendingFormData    = null;
-let pendingImages      = [];   // imágenes del formulario activo (existing - removed)
+let currentSession      = null;
+let editingNoteId       = null;
+let editingNoteModifiedEn = null; // versión del servidor al abrir el form (para conflict detection)
+let pendingFormData     = null;
+let pendingImages       = [];
 let currentDetailNoteId = null;
+let currentPage         = 1;
 
 // ─── Service Worker ───────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -34,16 +36,11 @@ if ('serviceWorker' in navigator) {
 init();
 
 async function init() {
-  // Load Google Fonts
   const fontLink = document.createElement('link');
   fontLink.rel  = 'stylesheet';
   fontLink.href = CONFIG.googleFontsUrl;
   document.head.appendChild(fontLink);
 
-  // Seed demo data on first load
-  seedDemoNotes();
-
-  // Create permanent view containers
   document.getElementById('app').innerHTML = `
     <div id="view-login"       class="view"></div>
     <div id="view-dashboard"   class="view"></div>
@@ -51,25 +48,14 @@ async function init() {
     <div id="view-repartidor"  class="view"></div>
     <div id="modal-overlay"    class="modal-overlay"></div>`;
 
-  // Wire all events once
   setupEventDelegation();
 
-  // Auth check
   currentSession = requireAuth();
   if (!currentSession) {
     showLoginView();
   } else {
     await routeByRole();
   }
-
-  window.addEventListener('storage', async (e) => {
-    // Escuchar específicamente cambios en las notas
-    if (e.key === CONFIG.storagePrefix + 'notes') {
-      if (currentSession) {
-        await applyFilters(); 
-      }
-    }
-  });
 
   window.addEventListener('online', async () => {
     updateOnlineIndicator(true);
@@ -91,17 +77,15 @@ function setupEventDelegation() {
   const detail    = document.getElementById('view-detail');
   const modal     = document.getElementById('modal-overlay');
 
-  // Login
   loginView.addEventListener('submit', async e => {
     if (e.target.id === 'login-form') { e.preventDefault(); await handleLogin(); }
   });
 
-  // Dashboard clicks
   dash.addEventListener('click', handleDashboardClick);
 
-  // Dashboard status select change
   dash.addEventListener('change', async e => {
     if (e.target.closest('.filter-estatus') || e.target.closest('.filter-destino')) {
+      currentPage = 1;
       await applyFilters();
     } else if (e.target.closest('.status-select')) {
       const card = e.target.closest('[data-note-id]');
@@ -111,23 +95,19 @@ function setupEventDelegation() {
     }
   });
 
-  // Search input (debounced)
-  const debouncedSearch = debounce(async () => await applyFilters(), 280);
+  const debouncedSearch = debounce(async () => { currentPage = 1; await applyFilters(); }, 280);
   dash.addEventListener('input', e => {
     if (e.target.closest('.filter-search')) debouncedSearch();
   });
 
-  // Detail view
   detail.addEventListener('click', handleDetailClick);
 
-  // Repartidor view
   const repartidor = document.getElementById('view-repartidor');
   repartidor.addEventListener('click', handleRepartidorClick);
   repartidor.addEventListener('change', async e => {
     if (e.target.id === 'repartidor-sucursal') await renderNotasRepartidor(e.target.value);
   });
 
-  // Modal
   modal.addEventListener('click', handleModalClick);
   modal.addEventListener('submit', async e => {
     if (e.target.id === 'note-form') {
@@ -136,7 +116,6 @@ function setupEventDelegation() {
     }
   });
 
-  // File input: show count of selected files
   modal.addEventListener('change', e => {
     if (e.target.id === 'nf-imagenes') {
       const fileCount = e.target.files.length;
@@ -151,7 +130,6 @@ function setupEventDelegation() {
     }
   });
 
-  // Add product row (delegated from modal)
   modal.addEventListener('click', e => {
     if (e.target.closest('.btn-add-row')) {
       const tbody = document.getElementById('prod-tbody');
@@ -168,7 +146,6 @@ function setupEventDelegation() {
     }
   });
 
-  // Escape key closes modal
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && modal.classList.contains('visible')) closeModal();
   });
@@ -198,7 +175,7 @@ async function handleLogin() {
   await routeByRole();
 }
 
-// ─── Route por rol ───────────────────────────────────────────────────────────
+// ─── Route ────────────────────────────────────────────────────────────────────
 async function routeByRole() {
   if (currentSession.role === 'repartidor') { await showRepartidor(); return; }
   await showDashboard();
@@ -206,9 +183,14 @@ async function routeByRole() {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 async function showDashboard() {
-  // Render with ALL notes for this user — filters reset to default with new DOM
+  currentPage = 1;
   const notes = await getBaseNotes();
-  document.getElementById('view-dashboard').innerHTML = renderDashboardView(notes, currentSession);
+  const total = notes.length;
+  const totalPages = Math.max(1, Math.ceil(total / CONFIG.PAGE_SIZE));
+  const pageNotes = notes.slice(0, CONFIG.PAGE_SIZE);
+  document.getElementById('view-dashboard').innerHTML = renderDashboardView(
+    pageNotes, currentSession, total, currentPage, totalPages
+  );
   showView('dashboard');
 }
 
@@ -231,50 +213,54 @@ async function getFilteredNotes() {
   if (searchFilter) {
     notes = notes.filter(n =>
       n.numero.toLowerCase().includes(searchFilter) ||
-      n.observaciones.toLowerCase().includes(searchFilter) ||
+      (n.observaciones || '').toLowerCase().includes(searchFilter) ||
       n.destino.toLowerCase().includes(searchFilter) ||
-      n.productos.some(p => p.nombre.toLowerCase().includes(searchFilter))
+      n.productos.some(p => (p.nombre || '').toLowerCase().includes(searchFilter))
     );
   }
   return notes;
 }
 
 async function applyFilters() {
-  const notes = await getFilteredNotes();
-  refreshGrid(notes, currentSession);
+  const filtered = await getFilteredNotes();
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / CONFIG.PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * CONFIG.PAGE_SIZE;
+  const pageNotes = filtered.slice(start, start + CONFIG.PAGE_SIZE);
+  refreshGrid(pageNotes, currentSession, total, currentPage, totalPages);
 }
 
-// ─── Dashboard click handler ──────────────────────────────────────────────────
+// ─── Dashboard clicks ─────────────────────────────────────────────────────────
 async function handleDashboardClick(e) {
+  if (e.target.closest('.btn-logout'))    { handleLogout(); return; }
+  if (e.target.closest('.btn-nueva'))     { await showForm(null); return; }
+  if (e.target.closest('.btn-prev-page')) { if (currentPage > 1) { currentPage--; await applyFilters(); } return; }
+  if (e.target.closest('.btn-next-page')) { currentPage++; await applyFilters(); return; }
+
+  // Barra de confirmación de cambio de status (planta) — debe correr aunque la barra esté dentro de una card con data-note-id.
+  if (e.target.closest('.btn-confirm-status')) {
+    const btn = e.target.closest('.btn-confirm-status');
+    const id  = parseInt(btn.dataset.noteId);
+    if (!isNaN(id)) await handleConfirmStatus(id, btn.dataset.status);
+    return;
+  }
+  if (e.target.closest('.btn-cancel-status')) {
+    const bar = e.target.closest('.status-confirm-bar');
+    const card = e.target.closest('[data-note-id]');
+    const select = card?.querySelector('.status-select');
+    if (select && select.dataset.prevValue) select.value = select.dataset.prevValue;
+    bar?.remove();
+    return;
+  }
+
   const card   = e.target.closest('[data-note-id]');
   const noteId = card ? parseInt(card.dataset.noteId) : NaN;
+  if (isNaN(noteId)) return;
 
-  if (e.target.closest('.btn-logout'))         { handleLogout(); return; }
-  if (e.target.closest('.btn-nueva'))          { await showForm(null); return; }
-
-  if (isNaN(noteId)) {
-    if (e.target.closest('.btn-confirm-status')) {
-      const btn = e.target.closest('.btn-confirm-status');
-      const id = parseInt(btn.dataset.noteId);
-      if (!isNaN(id)) await handleConfirmStatus(id, btn.dataset.status);
-    }
-    return;
-  }
-
-  if (e.target.closest('.btn-ver'))  { await showDetail(noteId); return; }
-  if (e.target.closest('.btn-editar')) { await showForm(noteId); return; }
+  if (e.target.closest('.btn-ver'))      { await showDetail(noteId); return; }
+  if (e.target.closest('.btn-editar'))   { await showForm(noteId); return; }
   if (e.target.closest('.btn-eliminar')) { await confirmDelete(noteId); return; }
-
-  if (e.target.closest('.btn-priority-up')) {
-    await moveNoteUp(noteId);
-    await applyFilters();
-    return;
-  }
-  if (e.target.closest('.btn-priority-down')) {
-    await moveNoteDown(noteId);
-    await applyFilters();
-    return;
-  }
 }
 
 // ─── Status change (planta) ──────────────────────────────────────────────────
@@ -287,6 +273,10 @@ async function handleStatusChangeInit(noteId, newStatus, cardEl) {
     const existing = footer?.querySelector('.status-confirm-bar');
     if (existing) existing.remove();
 
+    // Guardar valor previo del select para poder restaurarlo al cancelar
+    const select = cardEl.querySelector('.status-select');
+    if (select) select.dataset.prevValue = note.estatus;
+
     const bar = document.createElement('div');
     bar.className = 'status-confirm-bar';
     bar.innerHTML = `
@@ -296,14 +286,14 @@ async function handleStatusChangeInit(noteId, newStatus, cardEl) {
       <button type="button" class="btn btn-sm btn-ghost btn-cancel-status">Cancelar</button>`;
     footer?.insertBefore(bar, footer.firstChild);
   } else {
-    await updateNote(noteId, { estatus: newStatus }, currentSession);
+    await updateNote(noteId, { estatus: newStatus, _force: true }, currentSession);
     await applyFilters();
     renderToast(`Estado: ${newStatus}`, 'success');
   }
 }
 
 async function handleConfirmStatus(noteId, newStatus) {
-  await updateNote(noteId, { estatus: newStatus }, currentSession);
+  await updateNote(noteId, { estatus: newStatus, _force: true }, currentSession);
   await applyFilters();
   renderToast(`Estado cambiado a "${newStatus}"`, 'success');
 }
@@ -313,36 +303,43 @@ async function showDetail(noteId) {
   let note = await getNote(noteId);
   if (!note) { await showDashboard(); return; }
 
-  // Lógica de auto-lectura y transición de estado para la planta
   if (currentSession.role === 'planta') {
-    const updates = {};
+    const updates = { _force: true };
+    let dirty = false;
     if (note.unreadNew) {
       updates.unreadNew = false;
+      dirty = true;
       if (note.estatus === 'Nueva') {
         updates.estatus = 'En Proceso';
       }
     }
     if (note.unreadModified) {
       updates.unreadModified = false;
+      dirty = true;
     }
 
-    if (Object.keys(updates).length > 0) {
+    if (dirty) {
       const result = await updateNote(noteId, updates, currentSession);
-      if (result) note = result.new;
-      // Refrescar el dashboard en segundo plano para que los badges se actualicen
+      if (result?.new) note = result.new;
       await applyFilters();
     }
   }
 
   currentDetailNoteId = noteId;
   document.getElementById('view-detail').innerHTML = renderDetailView(note, currentSession);
-  showView('detail');
+  const viewDetail = document.getElementById('view-detail');
+  viewDetail.classList.add('detail-overlay-active');
+  viewDetail.style.display = 'block';
   window.scrollTo(0, 0);
 }
 
-// ─── Detail click handler ────────────────────────────────────────────────────
 async function handleDetailClick(e) {
-  if (e.target.closest('.btn-volver'))   { await showDashboard(); return; }
+  if (e.target.closest('.btn-volver')) {
+    const viewDetail = document.getElementById('view-detail');
+    viewDetail.classList.remove('detail-overlay-active');
+    viewDetail.style.display = '';
+    return;
+  }
   if (e.target.closest('.btn-imprimir')) { window.print(); return; }
   if (e.target.closest('.btn-editar')) {
     const btn = e.target.closest('.btn-editar');
@@ -365,8 +362,8 @@ async function handleDetailClick(e) {
 async function showForm(noteId) {
   editingNoteId = noteId !== undefined ? noteId : null;
   const note = editingNoteId !== null ? await getNote(editingNoteId) : null;
-  
-  // Resolver URLs de imágenes existentes para que se vean offline en el formulario
+  editingNoteModifiedEn = note?.modificadoEn || note?.creadoEn || null;
+
   if (note?.imagenes) {
     const resolvedImagenes = await Promise.all(note.imagenes.map(async img => {
       const url = typeof img === 'string' ? img : img.url;
@@ -380,13 +377,19 @@ async function showForm(noteId) {
 
   openModal(renderNoteForm(note ? { ...note, imagenes: pendingImages } : null, currentSession));
   document.getElementById('nf-fecha')?.focus();
+
+  setTimeout(() => {
+    updateFinancialTotals();
+    document.querySelectorAll('.nf-financiero-input').forEach(input => {
+      input.addEventListener('input', updateFinancialTotals);
+    });
+  }, 0);
 }
 
 async function handleFormSubmit(action) {
   const fields = getFormData();
   if (!fields || !validateForm(fields)) return;
 
-  // Comprimir nuevas imágenes y combinar con las que sobreviven la edición
   const imageInput = document.getElementById('nf-imagenes');
   let newImages = [];
   if (imageInput && imageInput.files.length > 0) {
@@ -414,51 +417,64 @@ async function handleFormSubmit(action) {
         return;
       }
     }
-    const result = await updateNote(editingNoteId, fields, currentSession);
-    if (result) log.noteUpdated(result.new);
+    await commitUpdate(editingNoteId, fields, action);
+  } else {
+    try {
+      const note = await createNote(fields, currentSession);
+      log.noteCreated(note);
+      closeModal();
+      editingNoteId = null;
+      if (action === 'preview') {
+        await showDetail(note.id);
+      } else {
+        await showDashboard();
+        renderToast('Nota creada', 'success');
+      }
+    } catch (err) {
+      renderToast(err.message || 'Error al crear nota', 'error');
+    }
+  }
+}
+
+async function commitUpdate(noteId, fields, action) {
+  try {
+    const fieldsWithCheck = { ...fields, _localModifiedEn: editingNoteModifiedEn };
+    const result = await updateNote(noteId, fieldsWithCheck, currentSession);
+    if (result?.conflict) {
+      pendingFormData = { noteId, fields, action };
+      openModal(renderConflictView(result.serverNote, fields));
+      return;
+    }
+    if (result?.new) log.noteUpdated(result.new);
     closeModal();
     if (action === 'preview') {
-      await showDetail(editingNoteId);
+      await showDetail(noteId);
     } else {
       await showDashboard();
       renderToast('Nota actualizada', 'success');
     }
     editingNoteId = null;
-  } else {
-    const note = await createNote(fields, currentSession);
-    log.noteCreated(note);
-    closeModal();
-    editingNoteId = null;
-    if (action === 'preview') {
-      await showDetail(note.id);
-    } else {
-      await showDashboard();
-      renderToast('Nota creada', 'success');
-    }
+    editingNoteModifiedEn = null;
+  } catch (err) {
+    renderToast(err.message || 'Error al actualizar', 'error');
   }
 }
 
-// ─── Modal click handler ──────────────────────────────────────────────────────
+// ─── Modal clicks ─────────────────────────────────────────────────────────────
 async function handleModalClick(e) {
   const overlay = document.getElementById('modal-overlay');
   if (e.target === overlay) { closeModal(); return; }
 
-  // Corregido: capturar clics en botones de cancelar/cerrar modal
-  if (e.target.closest('.btn-cancelar-modal')) { 
-    closeModal(); 
-    return; 
-  }
+  if (e.target.closest('.btn-cancelar-modal')) { closeModal(); return; }
 
   if (e.target.closest('.btn-remove-image')) {
-    const btn     = e.target.closest('.btn-remove-image');
-    const imageId = btn.dataset.imageId;
+    const btn      = e.target.closest('.btn-remove-image');
+    const imageId  = btn.dataset.imageId;
     const imageUrl = btn.dataset.imageUrl;
 
-    // Filtrar pendingImages (pueden ser strings o objetos)
     pendingImages = pendingImages.filter(img => {
       const url = typeof img === 'string' ? img : img.url;
       const id = typeof img === 'string' ? `img-${pendingImages.indexOf(img)}` : img.id;
-      // Si tenemos URL (Supabase), comparamos por URL. Si no, por ID (locales).
       return imageUrl ? url !== imageUrl : id !== imageId;
     });
 
@@ -485,32 +501,60 @@ async function handleModalClick(e) {
     if (!pendingFormData) return;
     const { noteId, fields, action } = pendingFormData;
     pendingFormData = null;
-    await updateNote(noteId, fields, currentSession);
-    closeModal();
-    if (action === 'preview') {
-      await showDetail(noteId);
-    } else {
-      await showDashboard();
-      renderToast('Nota actualizada', 'success');
-    }
-    editingNoteId = null;
+    await commitUpdate(noteId, fields, action);
     return;
   }
 
-  // Corregido: asegurar captura de confirmación de eliminación
+  // Conflict: forzar sobrescritura
+  if (e.target.closest('.btn-conflict-overwrite')) {
+    if (!pendingFormData) return;
+    const { noteId, fields, action } = pendingFormData;
+    pendingFormData = null;
+    try {
+      const result = await updateNote(noteId, { ...fields, _force: true }, currentSession);
+      if (result?.new) log.noteUpdated(result.new);
+      closeModal();
+      if (action === 'preview') {
+        await showDetail(noteId);
+      } else {
+        await showDashboard();
+        renderToast('Nota sobrescrita', 'success');
+      }
+      editingNoteId = null;
+      editingNoteModifiedEn = null;
+    } catch (err) {
+      renderToast(err.message || 'Error al sobrescribir', 'error');
+    }
+    return;
+  }
+
+  // Conflict: descartar cambios locales
+  if (e.target.closest('.btn-conflict-keep-server')) {
+    pendingFormData = null;
+    closeModal();
+    if (editingNoteId !== null) await showDetail(editingNoteId);
+    editingNoteId = null;
+    editingNoteModifiedEn = null;
+    return;
+  }
+
   if (e.target.closest('.btn-confirmar-delete')) {
     const btn    = e.target.closest('.btn-confirmar-delete');
     const noteId = parseInt(btn.dataset.noteId);
     if (isNaN(noteId)) return;
-    await deleteNote(noteId);
-    closeModal();
-    await showDashboard();
-    renderToast('Nota eliminada', 'info');
+    try {
+      await deleteNote(noteId);
+      closeModal();
+      await showDashboard();
+      renderToast('Nota eliminada', 'info');
+    } catch (err) {
+      renderToast(err.message || 'No se pudo eliminar la nota', 'error');
+    }
     return;
   }
 }
 
-// ─── Repartidor view ─────────────────────────────────────────────────────────
+// ─── Repartidor ──────────────────────────────────────────────────────────────
 async function showRepartidor() {
   document.getElementById('view-repartidor').innerHTML = renderRepartidorView(currentSession);
   showView('repartidor');
@@ -541,7 +585,6 @@ async function handleRepartidorClick(e) {
   const updated = await toggleTomada(noteId, currentSession);
   if (!updated) return;
 
-  // Reemplazar solo esa card en el DOM
   const newCard = document.createElement('div');
   newCard.innerHTML = renderRepartidorCard(updated).trim();
   card.replaceWith(newCard.firstElementChild);
@@ -549,7 +592,7 @@ async function handleRepartidorClick(e) {
   log.noteTomada(updated);
 }
 
-// ─── Image preview overlay ────────────────────────────────────────────────────
+// ─── Image preview ───────────────────────────────────────────────────────────
 async function showImagePreview(index) {
   const note = await getNote(currentDetailNoteId);
   if (!note?.imagenes?.[index]) return;
@@ -564,7 +607,6 @@ async function showImagePreview(index) {
     </div>`;
 
   const imgEl = document.createElement('img');
-  // Resolvemos la URL (local o remota) antes de mostrarla
   imgEl.src = await resolveImageUrl(imgUrl);
   imgEl.alt = `Imagen ${index + 1}`;
   overlay.querySelector('.image-preview-container').appendChild(imgEl);
@@ -574,20 +616,19 @@ async function showImagePreview(index) {
   overlay.querySelector('.btn-close-preview').addEventListener('click', () => overlay.remove());
 }
 
-// ─── Delete confirm ───────────────────────────────────────────────────────────
+// ─── Delete ──────────────────────────────────────────────────────────────────
 async function confirmDelete(noteId) {
   const note = await getNote(noteId);
   if (!note) return;
   openModal(renderDeleteConfirm(note));
 }
 
-// ─── Logout ───────────────────────────────────────────────────────────────────
+// ─── Logout ──────────────────────────────────────────────────────────────────
 async function handleLogout() {
   await logout();
   currentSession  = null;
   editingNoteId   = null;
   pendingFormData = null;
-  // Clear stale view content to prevent cross-session data leaks in DOM
   document.getElementById('view-dashboard').innerHTML  = '';
   document.getElementById('view-detail').innerHTML     = '';
   document.getElementById('view-repartidor').innerHTML = '';
@@ -595,7 +636,7 @@ async function handleLogout() {
   showLoginView();
 }
 
-// ─── Diff computation ─────────────────────────────────────────────────────────
+// ─── Diff ────────────────────────────────────────────────────────────────────
 function computeDiff(oldNote, newFields) {
   const changes = [];
   if (oldNote.fecha !== newFields.fecha) {
@@ -622,7 +663,6 @@ function computeDiff(oldNote, newFields) {
   return changes;
 }
 
-// ─── Validation ───────────────────────────────────────────────────────────────
 function validateForm(fields) {
   if (!fields.fecha) { renderToast('La fecha es requerida', 'error'); return false; }
   if (!fields.destino) { renderToast('El destino es requerido', 'error'); return false; }
@@ -630,13 +670,11 @@ function validateForm(fields) {
   return true;
 }
 
-// ─── Debounce ─────────────────────────────────────────────────────────────────
 function debounce(fn, delay) {
   let timer;
   return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
 }
 
-// ─── Online/Offline indicator ──────────────────────────────────────────────────
 function updateOnlineIndicator(online) {
   let indicator = document.querySelector('.online-indicator');
   if (!indicator) {

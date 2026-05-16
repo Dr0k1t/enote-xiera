@@ -1,4 +1,39 @@
+/// <reference path="../types.js" />
 import { CONFIG } from '../config.js';
+import { getImageFromCache } from '../offline.js';
+
+// Tracking de blob URLs creadas con URL.createObjectURL para evitar leaks.
+const _blobUrls = new Set();
+
+/**
+ * Revoca todas las blob URLs creadas vía resolveImageUrl.
+ * Llamar antes de limpiar DOM que pudiera referenciarlas.
+ */
+export function revokeBlobUrls() {
+  _blobUrls.forEach(url => URL.revokeObjectURL(url));
+  _blobUrls.clear();
+}
+
+/**
+ * Resuelve URL de imagen: si está en IndexedDB, devuelve blob URL temporal.
+ */
+export async function resolveImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+
+  try {
+    const record = await getImageFromCache(url);
+    const blob = record?.blob;
+    if (blob) {
+      const blobUrl = URL.createObjectURL(blob);
+      _blobUrls.add(blobUrl);
+      return blobUrl;
+    }
+  } catch (err) {
+    console.warn('Error al resolver imagen desde caché:', url, err);
+  }
+  return url;
+}
 
 /**
  * Escapa caracteres especiales para prevenir XSS.
@@ -10,16 +45,10 @@ export function esc(str) {
     .replace(/'/g, '&#39;');
 }
 
-/**
- * Determina la clase CSS según el estatus de la nota.
- */
 export function statusClass(estatus) {
   return (estatus || '').toLowerCase().replace(/\s+/g, '-');
 }
 
-/**
- * Formatea una fecha ISO a formato local es-MX (Día Mes Año).
- */
 export function formatFecha(isoDate) {
   if (!isoDate) return '—';
   return new Date(isoDate + 'T00:00:00').toLocaleDateString('es-MX', {
@@ -27,9 +56,6 @@ export function formatFecha(isoDate) {
   });
 }
 
-/**
- * Formatea un timestamp ISO a formato local es-MX (Día Mes Año, Hora).
- */
 export function formatTs(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('es-MX', {
@@ -38,45 +64,33 @@ export function formatTs(iso) {
   });
 }
 
-/**
- * Obtiene los metadatos del rol del usuario.
- */
-export function role(session) { 
-  return CONFIG.roles[session?.role] ?? {}; 
+export function role(session) {
+  return CONFIG.roles[session?.role] ?? {};
 }
 
-/**
- * Cambia la vista activa de la aplicación.
- */
 export function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const el = document.getElementById('view-' + id);
   if (el) el.classList.add('active');
 }
 
-/**
- * Abre el modal con el contenido HTML proporcionado.
- */
 export function openModal(html) {
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = html;
   overlay.classList.add('visible');
-  document.body.style.overflow = 'hidden'; // Prevenir scroll del fondo
+  document.body.style.overflow = 'hidden';
 }
 
-/**
- * Cierra el modal activo.
- */
 export function closeModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay.classList.remove('visible');
+  // Limpiar DOM primero para que ningún <img> siga referenciando blob URLs,
+  // luego revocarlas.
   overlay.innerHTML = '';
+  revokeBlobUrls();
   document.body.style.overflow = '';
 }
 
-/**
- * Renderiza una notificación tipo Toast.
- */
 export function renderToast(message, type = 'info') {
   let container = document.querySelector('.toast-container');
   if (!container) {
@@ -94,9 +108,6 @@ export function renderToast(message, type = 'info') {
   }, 3000);
 }
 
-/**
- * Renderiza el encabezado común de la aplicación.
- */
 export function renderHeader(session) {
   const chipClasses = { admin: 'role-chip role-chip--admin', sucursal: 'role-chip role-chip--sucursal' };
   const chipClass = chipClasses[session.role] ?? 'role-chip';
