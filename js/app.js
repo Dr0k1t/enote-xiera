@@ -62,7 +62,10 @@ async function init() {
     updateOnlineIndicator(true);
     renderToast('Conexión restaurada', 'success');
     if (currentSession) {
-      await syncPendingNotes(createNote);
+      await syncPendingNotes(async (item) => {
+        const { _session, synced, localId, createdAt, ...fields } = item;
+        return createNote(fields, _session || currentSession);
+      });
       await updateOfflineBadge();
     }
   });
