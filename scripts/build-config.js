@@ -28,11 +28,14 @@ function parseDotEnv(content) {
   return out;
 }
 
+function stripBom(str) {
+  return (typeof str === 'string') ? str.replace(/^\ufeff/, '') : str;
+}
 function loadEnv() {
   const envFile = fs.existsSync(ENV_PATH) ? parseDotEnv(fs.readFileSync(ENV_PATH, 'utf8')) : {};
   return {
-    SUPABASE_URL: process.env.SUPABASE_URL || envFile.SUPABASE_URL || '',
-    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || envFile.SUPABASE_ANON_KEY || '',
+    SUPABASE_URL: stripBom(process.env.SUPABASE_URL || envFile.SUPABASE_URL || ''),
+    SUPABASE_ANON_KEY: stripBom(process.env.SUPABASE_ANON_KEY || envFile.SUPABASE_ANON_KEY || ''),
   };
 }
 

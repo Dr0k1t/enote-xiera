@@ -4,7 +4,7 @@ import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada } f
 import { login, requireAuth, canSeeAll, logout } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
-import { syncPendingNotes } from './offline.js';
+import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount } from './offline.js';
 
 import {
   showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl,
@@ -55,6 +55,7 @@ async function init() {
     showLoginView();
   } else {
     await routeByRole();
+    await updateOfflineBadge();
   }
 
   window.addEventListener('online', async () => {
@@ -62,6 +63,7 @@ async function init() {
     renderToast('Conexión restaurada', 'success');
     if (currentSession) {
       await syncPendingNotes(createNote);
+      await updateOfflineBadge();
     }
   });
   window.addEventListener('offline', () => {
@@ -192,10 +194,38 @@ async function showDashboard() {
     pageNotes, currentSession, total, currentPage, totalPages
   );
   showView('dashboard');
+  await updateOfflineBadge();
+}
+
+async function updateOfflineBadge() {
+  const headerEl = document.querySelector('.app-header');
+  if (!headerEl) return;
+  const count = await getPendingCount();
+  let badge = headerEl.querySelector('.offline-badge');
+  if (count > 0) {
+    if (badge) {
+      badge.textContent = '⟳ ' + count;
+    } else {
+      badge = document.createElement('span');
+      badge.className = 'offline-badge';
+      badge.textContent = '⟳ ' + count;
+      const logoutBtn = headerEl.querySelector('.btn-logout');
+      if (logoutBtn) {
+        logoutBtn.parentNode.insertBefore(badge, logoutBtn);
+      } else {
+        headerEl.querySelector('.header-right')?.appendChild(badge);
+      }
+    }
+  } else if (badge) {
+    badge.remove();
+  }
 }
 
 async function getBaseNotes() {
   let notes = await getNotes();
+  if (isOnline()) {
+    void syncNotesToCache(notes);
+  }
   if (!canSeeAll(currentSession)) {
     notes = notes.filter(n => n.destino === currentSession.destino || n.creadoPor === currentSession.username);
   }
@@ -419,6 +449,18 @@ async function handleFormSubmit(action) {
     }
     await commitUpdate(editingNoteId, fields, action);
   } else {
+    if (!isOnline()) {
+      try {
+        await createNoteOffline({ ...fields, _session: currentSession });
+        renderToast('Nota guardada sin conexión — se enviará automáticamente al reconectar', 'info');
+        closeModal();
+        editingNoteId = null;
+        await updateOfflineBadge();
+      } catch (err) {
+        renderToast(err.message || 'Error al guardar offline', 'error');
+      }
+      return;
+    }
     try {
       const note = await createNote(fields, currentSession);
       log.noteCreated(note);

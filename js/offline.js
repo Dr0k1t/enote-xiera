@@ -128,9 +128,14 @@ export async function syncPendingNotes(createNoteFn) {
       }
     }
     if (success) {
+      await dbPut(STORES.PENDING_QUEUE, { ...item, synced: true });
       await deletePendingNote(item.localId);
     }
   }
+}
+
+export async function getPendingCount() {
+  return (await getPendingNotes()).length;
 }
 
 export function isOnline() {

@@ -108,9 +108,12 @@ export function renderToast(message, type = 'info') {
   }, 3000);
 }
 
-export function renderHeader(session) {
+export function renderHeader(session, pendingCount = 0) {
   const chipClasses = { admin: 'role-chip role-chip--admin', sucursal: 'role-chip role-chip--sucursal' };
   const chipClass = chipClasses[session.role] ?? 'role-chip';
+  const badge = pendingCount > 0
+    ? `<span class="offline-badge">⟳ ${esc(String(pendingCount))}</span>`
+    : '';
   return `
   <header class="app-header">
     <div class="header-brand">
@@ -120,6 +123,7 @@ export function renderHeader(session) {
       <div class="header-user">
         ${esc(session.username)}&nbsp;<span class="${chipClass}">${esc(session.role)}</span>
       </div>
+      ${badge}
       <button class="btn btn-ghost btn-sm btn-logout" aria-label="Cerrar sesión">Salir</button>
     </div>
   </header>`;
