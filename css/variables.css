@@ -24,6 +24,15 @@
   --color-status-cancelada-text: #5A5250;
   --color-status-cancelada-border:#C0BAB8;
 
+  --color-danger:         #C0392B;
+  --color-danger-dk:      #A93226;
+  --color-danger-bg:      #FDEAEA;
+  --color-danger-text:    #891A1A;
+  --color-danger-border:  #D0A0A0;
+  --color-sucursal:       #1A5C32;
+  --color-repartidor:     #2563EB;
+  --color-offline:        #D97706;
+
   --font-heading: 'Cormorant Garamond', Georgia, serif;
   --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
 

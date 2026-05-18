@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-18T00:00:00.000Z",
+  "title": "Design System: Enote",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Vino de la Tierra",
+        "canonical": "oklch(38% 0.12 6deg)",
+        "tonalRamp": ["#1C0A10", "#2D0F1A", "#4A1E2A", "#7A3045", "#A05568", "#C0899A", "#DBBBC5", "#F3E8EC"]
+      },
+      "primary-deep": {
+        "role": "primary",
+        "displayName": "Vino Oscuro",
+        "canonical": "oklch(30% 0.10 6deg)",
+        "tonalRamp": ["#150810", "#22101A", "#3A1825", "#5C2233", "#8A4A5A", "#B08090", "#CBAAB5", "#EAD8DE"]
+      },
+      "bg-dusty-rose": {
+        "role": "neutral",
+        "displayName": "Rosa de la Miga",
+        "canonical": "oklch(72% 0.06 20deg)",
+        "tonalRamp": ["#1E0E0B", "#2E1A16", "#5E3A34", "#8E5A54", "#C4A09A", "#D8BEB9", "#EDD9D5", "#F8EEEB"]
+      },
+      "surface-warm": {
+        "role": "neutral",
+        "displayName": "Crema de Pan",
+        "canonical": "oklch(95% 0.015 20deg)",
+        "tonalRamp": ["#22120E", "#3A2018", "#603830", "#8A5A52", "#B89089", "#D4B5B0", "#EDD9D5", "#F5EDEB"]
+      },
+      "warm-white": {
+        "role": "neutral",
+        "displayName": "Papel Nuevo",
+        "canonical": "oklch(99% 0.005 10deg)",
+        "tonalRamp": ["#201510", "#38221A", "#58382E", "#8A6055", "#B89A95", "#D8C0BC", "#EEDDDA", "#FFFAF9"]
+      },
+      "text-deep-brown": {
+        "role": "neutral",
+        "displayName": "Cacao Profundo",
+        "canonical": "oklch(18% 0.04 33deg)",
+        "tonalRamp": ["#0F0A08", "#1A0E09", "#2C1810", "#4A302A", "#6A5045", "#8A7066", "#B09088", "#D8C0BC"]
+      },
+      "text-muted-taupe": {
+        "role": "neutral",
+        "displayName": "Arcilla Muted",
+        "canonical": "oklch(54% 0.03 20deg)",
+        "tonalRamp": ["#1A100E", "#2E2019", "#4A3834", "#6A5855", "#8B6E6A", "#AE9590", "#CCB5B0", "#E5D5D0"]
+      },
+      "border-petal": {
+        "role": "neutral",
+        "displayName": "Pétalo Seco",
+        "canonical": "oklch(89% 0.02 20deg)",
+        "tonalRamp": ["#231512", "#38221A", "#5A3830", "#8A6055", "#B89A95", "#CCB5B0", "#DDD0CC", "#E8D5D0"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Brand mark on login screen only. Single instance per view."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Modal titles and major section headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Note numbers on cards (#0001, #0042). Most prominent content data."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Form inputs, card content, table data, detail views. Max 65-75ch for prose."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, table headers, role chips, badge text. Always uppercase."
+      }
+    },
+    "shadows": [
+      { "name": "card-resting", "value": "0 2px 12px rgba(44, 24, 16, 0.08)", "purpose": "Default state for note cards on the dashboard." },
+      { "name": "card-hover", "value": "0 6px 20px rgba(44, 24, 16, 0.12)", "purpose": "Hover state paired with translateY(-2px) card lift." },
+      { "name": "button", "value": "0 1px 4px rgba(44, 24, 16, 0.12)", "purpose": "Tactile weight on primary buttons." },
+      { "name": "header", "value": "0 1px 6px rgba(44, 24, 16, 0.06)", "purpose": "Sticky header separation from content." },
+      { "name": "modal", "value": "0 8px 40px rgba(44, 24, 16, 0.22)", "purpose": "Modal cards and overlays only." }
+    ],
+    "motion": [
+      { "name": "fast", "value": "140ms ease", "purpose": "Button hover, input border, icon state changes." },
+      { "name": "base", "value": "240ms ease", "purpose": "Card hover lift, modal fade-in, view transitions." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "640px", "purpose": "Single responsive breakpoint. Below: stack layouts, full-width cards, larger padding reduction." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action trigger. Used for save, create, confirm workflows.",
+      "html": "<button class=\"ds-btn-primary\">Guardar nota</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; color: #FFFAF9; background: #7A3045; border: 1.5px solid #7A3045; border-radius: 8px; padding: 12px 16px; cursor: pointer; box-shadow: 0 1px 4px rgba(44, 24, 16, 0.12); transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease; white-space: nowrap; min-height: 44px; text-decoration: none; } .ds-btn-primary:hover { background: #5C2233; border-color: #5C2233; } .ds-btn-primary:active { transform: translateY(1px); box-shadow: none; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(122, 48, 69, 0.25); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary action, same visual weight as primary but without fill.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.02em; color: #7A3045; background: transparent; border: 1.5px solid #7A3045; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: background-color 140ms ease; white-space: nowrap; min-height: 44px; } .ds-btn-secondary:hover { background: #F5EDEB; } .ds-btn-secondary:active { transform: translateY(1px); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(122, 48, 69, 0.2); }"
+    },
+    {
+      "name": "Status Badge: Nueva",
+      "kind": "chip",
+      "refersTo": "badge-nueva",
+      "description": "Workflow state indicator for notes in Nueva status.",
+      "html": "<span class=\"ds-badge ds-badge-nueva\">Nueva</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 99px; padding: 3px 10px; border: 1px solid; white-space: nowrap; } .ds-badge-nueva { background: #F9EEF1; color: #7A3045; border-color: #D4A0B0; } .ds-badge-en-proceso { background: #FFF8E7; color: #7A5C00; border-color: #E8D080; } .ds-badge-completada { background: #EAF5EE; color: #1A5C32; border-color: #8ECFA8; } .ds-badge-cancelada { background: #F0EFEF; color: #5A5250; border-color: #C0BAB8; }"
+    },
+    {
+      "name": "Note Card",
+      "kind": "card",
+      "refersTo": null,
+      "description": "Primary content unit on the dashboard. Represents a single remission note.",
+      "html": "<div class=\"ds-note-card\"><div class=\"ds-note-card__top\"><span class=\"ds-note-num\">#0042</span><span class=\"ds-badge ds-badge-en-proceso\">En Proceso</span></div><div class=\"ds-note-meta\">Planta Norte · 18 may 2026</div><div class=\"ds-note-prods\">Conchas ×24, Bolillos ×50</div><div class=\"ds-note-footer\"><span class=\"ds-role-chip ds-role-chip--sucursal\">Planta</span></div></div>",
+      "css": ".ds-note-card { background: #FFFAF9; border: 1px solid #E8D5D0; border-radius: 16px; box-shadow: 0 2px 12px rgba(44, 24, 16, 0.08); padding: 16px 24px; display: flex; flex-direction: column; gap: 12px; transition: transform 240ms ease, box-shadow 240ms ease; width: 290px; } .ds-note-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(44, 24, 16, 0.12); } .ds-note-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; } .ds-note-num { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.4rem; color: #7A3045; line-height: 1; } .ds-note-meta { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.82rem; color: #8B6E6A; } .ds-note-prods { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.8rem; color: #8B6E6A; font-style: italic; } .ds-note-footer { display: flex; align-items: center; padding-top: 8px; border-top: 1px solid #E8D5D0; } .ds-badge { display: inline-flex; align-items: center; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 99px; padding: 3px 10px; border: 1px solid; white-space: nowrap; } .ds-badge-en-proceso { background: #FFF8E7; color: #7A5C00; border-color: #E8D080; } .ds-role-chip { display: inline-block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 99px; padding: 2px 8px; background: #F5EDEB; border: 1px solid #E8D5D0; color: #8B6E6A; } .ds-role-chip--sucursal { background: #1A5C32; color: white; border-color: #1A5C32; }"
+    },
+    {
+      "name": "Form Input",
+      "kind": "input",
+      "refersTo": null,
+      "description": "Stroke-style text field. Used in note creation and edit forms.",
+      "html": "<div class=\"ds-form-group\"><label class=\"ds-form-label\">Destino</label><input class=\"ds-form-input\" type=\"text\" placeholder=\"Planta Norte\" /></div>",
+      "css": ".ds-form-group { display: flex; flex-direction: column; gap: 8px; } .ds-form-label { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #8B6E6A; } .ds-form-input { display: block; width: 100%; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.95rem; color: #2C1810; background: #F5EDEB; border: 1.5px solid #E8D5D0; border-radius: 8px; padding: 12px 16px; transition: border-color 140ms ease, box-shadow 140ms ease; outline: none; min-height: 44px; appearance: none; } .ds-form-input:focus { border-color: #7A3045; box-shadow: 0 0 0 3px rgba(122, 48, 69, 0.12); } .ds-form-input::placeholder { color: #8B6E6A; opacity: 0.7; }"
+    },
+    {
+      "name": "Role Chip (Admin)",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Header identity chip. Three variants for admin, sucursal, repartidor roles.",
+      "html": "<span class=\"ds-role-chip-admin\">Admin</span>",
+      "css": ".ds-role-chip-base { display: inline-block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 99px; padding: 2px 8px; } .ds-role-chip-admin { display: inline-block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 99px; padding: 2px 8px; background: #7A3045; color: white; border: 1px solid #7A3045; } .ds-role-chip-sucursal { display: inline-block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 99px; padding: 2px 8px; background: #1A5C32; color: white; border: 1px solid #1A5C32; } .ds-role-chip-repartidor { display: inline-block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 99px; padding: 2px 8px; background: #2563EB; color: white; border: 1px solid #2563EB; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Recibo Artesanal",
+    "overview": "Enote is a physical document made digital. The visual system starts from a single reference: the hand-written remission note that Xiera's baker hands the driver before loading the truck. That object is warm, worn, authoritative. It has no decoration beyond function: a number, a list of products, a destination, a stamp. The interface must feel like that document elevated, not like software that replaced it.\n\nThe surface itself is dusty rose — not a background tint but a material. Cards emerge from it in near-white warmth. Burgundy wine is the only accent, used exclusively for brand identity, primary actions, and note numbers (the most critical data on any screen). Cormorant Garamond heads the note number and modal titles; DM Sans carries everything workers need to read quickly. Shadows are warm-tinted (sepia base, never pure black) and stay low-profile except on modals.\n\nThis system explicitly rejects: the blank-canvas SaaS aesthetic of Notion and Linear; the grey-grid density of enterprise ERP like SAP; and the dopamine-reward palette of consumer delivery apps like Rappi. Enote must feel like it was designed by someone who knew the bakery, not by someone who knew Figma.",
+    "keyCharacteristics": [
+      "Committed color strategy: dusty rose surface is the canvas, not a background tint.",
+      "Serif for identity, sans for operation. The pairing is strict and non-negotiable.",
+      "Status is unmissable: four semantic color states are the most visible system in the UI.",
+      "Shadows are warm-tinted and restrained. No pure-black rgba anywhere.",
+      "Touch targets sized for bakery conditions: busy hands, wet surfaces, quick glances."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Vino de la Tierra (#7A3045) is prohibited on decorative elements, secondary text, supplemental icons, and hover underlines. Its role is action and identity only. Its authority comes from rarity.", "section": "colors" },
+      { "name": "The Warm Neutrals Rule", "body": "No pure-black shadows, no cold grey borders, no #fff backgrounds. Every neutral references the brand hue even at near-zero chroma. rgba(44, 24, 16, α) is the shadow primitive for all elevation.", "section": "colors" },
+      { "name": "The Cormorant Boundary Rule", "body": "Cormorant Garamond is prohibited in: button labels, form field text, data table cells, error messages, badge text, and any context below 1rem. It lives exclusively in the brand mark and note numbers.", "section": "typography" },
+      { "name": "The Warm Shadow Rule", "body": "Never use rgba(0, 0, 0, α) for shadows. The sepia-tinted shadow base unifies depth with the overall palette. A pure-black shadow on a terracotta surface is immediately wrong.", "section": "elevation" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. A card that doesn't respond to hover gets no shadow. The button shadow is a tactile affordance, not a decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use rgba(44, 24, 16, α) as the shadow base for all elevation without exception.",
+      "Do reserve Cormorant Garamond for the brand mark, modal titles, and note numbers only.",
+      "Do show all four status states with their full color triad (bg + text + border). Never communicate status with color alone.",
+      "Do keep all touch targets at minimum 44×44px.",
+      "Do use #F5EDEB (Crema de Pan) as the secondary surface for toolbars, form sections, and modal footers.",
+      "Do size the wine accent #7A3045 to convey authority: primary buttons, brand mark, note numbers."
+    ],
+    "donts": [
+      "Don't use border-left or border-right greater than 1px as a colored stripe accent. Use a full border, tinted background, or leading icon instead. The existing .indicator-new, .indicator-modified, and .diff-alert violate this rule and must be corrected.",
+      "Don't use Cormorant Garamond in button labels, form inputs, table cells, badge text, or any text below 1rem.",
+      "Don't use pure-black shadows or cold grey borders.",
+      "Don't make Enote look like a SaaS product (Notion, Linear, Jira): no blank white backgrounds, no cold blue accents.",
+      "Don't make it look like enterprise ERP (SAP, Excel-like): no dense grey tables, no deep hierarchical navigation.",
+      "Don't make it look like a consumer delivery app (Rappi, Uber Eats): no neon colors, no gamification.",
+      "Don't use #000 or #fff anywhere in the interface.",
+      "Don't use the wine accent #7A3045 for decorative purposes.",
+      "Don't show a spinner in the center of content during loading."
+    ]
+  }
+}
