@@ -2,6 +2,7 @@ const CACHE_VERSION = 'enote-' + (typeof self.ENOTE_VERSION !== 'undefined' ? se
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/css/variables.css',
   '/css/main.css',
   '/css/print.css',
@@ -45,11 +46,26 @@ self.addEventListener('fetch', e => {
   const url = new URL(request.url);
 
   if (request.method !== 'GET') return;
-  if (url.origin === 'https://supabase.co' || url.origin === 'https://*.supabase.co') return;
+  if (url.hostname.endsWith('.supabase.co')) return;
 
-  if (request.destination === 'document' || request.destination === 'style' ||
-      request.destination === 'script' || request.destination === 'font' ||
-      request.destination === 'image') {
+  const isDoc = request.destination === 'document';
+  const isAsset = ['style', 'script', 'font', 'image'].includes(request.destination);
+
+  if (isDoc) {
+    e.respondWith(
+      fetch(request)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(request).then(cached => cached || caches.match('/offline.html'))
+        )
+    );
+  } else if (isAsset) {
     e.respondWith(
       caches.match(request)
         .then(r => r || fetch(request)

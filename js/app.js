@@ -4,7 +4,7 @@ import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada } f
 import { login, requireAuth, canSeeAll, logout } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
-import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount } from './offline.js';
+import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount, preCacheAllImages } from './offline.js';
 
 import {
   showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl,
@@ -24,13 +24,56 @@ let pendingFormData     = null;
 let pendingImages       = [];
 let currentDetailNoteId = null;
 let currentPage         = 1;
+let deferredPrompt      = null;
+let isInstalled         = false;
 
 // ─── Service Worker ───────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js')
-    .then(reg => console.log('SW registered:', reg.scope))
+    .then(reg => {
+      console.log('SW registered:', reg.scope);
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            renderToast('Nueva versión disponible — recarga para actualizar', 'info', 8000);
+          }
+        });
+      });
+    })
     .catch(err => console.warn('SW registration failed:', err));
 }
+
+// ─── PWA Install ──────────────────────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  updateInstallButton();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  isInstalled = true;
+  const btn = document.querySelector('.install-btn');
+  if (btn) btn.remove();
+  renderToast('App instalada', 'success');
+});
+
+document.addEventListener('click', e => {
+  if (e.target.closest('.install-btn')) {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choiceResult => {
+      if (choiceResult.outcome === 'accepted') {
+        isInstalled = true;
+        const btn = document.querySelector('.install-btn');
+        if (btn) btn.remove();
+      }
+      deferredPrompt = null;
+    });
+  }
+});
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 init();
@@ -66,7 +109,9 @@ async function init() {
         const { _session, synced, localId, createdAt, ...fields } = item;
         return createNote(fields, _session || currentSession);
       });
+      void getBaseNotes(); // re-cachea notes + imágenes tras sync
       await updateOfflineBadge();
+      updateInstallButton();
     }
   });
   window.addEventListener('offline', () => {
@@ -197,6 +242,7 @@ async function showDashboard() {
     pageNotes, currentSession, total, currentPage, totalPages
   );
   showView('dashboard');
+  updateInstallButton();
   await updateOfflineBadge();
 }
 
@@ -228,6 +274,7 @@ async function getBaseNotes() {
   let notes = await getNotes();
   if (isOnline()) {
     void syncNotesToCache(notes);
+    void preCacheAllImages(notes);
   }
   if (!canSeeAll(currentSession)) {
     notes = notes.filter(n => n.destino === currentSession.destino || n.creadoPor === currentSession.username);
@@ -603,6 +650,7 @@ async function handleModalClick(e) {
 async function showRepartidor() {
   document.getElementById('view-repartidor').innerHTML = renderRepartidorView(currentSession);
   showView('repartidor');
+  updateInstallButton();
 }
 
 async function renderNotasRepartidor(sucursal) {
@@ -729,4 +777,26 @@ function updateOnlineIndicator(online) {
   }
   indicator.textContent = online ? '' : 'Sin conexión';
   indicator.className = 'online-indicator' + (online ? '' : ' offline');
+}
+
+function updateInstallButton() {
+  const headerEl = document.querySelector('.app-header');
+  if (!headerEl) return;
+  let btn = headerEl.querySelector('.install-btn');
+  if (deferredPrompt && !isInstalled) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.className = 'btn btn-primary btn-sm install-btn';
+      btn.textContent = 'Instalar app';
+      btn.setAttribute('aria-label', 'Instalar aplicación');
+      const logoutBtn = headerEl.querySelector('.btn-logout');
+      if (logoutBtn) {
+        logoutBtn.parentNode.insertBefore(btn, logoutBtn);
+      } else {
+        headerEl.querySelector('.header-right')?.appendChild(btn);
+      }
+    }
+  } else {
+    if (btn) btn.remove();
+  }
 }

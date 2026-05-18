@@ -196,3 +196,14 @@ export async function cacheImages(notes) {
     }));
   }
 }
+
+/**
+ * Pre-cachea imágenes de un lote completo de notas.
+ * Fire-and-forget — no bloquea el flujo principal.
+ */
+export async function preCacheAllImages(notes) {
+  if (!isOnline()) return;
+  const notesWithImages = notes.filter(n => n.imagenes && n.imagenes.length > 0);
+  if (notesWithImages.length === 0) return;
+  cacheImages(notesWithImages);
+}

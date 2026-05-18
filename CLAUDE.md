@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance para Claude Code (claude.ai/code) en este repo.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Proyecto
 
@@ -25,13 +25,20 @@ npx serve .
 # Deploy a producción Vercel
 npx vercel --prod
 
-# Tests E2E (Playwright)
-cd audit
-npm install
-npm run audit
-```
+# Tests E2E (Playwright) — instalar dependencias solo la primera vez
+cd audit && npm install
 
-`audit/audit.js` corre Playwright headless chromium. Verifica login, dashboard admin, modales, filtros, cambio estatus, logout, rol planta, rol repartidor.
+# Suite completa (login, dashboard, filtros, estatus, logout, rol planta, rol repartidor)
+node audit.js
+
+# Tests offline (IndexedDB, cola pending, badge, fallback store) — no requiere login
+node audit-offline.js [URL]          # default: http://localhost:5500
+
+# Suite producción (3 roles, CRUD online, offline B.1/B.2/B.5, reconexión, PWA, a11y)
+node audit-prod.js [URL]             # default: https://enote-xiera.vercel.app
+# Env vars opcionales para audit-prod.js:
+#   ENOTE_URL=https://...   AUDIT_PASS=passss   HEADLESS=0
+```
 
 **Env vars Vercel (producción):** `SUPABASE_URL` y `SUPABASE_ANON_KEY` — seteadas en `dr0k1ts-projects/enote-xiera`. Local: `.env` (gitignoreado). Ver `.env.example`.
 
@@ -118,22 +125,6 @@ Evento DOM → app.js (delegación) → store.js (Supabase)
   // cliente, pastel, entrega, financiero (ver js/types.js)
 }
 ```
-
-## Migración v1.2 (Completada)
-
-- ✅ `sw.js` cache-first con `CACHE_VERSION` dinámico (lee `self.ENOTE_VERSION` desde index.html)
-- ✅ `manifest.json` PWA instalable
-- ✅ `js/supabase.js` generado por build-config
-- ✅ `auth.js`, `store.js` solo Supabase (demo eliminado)
-- ✅ `offline.js` IndexedDB v3, `IMAGE_CACHE` keyPath, cacheImages paralelo
-- ✅ Offline-first cableado (creación, lectura, sync, badge)
-- ✅ Blob URL leak fix en `closeModal`
-- ✅ JSDoc types
-- ✅ Paginación client-side
-- ✅ Conflict detection
-- ✅ Validación backend
-- ✅ Vercel deploy (https://enote-xiera.vercel.app)
-- 🔲 Dominio propio
 
 ## Backend (Supabase)
 

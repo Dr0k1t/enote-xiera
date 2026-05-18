@@ -15,7 +15,7 @@
 | 1 — Infraestructura | 11–16 mayo | 🟢 Completado | 6 / 6 |
 | 2 — Supabase + Offline + Hardening | 18–23 mayo | 🟢 Completado | 22 / 22 |
 | 3 — Repartidor + Pruebas + Paginación | 25–30 mayo | 🟢 Completado | 8 / 8 |
-| 4 — Deploy + Entrega | 01–06 junio | 🟡 En progreso | 3 / 7 |
+| 4 — Deploy + Entrega | 01–06 junio | 🟡 En progreso | 4 / 7 |
 | 5 — Buffer + Conflict + Validación | 08–13 junio | 🟢 Completado | 4 / 4 |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completado
@@ -33,6 +33,7 @@
 | 2026-05-16 | Elius + Claude | Vercel deploy exitoso. BOM fix en build-config.js. Login en producción funcional. |
 | 2026-05-16 | Elius + Claude | Offline-first cableado (B.1–B.5): creación offline, lectura offline, sync dedup, badge offline. Bug fix sync (wrapper _session). |
 | 2026-05-16 | Claude | Fix #2: `getNote()` offline fallback. Fix #3: dead code `.demo-badge` eliminado. Planes obsoletos borrados (10 archivos). Sprint actualizado. |
+| 2026-05-16 | Elius | Re-deploy a Vercel tras fixes offline + demo-badge + cleanup |
 
 ---
 

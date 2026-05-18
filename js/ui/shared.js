@@ -91,7 +91,7 @@ export function closeModal() {
   document.body.style.overflow = '';
 }
 
-export function renderToast(message, type = 'info') {
+export function renderToast(message, type = 'info', duration = 3000) {
   let container = document.querySelector('.toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -105,7 +105,7 @@ export function renderToast(message, type = 'info') {
   setTimeout(() => {
     el.style.opacity = '0';
     setTimeout(() => el.remove(), 400);
-  }, 3000);
+  }, duration);
 }
 
 export function renderHeader(session, pendingCount = 0) {
