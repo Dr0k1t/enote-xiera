@@ -26,14 +26,14 @@ export function renderNoteForm(note, session) {
   const prodRows = productos.map(p => renderProductRow(p)).join('');
 
   return `
-  <div class="modal-card" role="dialog" aria-labelledby="modal-title">
+  <div class="modal-card" role="dialog" aria-labelledby="modal-title" aria-modal="true">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title">${title}</h2>
       <button type="button" class="btn btn-ghost btn-icon btn-cancelar-modal" aria-label="Cerrar modal">✕</button>
     </div>
     <div class="modal-body">
       <form id="note-form" novalidate>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+        <div class="form-grid-2">
           <div class="form-group">
             <label class="form-label" for="nf-fecha">Fecha de entrega</label>
             <input class="form-input" id="nf-fecha" name="fecha" type="date" value="${esc(fecha)}" required>
@@ -66,31 +66,34 @@ export function renderNoteForm(note, session) {
         <div class="form-group">
           <label class="form-label" for="nf-obs">Observaciones / Instrucciones</label>
           <textarea class="form-textarea" id="nf-obs" name="observaciones"
-            placeholder="Ej: Entregar antes de las 3pm, usar charolas limpias..."
+            placeholder="Ej: Entregar antes de las 3pm, usar charolas limpias…"
             rows="3">${esc(obs)}</textarea>
         </div>
 
         <!-- DATOS DE CLIENTE -->
-        <fieldset style="border:none;padding:0">
-          <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Datos de cliente</legend>
+        <fieldset class="fieldset-reset">
+          <legend class="form-label">Datos de cliente</legend>
           <div class="form-group">
+            <label class="form-label" for="nf-cliente-nombre">Nombre del cliente</label>
             <input class="form-input" id="nf-cliente-nombre" name="clienteNombre"
               placeholder="Nombre completo" value="${esc(isEdit && note.clienteNombre ? note.clienteNombre : '')}">
           </div>
           <div class="form-group">
+            <label class="form-label" for="nf-cliente-direccion">Dirección del cliente</label>
             <input class="form-input" id="nf-cliente-direccion" name="clienteDireccion"
               placeholder="Dirección" value="${esc(isEdit && note.clienteDireccion ? note.clienteDireccion : '')}">
           </div>
           <div class="form-group">
+            <label class="form-label" for="nf-cliente-telefono">Teléfono</label>
             <input class="form-input" id="nf-cliente-telefono" name="clienteTelefono"
               type="tel" placeholder="Teléfono" value="${esc(isEdit && note.clienteTelefono ? note.clienteTelefono : '')}">
           </div>
         </fieldset>
 
         <!-- DATOS DE PASTEL -->
-        <fieldset style="border:none;padding:0">
-          <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Datos de pastel</legend>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+        <fieldset class="fieldset-reset">
+          <legend class="form-label">Datos de pastel</legend>
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-pastel-cantidad">Cantidad de pasteles</label>
               <input class="form-input" id="nf-pastel-cantidad" name="pastelCantidad"
@@ -102,11 +105,11 @@ export function renderNoteForm(note, session) {
                 type="number" min="1" value="${esc(isEdit && note.pisos ? note.pisos : '')}">
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-sabor">Sabor</label>
               <input class="form-input" id="nf-sabor" name="sabor"
-                placeholder="Chocolate, vainilla, etc." value="${esc(isEdit && note.sabor ? note.sabor : '')}">
+                placeholder="Chocolate, vainilla…" value="${esc(isEdit && note.sabor ? note.sabor : '')}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-kilos">Kilos / Presentación</label>
@@ -114,7 +117,7 @@ export function renderNoteForm(note, session) {
                 placeholder="Ej: 1kg, Vitrina mini" value="${esc(isEdit && note.kilos ? note.kilos : '')}">
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-modelo">Modelo</label>
               <input class="form-input" id="nf-modelo" name="modelo"
@@ -136,7 +139,7 @@ export function renderNoteForm(note, session) {
         <!-- DATOS DE ENTREGA -->
         <fieldset style="border:none;padding:0">
           <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Datos de entrega</legend>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-hora-entrega">Hora de entrega</label>
               <input class="form-input" id="nf-hora-entrega" name="horaEntrega"
@@ -160,7 +163,7 @@ export function renderNoteForm(note, session) {
         <!-- DATOS FINANCIEROS -->
         <fieldset style="border:none;padding:0">
           <legend class="form-label" style="font-weight:600;margin-bottom:var(--space-3)">Financiero</legend>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-costo-pastel">Costo pastel</label>
               <input class="form-input nf-financiero-input" id="nf-costo-pastel" name="costoPastel"
@@ -172,7 +175,7 @@ export function renderNoteForm(note, session) {
                 type="number" step="0.01" min="0" value="${isEdit && note.depositoEquipo ? note.depositoEquipo : 0}">
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-arreglos-figura">Arreglos y figura</label>
               <input class="form-input nf-financiero-input" id="nf-arreglos-figura" name="arreglosFigura"
@@ -184,10 +187,10 @@ export function renderNoteForm(note, session) {
                 type="number" step="0.01" min="0" value="${isEdit && note.servicioDomicilio ? note.servicioDomicilio : 0}">
             </div>
           </div>
-          <div class="form-group" style="background:#f9f9f9;padding:var(--space-3);border-radius:var(--radius-md);border:1px solid #eee">
+          <div class="form-group" style="background:var(--color-surface);padding:var(--space-3);border-radius:var(--radius-md);border:1px solid var(--color-border)">
             <strong>TOTAL: \$<span id="nf-total-value">0</span></strong>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+          <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-anticipo">Anticipo</label>
               <input class="form-input nf-financiero-input" id="nf-anticipo" name="anticipo"
@@ -203,7 +206,7 @@ export function renderNoteForm(note, session) {
               </select>
             </div>
           </div>
-          <div class="form-group" style="background:#f0f0f0;padding:var(--space-3);border-radius:var(--radius-md);border:1px solid #ddd">
+          <div class="form-group" style="background:var(--color-surface);padding:var(--space-3);border-radius:var(--radius-md);border:1px solid var(--color-border)">
             <strong>SALDO A PAGAR: \$<span id="nf-saldo-value">0</span></strong>
           </div>
         </fieldset>

@@ -5,6 +5,9 @@ import { getImageFromCache } from '../offline.js';
 // Tracking de blob URLs creadas con URL.createObjectURL para evitar leaks.
 const _blobUrls = new Set();
 
+// Elemento que originó la apertura del modal, para restaurar foco al cerrar.
+let _modalOpener = null;
+
 /**
  * Revoca todas las blob URLs creadas vía resolveImageUrl.
  * Llamar antes de limpiar DOM que pudiera referenciarlas.
@@ -75,20 +78,48 @@ export function showView(id) {
 }
 
 export function openModal(html) {
+  _modalOpener = document.activeElement;
   const overlay = document.getElementById('modal-overlay');
   overlay.innerHTML = html;
   overlay.classList.add('visible');
   document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => {
+    const focusable = overlay.querySelector(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable) focusable.focus();
+  });
+  overlay._trapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    const focusables = Array.from(overlay.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ));
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last  = focusables[focusables.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+    }
+  };
+  overlay.addEventListener('keydown', overlay._trapHandler);
 }
 
 export function closeModal() {
   const overlay = document.getElementById('modal-overlay');
+  if (overlay._trapHandler) {
+    overlay.removeEventListener('keydown', overlay._trapHandler);
+    overlay._trapHandler = null;
+  }
   overlay.classList.remove('visible');
-  // Limpiar DOM primero para que ningún <img> siga referenciando blob URLs,
-  // luego revocarlas.
   overlay.innerHTML = '';
   revokeBlobUrls();
   document.body.style.overflow = '';
+  if (_modalOpener && typeof _modalOpener.focus === 'function') {
+    requestAnimationFrame(() => _modalOpener.focus());
+  }
+  _modalOpener = null;
 }
 
 export function renderToast(message, type = 'info', duration = 3000) {
@@ -103,8 +134,10 @@ export function renderToast(message, type = 'info', duration = 3000) {
   el.textContent = message;
   container.appendChild(el);
   setTimeout(() => {
-    el.style.opacity = '0';
-    setTimeout(() => el.remove(), 400);
+    el.style.opacity   = '0';
+    el.style.transform = 'translateY(8px)';
+    el.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+    setTimeout(() => el.remove(), 380);
   }, duration);
 }
 

@@ -133,14 +133,14 @@ export function renderDetailView(note, session) {
             ${note.depositoEquipo ? `<tr><td>Depósito equipo</td><td style="text-align:right">$${note.depositoEquipo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
             ${note.arreglosFigura ? `<tr><td>Arreglos y figura</td><td style="text-align:right">$${note.arreglosFigura.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
             ${note.servicioDomicilio ? `<tr><td>Servicio a domicilio</td><td style="text-align:right">$${note.servicioDomicilio.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
-            <tr style="border-top:2px solid #333;font-weight:bold">
+            <tr style="border-top:2px solid var(--color-text-dark);font-weight:bold">
               <td>TOTAL</td>
               <td style="text-align:right">$${(
                 (note.costoPastel || 0) + (note.depositoEquipo || 0) + (note.arreglosFigura || 0) + (note.servicioDomicilio || 0)
               ).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
             </tr>
             ${note.anticipo ? `<tr><td>Anticipo (${esc(note.metodoPago || '')})</td><td style="text-align:right">-$${note.anticipo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
-            <tr style="background:#f0f0f0;font-weight:bold">
+            <tr style="background:var(--color-surface);font-weight:bold">
               <td>SALDO A PAGAR</td>
               <td style="text-align:right">$${(
                 (note.costoPastel || 0) + (note.depositoEquipo || 0) + (note.arreglosFigura || 0) + (note.servicioDomicilio || 0) - (note.anticipo || 0)
@@ -185,7 +185,7 @@ export function renderDiffView(changes, estatus) {
     </div>`).join('');
 
   return `
-  <div class="modal-card" role="dialog" aria-labelledby="diff-title">
+  <div class="modal-card" role="dialog" aria-labelledby="diff-title" aria-modal="true">
     <div class="modal-header">
       <h2 class="modal-title" id="diff-title">Confirmar cambios</h2>
     </div>
@@ -229,9 +229,9 @@ export function renderConflictView(serverNote, clientFields) {
     </tr>`).join('');
 
   return `
-  <div class="modal-card" role="alertdialog" aria-labelledby="conflict-title">
+  <div class="modal-card" role="alertdialog" aria-labelledby="conflict-title" aria-modal="true">
     <div class="modal-header">
-      <h2 class="modal-title" id="conflict-title" style="color:#c0392b">Conflicto de edición</h2>
+      <h2 class="modal-title" id="conflict-title" style="color:var(--color-danger)">Conflicto de edición</h2>
     </div>
     <div class="modal-body">
       <p style="font-size:0.95rem;line-height:1.6;margin-bottom:var(--space-3)">
@@ -262,9 +262,9 @@ export function renderConflictView(serverNote, clientFields) {
  */
 export function renderDeleteConfirm(note) {
   return `
-  <div class="modal-card" role="alertdialog" aria-labelledby="delete-title" aria-describedby="delete-desc">
+  <div class="modal-card" role="alertdialog" aria-labelledby="delete-title" aria-describedby="delete-desc" aria-modal="true">
     <div class="modal-header">
-      <h2 class="modal-title" id="delete-title" style="color:#c0392b">Eliminar nota</h2>
+      <h2 class="modal-title" id="delete-title" style="color:var(--color-danger)">Eliminar nota</h2>
     </div>
     <div class="modal-body">
       <p id="delete-desc" style="font-size:0.95rem;line-height:1.6">

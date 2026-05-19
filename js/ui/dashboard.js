@@ -2,7 +2,7 @@
 import { CONFIG } from '../config.js';
 import { esc, formatFecha, statusClass, role, renderHeader } from './shared.js';
 
-export function renderDashboardView(notes, session, total = notes.length, page = 1, totalPages = 1) {
+export function renderDashboardView(notes, session, total = notes.length, page = 1, totalPages = 1, hasFilters = false) {
   const r = role(session);
   const destinoFilter = r.canSeeAll ? `
     <select class="form-select filter-destino" aria-label="Filtrar por destino">
@@ -17,7 +17,7 @@ export function renderDashboardView(notes, session, total = notes.length, page =
 
   const gridContent = notes.length > 0
     ? notes.map(n => renderNoteCard(n, session)).join('')
-    : renderEmptyState();
+    : renderEmptyState(hasFilters);
 
   return `
   ${renderHeader(session)}
@@ -40,12 +40,12 @@ export function renderDashboardView(notes, session, total = notes.length, page =
   </main>`;
 }
 
-export function refreshGrid(notes, session, total = notes.length, page = 1, totalPages = 1) {
+export function refreshGrid(notes, session, total = notes.length, page = 1, totalPages = 1, hasFilters = false) {
   const grid = document.getElementById('notes-grid');
   if (!grid) return;
   grid.innerHTML = notes.length > 0
     ? notes.map(n => renderNoteCard(n, session)).join('')
-    : renderEmptyState();
+    : renderEmptyState(hasFilters);
 
   // Reemplazar paginación
   const existing = document.querySelector('.pagination-bar');
@@ -73,12 +73,23 @@ function renderPaginationBar(total, page, totalPages) {
     </section>`;
 }
 
-function renderEmptyState() {
+function renderEmptyState(hasFilters = false) {
+  if (hasFilters) {
+    return `
+    <div class="empty-state">
+      <div class="empty-state__icon" aria-hidden="true">🔍</div>
+      <h3 class="empty-state__title">Sin resultados</h3>
+      <p class="empty-state__desc">Ninguna nota coincide con los filtros aplicados.</p>
+      <button class="btn btn-ghost btn-sm btn-clear-filters" style="margin-top:var(--space-3)">
+        Limpiar filtros
+      </button>
+    </div>`;
+  }
   return `
   <div class="empty-state">
     <div class="empty-state__icon" aria-hidden="true">📋</div>
-    <h3 class="empty-state__title">Sin notas</h3>
-    <p class="empty-state__desc">No hay notas que coincidan con los filtros o el destino.</p>
+    <h3 class="empty-state__title">Sin notas aún</h3>
+    <p class="empty-state__desc">Crea la primera nota con el botón «+ Nueva nota».</p>
   </div>`;
 }
 
@@ -111,7 +122,7 @@ export function renderNoteCard(note, session) {
     <div class="note-card__actions">
       <button class="btn btn-ghost btn-sm btn-ver" aria-label="Ver detalle">Ver</button>
       <button class="btn btn-secondary btn-sm btn-editar" aria-label="Editar nota">Editar</button>
-      <button class="btn btn-ghost btn-sm btn-eliminar" style="color:#c0392b" aria-label="Eliminar nota">Eliminar</button>
+      <button class="btn btn-ghost btn-sm btn-eliminar" style="color:var(--color-danger)" aria-label="Eliminar nota">Eliminar</button>
     </div>`;
   }
 

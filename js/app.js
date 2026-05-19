@@ -31,7 +31,6 @@ let isInstalled         = false;
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js')
     .then(reg => {
-      console.log('SW registered:', reg.scope);
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
@@ -79,11 +78,6 @@ document.addEventListener('click', e => {
 init();
 
 async function init() {
-  const fontLink = document.createElement('link');
-  fontLink.rel  = 'stylesheet';
-  fontLink.href = CONFIG.googleFontsUrl;
-  document.head.appendChild(fontLink);
-
   document.getElementById('app').innerHTML = `
     <div id="view-login"       class="view"></div>
     <div id="view-dashboard"   class="view"></div>
@@ -303,20 +297,33 @@ async function getFilteredNotes() {
 
 async function applyFilters() {
   const filtered = await getFilteredNotes();
+  const hasFilters = !!(
+    document.querySelector('.filter-estatus')?.value ||
+    document.querySelector('.filter-destino')?.value ||
+    document.querySelector('.filter-search')?.value?.trim()
+  );
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / CONFIG.PAGE_SIZE));
   if (currentPage > totalPages) currentPage = totalPages;
   const start = (currentPage - 1) * CONFIG.PAGE_SIZE;
   const pageNotes = filtered.slice(start, start + CONFIG.PAGE_SIZE);
-  refreshGrid(pageNotes, currentSession, total, currentPage, totalPages);
+  refreshGrid(pageNotes, currentSession, total, currentPage, totalPages, hasFilters);
 }
 
 // ─── Dashboard clicks ─────────────────────────────────────────────────────────
 async function handleDashboardClick(e) {
-  if (e.target.closest('.btn-logout'))    { handleLogout(); return; }
-  if (e.target.closest('.btn-nueva'))     { await showForm(null); return; }
-  if (e.target.closest('.btn-prev-page')) { if (currentPage > 1) { currentPage--; await applyFilters(); } return; }
-  if (e.target.closest('.btn-next-page')) { currentPage++; await applyFilters(); return; }
+  if (e.target.closest('.btn-logout'))       { handleLogout(); return; }
+  if (e.target.closest('.btn-nueva'))        { await showForm(null); return; }
+  if (e.target.closest('.btn-prev-page'))    { if (currentPage > 1) { currentPage--; await applyFilters(); } return; }
+  if (e.target.closest('.btn-next-page'))    { currentPage++; await applyFilters(); return; }
+  if (e.target.closest('.btn-clear-filters')) {
+    document.querySelector('.filter-search').value  = '';
+    document.querySelector('.filter-estatus').value = '';
+    document.querySelector('.filter-destino').value = '';
+    currentPage = 1;
+    await applyFilters();
+    return;
+  }
 
   // Barra de confirmación de cambio de status (planta) — debe correr aunque la barra esté dentro de una card con data-note-id.
   if (e.target.closest('.btn-confirm-status')) {
