@@ -739,20 +739,14 @@ async function handleLogout() {
 // ─── Diff ────────────────────────────────────────────────────────────────────
 function computeDiff(oldNote, newFields) {
   const changes = [];
-  if (oldNote.fecha !== newFields.fecha) {
-    changes.push({ field: 'fecha', label: 'Fecha',
-      old: formatFecha(oldNote.fecha), new: formatFecha(newFields.fecha) });
-  }
-  if (oldNote.destino !== newFields.destino) {
-    changes.push({ field: 'destino', label: 'Destino',
-      old: oldNote.destino, new: newFields.destino });
-  }
-  const oldObs = (oldNote.observaciones || '').trim();
-  const newObs = (newFields.observaciones || '').trim();
-  if (oldObs !== newObs) {
-    changes.push({ field: 'observaciones', label: 'Observaciones',
-      old: oldObs || '(vacío)', new: newObs || '(vacío)' });
-  }
+  const add = (field, label, oldVal, newVal) => {
+    if (String(oldVal ?? '') !== String(newVal ?? '')) {
+      changes.push({ field, label, old: oldVal || '(vacío)', new: newVal || '(vacío)' });
+    }
+  };
+  add('fecha', 'Fecha', formatFecha(oldNote.fecha), formatFecha(newFields.fecha));
+  add('destino', 'Destino', oldNote.destino, newFields.destino);
+  add('observaciones', 'Observaciones', (oldNote.observaciones || '').trim(), (newFields.observaciones || '').trim());
   const oldProds = oldNote.productos.map(p => `${p.nombre}|${p.cantidad}`).join(';');
   const newProds = newFields.productos.map(p => `${p.nombre}|${p.cantidad}`).join(';');
   if (oldProds !== newProds) {
@@ -760,13 +754,37 @@ function computeDiff(oldNote, newFields) {
       old: oldNote.productos.map(p => `${p.nombre} ×${p.cantidad}`).join(', '),
       new: newFields.productos.map(p => `${p.nombre} ×${p.cantidad}`).join(', ') });
   }
+  add('clienteNombre', 'Cliente', oldNote.clienteNombre, newFields.clienteNombre);
+  add('clienteDireccion', 'Dir. Cliente', oldNote.clienteDireccion, newFields.clienteDireccion);
+  add('clienteTelefono', 'Tel. Cliente', oldNote.clienteTelefono, newFields.clienteTelefono);
+  add('pastelCantidad', 'Cant. Pasteles', oldNote.pastelCantidad, newFields.pastelCantidad);
+  add('pisos', 'Pisos', oldNote.pisos, newFields.pisos);
+  add('sabor', 'Sabor', oldNote.sabor, newFields.sabor);
+  add('kilos', 'Kilos', oldNote.kilos, newFields.kilos);
+  add('modelo', 'Modelo', oldNote.modelo, newFields.modelo);
+  add('texto', 'Texto pastel', oldNote.texto, newFields.texto);
+  add('colores', 'Colores', oldNote.colores, newFields.colores);
+  add('horaEntrega', 'Hora entrega', oldNote.horaEntrega, newFields.horaEntrega);
+  add('horaPeriodo', 'AM/PM', oldNote.horaPeriodo, newFields.horaPeriodo);
+  add('direccionEntrega', 'Dir. Entrega', oldNote.direccionEntrega, newFields.direccionEntrega);
+  add('costoPastel', 'Costo Pastel', oldNote.costoPastel, newFields.costoPastel);
+  add('depositoEquipo', 'Dep. Equipo', oldNote.depositoEquipo, newFields.depositoEquipo);
+  add('arreglosFigura', 'Arreglos', oldNote.arreglosFigura, newFields.arreglosFigura);
+  add('servicioDomicilio', 'Servicio', oldNote.servicioDomicilio, newFields.servicioDomicilio);
+  add('anticipo', 'Anticipo', oldNote.anticipo, newFields.anticipo);
+  add('metodoPago', 'Metodo Pago', oldNote.metodoPago, newFields.metodoPago);
   return changes;
 }
 
 function validateForm(fields) {
   if (!fields.fecha) { renderToast('La fecha es requerida', 'error'); return false; }
   if (!fields.destino) { renderToast('El destino es requerido', 'error'); return false; }
-  if (fields.productos.length === 0) { renderToast('Agrega al menos un producto', 'error'); return false; }
+  const hasProductos = fields.productos.length > 0;
+  const hasPastelData = fields.clienteNombre || fields.sabor || fields.modelo || fields.costoPastel > 0;
+  if (!hasProductos && !hasPastelData) {
+    renderToast('Agrega al menos un producto o datos de cliente/pastel', 'error');
+    return false;
+  }
   return true;
 }
 

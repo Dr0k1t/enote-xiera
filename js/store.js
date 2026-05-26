@@ -104,8 +104,10 @@ function validateNoteFields(fields) {
   if (!fields.destino || !CONFIG.locations.includes(fields.destino)) {
     errors.push(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
   }
-  if (!fields.productos || !Array.isArray(fields.productos) || fields.productos.length === 0) {
-    errors.push('Debe haber al menos un producto');
+  const hasProductos = fields.productos && Array.isArray(fields.productos) && fields.productos.length > 0;
+  const hasPastelData = (fields.clienteNombre || '').trim() || (fields.sabor || '').trim() || (fields.modelo || '').trim() || (fields.costoPastel > 0);
+  if (!hasProductos && !hasPastelData) {
+    errors.push('Debe haber al menos un producto o datos de cliente/pastel');
   }
   if (fields.observaciones && fields.observaciones.length > 2000) {
     errors.push('Observaciones demasiado largas (máx 2000 caracteres)');
@@ -191,25 +193,16 @@ export async function updateNote(id, fields, session) {
   delete fields._localModifiedEn;
 
   // Validación parcial: si vienen campos críticos, exigir que sean válidos.
-  if (fields.fecha !== undefined || fields.destino !== undefined || fields.productos !== undefined) {
-    const partial = {
-      fecha: fields.fecha ?? '2000-01-01',
-      destino: fields.destino ?? CONFIG.locations[0],
-      productos: fields.productos ?? [{ nombre: 'x', cantidad: '1' }],
-      observaciones: fields.observaciones,
-    };
+  if (fields.fecha !== undefined || fields.destino !== undefined) {
     if (fields.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(fields.fecha)) {
       throw new Error('Fecha inválida (YYYY-MM-DD)');
     }
     if (fields.destino !== undefined && !CONFIG.locations.includes(fields.destino)) {
       throw new Error(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
     }
-    if (fields.productos !== undefined && (!Array.isArray(fields.productos) || fields.productos.length === 0)) {
-      throw new Error('Debe haber al menos un producto');
-    }
-    if (fields.observaciones && fields.observaciones.length > 2000) {
-      throw new Error('Observaciones demasiado largas (máx 2000 caracteres)');
-    }
+  }
+  if (fields.observaciones && fields.observaciones.length > 2000) {
+    throw new Error('Observaciones demasiado largas (máx 2000 caracteres)');
   }
 
   // Conflict detection: si el cliente declaró su versión local y otro escribió después, abortar.
