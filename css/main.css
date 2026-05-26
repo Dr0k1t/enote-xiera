@@ -867,6 +867,8 @@ a { color: var(--color-primary); text-decoration: none; }
   flex-wrap: wrap;
 }
 
+.receipt-print { display: none; }
+
 /* === EMPTY STATE === */
 .empty-state {
   text-align: center;
