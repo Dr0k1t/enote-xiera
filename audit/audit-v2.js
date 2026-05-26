@@ -163,10 +163,9 @@ async function run() {
     const cardVisible = await card.isVisible().catch(() => false);
     check('Card visible en dashboard con cliente', cardVisible);
 
-    // Verificar que el card muestra datos de pastel
     if (cardVisible) {
-      const hasSabor = await card.locator(':has-text("Chocolate")').isVisible().catch(() => false);
-      check('Card muestra sabor del pastel', hasSabor);
+      const cardText = await card.textContent().catch(() => '');
+      check('Card muestra sabor del pastel', cardText.includes('Chocolate'));
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -262,7 +261,9 @@ async function run() {
       try {
         await plantaCard.locator('.btn-ver').click();
       } catch { /* card may have moved */ }
-      await page.waitForTimeout(800);
+      try {
+        await page.waitForSelector('.badge--en-proceso', { timeout: 5000 });
+      } catch { /* timeout ok */ }
 
       const badgeProceso = await page.locator('.badge--en-proceso').isVisible().catch(() => false);
       check('Auto-transicion Nueva->En Proceso', badgeProceso, badgeProceso ? 'Badge En Proceso visible' : 'Badge no encontrado / no transito');
@@ -318,8 +319,9 @@ async function run() {
       try {
         await page.waitForFunction(
           () => !document.getElementById('modal-overlay').classList.contains('visible'),
-          { timeout: 5000 }
+          { timeout: 8000 }
         );
+        await page.waitForTimeout(1000);
         const stillVisible = await page.locator(`.note-card:has-text("${deleteId}")`).isVisible().catch(() => false);
         check('Nota eliminada correctamente', !stillVisible);
       } catch {

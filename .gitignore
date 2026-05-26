@@ -14,5 +14,8 @@ js/supabase.js
 
 .vercel
 
+# Supabase CLI cache
+supabase/.temp/
+
 # Planes locales de Claude
 .opencode/

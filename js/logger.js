@@ -1,11 +1,6 @@
-// Logging de sesion. Solo activo en localhost (dev). Silencioso en produccion.
-
 const LOG_ENDPOINT = '/api/log';
-const LOG_ENABLED = typeof location !== 'undefined' &&
-  (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
 async function post(data) {
-  if (!LOG_ENABLED) return;
   try {
     await fetch(LOG_ENDPOINT, {
       method: 'POST',
