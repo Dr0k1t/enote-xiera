@@ -234,10 +234,6 @@ async function handleLogin() {
     errorEl.textContent = err.message || 'Error de conexión — verifica tu internet';
     form.querySelector('[name="password"]').value = '';
   }
-  } catch (err) {
-    errorEl.textContent = err.message || 'Error al iniciar sesión';
-    form.querySelector('[name="password"]').value = '';
-  }
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
