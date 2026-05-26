@@ -1,7 +1,7 @@
 /// <reference path="./types.js" />
 import { CONFIG } from './config.js';
 import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada } from './store.js';
-import { login, requireAuth, canSeeAll, logout } from './auth.js';
+import { login, requireAuth, canSeeAll, logout, clearSession } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
 import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount, preCacheAllImages } from './offline.js';
@@ -91,8 +91,20 @@ async function init() {
   if (!currentSession) {
     showLoginView();
   } else {
-    await routeByRole();
-    await updateOfflineBadge();
+    try {
+      await routeByRole();
+      await updateOfflineBadge();
+    } catch (err) {
+      const msg = String(err?.message || err || '').toLowerCase();
+      const code = err?.status || err?.code || '';
+      const isAuth = /jwt|token.*expir|refresh.*token|invalid.*token|unauthorized/i.test(msg) || code === 401 || code === 403 || String(code) === '401' || String(code) === '403';
+      if (isAuth && isOnline()) {
+        clearSession();
+        currentSession = null;
+        showLoginView();
+        renderToast('Sesion expirada — inicia sesion de nuevo', 'info');
+      }
+    }
   }
 
   window.addEventListener('online', async () => {
@@ -208,15 +220,24 @@ async function handleLogin() {
   const password = form.querySelector('[name="password"]').value;
   const errorEl  = document.getElementById('login-error');
 
-  const result = await login(username, password);
-  if (!result.ok) {
-    errorEl.textContent = result.error;
+  try {
+    const result = await login(username, password);
+    if (!result.ok) {
+      errorEl.textContent = result.error || 'Email o contraseña incorrectos';
+      form.querySelector('[name="password"]').value = '';
+      return;
+    }
+    currentSession = result.session;
+    log.sessionStart(currentSession);
+    await routeByRole();
+  } catch (err) {
+    errorEl.textContent = err.message || 'Error de conexión — verifica tu internet';
     form.querySelector('[name="password"]').value = '';
-    return;
   }
-  currentSession = result.session;
-  log.sessionStart(currentSession);
-  await routeByRole();
+  } catch (err) {
+    errorEl.textContent = err.message || 'Error al iniciar sesión';
+    form.querySelector('[name="password"]').value = '';
+  }
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -406,9 +427,13 @@ async function showDetail(noteId) {
     }
 
     if (dirty) {
-      const result = await updateNote(noteId, updates, currentSession);
-      if (result?.new) note = result.new;
-      await applyFilters();
+      try {
+        const result = await updateNote(noteId, updates, currentSession);
+        if (result?.new) note = result.new;
+        await applyFilters();
+      } catch (err) {
+        console.warn('Auto-transición fallida:', err.message);
+      }
     }
   }
 

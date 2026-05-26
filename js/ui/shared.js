@@ -116,10 +116,11 @@ export function closeModal() {
   overlay.innerHTML = '';
   revokeBlobUrls();
   document.body.style.overflow = '';
-  if (_modalOpener && typeof _modalOpener.focus === 'function') {
-    requestAnimationFrame(() => _modalOpener.focus());
-  }
+  const opener = _modalOpener;
   _modalOpener = null;
+  if (opener && typeof opener.focus === 'function') {
+    requestAnimationFrame(() => { try { opener.focus(); } catch {} });
+  }
 }
 
 export function renderToast(message, type = 'info', duration = 3000) {

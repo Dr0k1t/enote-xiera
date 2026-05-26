@@ -1,16 +1,18 @@
-// Logging de sesión para desarrollo local.
-// POST silencioso a /api/log — no afecta la UI si el servidor no está disponible.
+// Logging de sesion. Solo activo en localhost (dev). Silencioso en produccion.
+
+const LOG_ENDPOINT = '/api/log';
+const LOG_ENABLED = typeof location !== 'undefined' &&
+  (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+
 async function post(data) {
+  if (!LOG_ENABLED) return;
   try {
-    // Solo intentar si no estamos en un servidor estático simple (opcional)
-    // O simplemente ignorar si la respuesta no es OK
-    const resp = await fetch('/api/log', {
+    await fetch(LOG_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ts: new Date().toISOString(), ...data }),
     });
-    if (!resp.ok) { /* ignore error status */ }
-  } catch { /* servidor estático o sin endpoint — falla silenciosa */ }
+  } catch { /* silencioso */ }
 }
 
 export const log = {
@@ -35,7 +37,6 @@ export const log = {
     post({ type: 'image_compressed',
            originalName:      file.name,
            originalSizeKB:    (file.size / 1024).toFixed(1),
-           // base64: cada 4 chars = 3 bytes → length * 0.75
            compressedSizeKB:  ((result.url.length * 0.75) / 1024).toFixed(1),
            width:             result.width,
            height:            result.height }),
