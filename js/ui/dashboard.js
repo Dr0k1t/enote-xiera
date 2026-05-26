@@ -128,6 +128,41 @@ export function renderNoteCard(note, session) {
 
   const prodCount = note.productos.length;
   const prodLabel = prodCount === 1 ? '1 producto' : `${prodCount} productos`;
+  const clienteInfo = note.clienteNombre
+    ? `<span class="meta-icon" aria-hidden="true">👤</span> ${esc(note.clienteNombre)}`
+    : '';
+  const pastelInfo = note.sabor
+    ? `<span class="meta-icon" aria-hidden="true">🎂</span> ${esc(note.sabor)}${note.modelo ? ' — ' + esc(note.modelo) : ''}`
+    : '';
+  const totalInfo = (note.costoPastel || note.depositoEquipo || note.arreglosFigura || note.servicioDomicilio)
+    ? `<span class="meta-icon" aria-hidden="true">💰</span> Total: $${(
+        (note.costoPastel || 0) + (note.depositoEquipo || 0) +
+        (note.arreglosFigura || 0) + (note.servicioDomicilio || 0)
+      ).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    : '';
+
+  let cardBody;
+  if (clienteInfo || pastelInfo || totalInfo) {
+    cardBody = `
+      ${clienteInfo ? `<div class="note-card__meta-row">${clienteInfo}</div>` : ''}
+      ${pastelInfo ? `<div class="note-card__meta-row">${pastelInfo}</div>` : ''}
+      ${totalInfo ? `<div class="note-card__meta-row">${totalInfo}</div>` : ''}`;
+  } else {
+    cardBody = '';
+  }
+
+  const metaRows = `
+    <div class="note-card__meta-row">
+      <span class="meta-icon" aria-hidden="true">📅</span> ${esc(formatFecha(note.fecha))}
+    </div>
+    <div class="note-card__meta-row">
+      <span class="meta-icon" aria-hidden="true">📍</span> ${esc(note.destino)}
+    </div>
+    ${cardBody}`;
+
+  const productosRow = (!clienteInfo && !pastelInfo && !totalInfo)
+    ? `<div class="note-card__prods"><strong>${esc(prodLabel)}:</strong> ${esc(note.productos.map(p => p.nombre).join(', '))}</div>`
+    : '';
 
   return `
   <article class="${cardClass}" data-note-id="${note.id}">
@@ -135,17 +170,8 @@ export function renderNoteCard(note, session) {
       <div class="note-card__numero">${esc(note.numero)}</div>
       ${badge}
     </div>
-    <div class="note-card__meta">
-      <div class="note-card__meta-row">
-        <span class="meta-icon" aria-hidden="true">📅</span> ${esc(formatFecha(note.fecha))}
-      </div>
-      <div class="note-card__meta-row">
-        <span class="meta-icon" aria-hidden="true">📍</span> ${esc(note.destino)}
-      </div>
-    </div>
-    <div class="note-card__prods">
-      <strong>${esc(prodLabel)}:</strong> ${esc(note.productos.map(p => p.nombre).join(', '))}
-    </div>
+    <div class="note-card__meta">${metaRows}</div>
+    ${productosRow}
     <footer class="note-card__footer">${footer}</footer>
   </article>`;
 }

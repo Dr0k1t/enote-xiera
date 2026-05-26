@@ -1,5 +1,6 @@
 /// <reference path="../types.js" />
 import { esc, formatFecha, formatTs, role } from './shared.js';
+import { renderPrintableReceipt } from './print.js';
 
 /**
  * Renderiza la vista de detalle de una nota.
@@ -169,7 +170,8 @@ export function renderDetailView(note, session) {
       </aside>
     </article>
     ${imagePanel}
-  </div>`;
+  </div>
+  ${renderPrintableReceipt(note)}`;
 }
 
 /**
