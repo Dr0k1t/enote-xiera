@@ -36,6 +36,7 @@ function loadEnv() {
   return {
     SUPABASE_URL: stripBom(process.env.SUPABASE_URL || envFile.SUPABASE_URL || ''),
     SUPABASE_ANON_KEY: stripBom(process.env.SUPABASE_ANON_KEY || envFile.SUPABASE_ANON_KEY || ''),
+    ENOTE_VERSION: stripBom(process.env.ENOTE_VERSION || envFile.ENOTE_VERSION || '1.3.0'),
   };
 }
 
@@ -49,7 +50,7 @@ function main() {
     process.exit(1);
   }
 
-  const { SUPABASE_URL, SUPABASE_ANON_KEY } = loadEnv();
+  const { SUPABASE_URL, SUPABASE_ANON_KEY, ENOTE_VERSION } = loadEnv();
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.warn('[build-config] WARNING: SUPABASE_URL o SUPABASE_ANON_KEY no definidas.');
@@ -64,6 +65,17 @@ function main() {
   console.log('[build-config] Escrito', OUTPUT_PATH);
   console.log('[build-config] URL configurada:', SUPABASE_URL ? 'sí' : 'no');
   console.log('[build-config] ANON KEY configurada:', SUPABASE_ANON_KEY ? 'sí' : 'no');
+
+  // Inyectar ENOTE_VERSION en sw.js para versionado de caché determinista.
+  const SW_PATH = path.join(ROOT, 'sw.js');
+  if (fs.existsSync(SW_PATH)) {
+    let sw = fs.readFileSync(SW_PATH, 'utf8');
+    const next = sw.replace(/const ENOTE_VERSION = '[^']+'/, `const ENOTE_VERSION = '${ENOTE_VERSION}'`);
+    if (next !== sw) {
+      fs.writeFileSync(SW_PATH, next, 'utf8');
+      console.log('[build-config] sw.js ENOTE_VERSION =>', ENOTE_VERSION);
+    }
+  }
 }
 
 main();

@@ -1,8 +1,12 @@
-const CACHE_VERSION = 'enote-' + (typeof self.ENOTE_VERSION !== 'undefined' ? self.ENOTE_VERSION : Date.now());
+// F5.1: versión inyectada por scripts/build-config.js. Default 1.3.0 si no se inyecta.
+const ENOTE_VERSION = '1.3.0';
+const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/offline.html',
+  '/manifest.json',
+  '/robots.txt',
   '/css/variables.css',
   '/css/main.css',
   '/css/print.css',
@@ -20,13 +24,22 @@ const STATIC_ASSETS = [
   '/js/ui/form.js',
   '/js/ui/detail.js',
   '/js/ui/repartidor.js',
+  '/js/ui/print.js',
+  '/icons/icon-192.png',
+  '/icons/icon-192-maskable.png',
+  '/icons/icon-512.png',
+  '/icons/icon-512-maskable.png',
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap',
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_VERSION)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(cache => Promise.allSettled(
+        STATIC_ASSETS.map(url =>
+          cache.add(url).catch(err => console.warn('Failed to cache:', url, err))
+        )
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -49,7 +62,7 @@ self.addEventListener('fetch', e => {
   if (url.hostname.endsWith('.supabase.co')) return;
 
   const isDoc = request.destination === 'document';
-  const isAsset = ['style', 'script', 'font', 'image'].includes(request.destination);
+  const isAsset = ['style', 'script', 'font', 'image', 'manifest'].includes(request.destination);
 
   if (isDoc) {
     e.respondWith(
@@ -66,9 +79,10 @@ self.addEventListener('fetch', e => {
         )
     );
   } else if (isAsset) {
+    // stale-while-revalidate: sirve caché inmediato y actualiza en background
     e.respondWith(
-      caches.match(request)
-        .then(r => r || fetch(request)
+      caches.match(request).then(cached => {
+        const fetchPromise = fetch(request)
           .then(res => {
             if (res.ok) {
               const clone = res.clone();
@@ -76,8 +90,14 @@ self.addEventListener('fetch', e => {
             }
             return res;
           })
-        )
-        .catch(() => caches.match(request))
+          .catch(() => {
+            if (request.destination === 'image') {
+              return new Response('', { status: 503, statusText: 'Offline — image not cached' });
+            }
+            return cached;
+          });
+        return cached || fetchPromise;
+      })
     );
   }
 });

@@ -29,6 +29,13 @@ let isInstalled         = false;
 
 // ─── Service Worker ───────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
+  let _reloadingFromSw = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_reloadingFromSw) return;
+    _reloadingFromSw = true;
+    window.location.reload();
+  });
+
   navigator.serviceWorker.register('/sw.js')
     .then(reg => {
       reg.addEventListener('updatefound', () => {
@@ -36,7 +43,9 @@ if ('serviceWorker' in navigator) {
         if (!newWorker) return;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            renderToast('Nueva versión disponible — recarga para actualizar', 'info', 8000);
+            renderToast('Nueva versión disponible — actualizando…', 'info', 4000);
+            // Aplicar update automáticamente; controllerchange dispara reload
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
           }
         });
       });
@@ -131,6 +140,15 @@ async function init() {
     try {
       await routeByRole();
       await updateOfflineBadge();
+      // F5.8: sincronizar pendientes al arrancar (no solo en evento online)
+      if (isOnline()) {
+        syncPendingNotes(async (item) => {
+          const { _session, _userId, _failCount, synced, localId, createdAt, ...fields } = item;
+          return createNote(fields, _session || currentSession);
+        }, currentSession.userId)
+          .then(() => updateOfflineBadge())
+          .catch(err => console.warn('Initial sync failed:', err));
+      }
     } catch (err) {
       const msg = String(err?.message || err || '').toLowerCase();
       const code = err?.status || err?.code || '';
