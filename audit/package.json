@@ -2,7 +2,7 @@
   "name": "enote-audit",
   "version": "1.0.0",
   "private": true,
-  "description": "Playwright audit script for Enote demo",
+  "description": "Playwright audit scripts for Enote production",
   "scripts": {
     "audit": "node audit.js"
   },

@@ -1,8 +1,13 @@
 /**
- * Enote — Playwright audit script (v1.1.5 Updated)
+ * OBSOLETO — Este script usaba credenciales demo que ya no existen.
+ * Usar audit-prod.js o audit-v2.js para pruebas en producción.
+ *
+ * Enote — Playwright audit script (v1.1.5 — obsoleto)
  * Uso: node audit.js [URL]
  * Default URL: http://localhost:5500
  */
+console.error('[audit.js] OBSOLETO — usa audit-prod.js o audit-v2.js. Saliendo.');
+process.exit(1);
 
 const { chromium } = require('playwright');
 const path  = require('path');
