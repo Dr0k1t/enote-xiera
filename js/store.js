@@ -3,6 +3,23 @@ import { CONFIG } from './config.js';
 import { supabase, uploadImage } from './supabase.js';
 import { cacheImages, saveImageToCache, isOnline, getOfflineNotes, getOfflineNote } from './offline.js';
 
+/**
+ * Mapea errores de Supabase a mensajes amigables sin exponer estructura interna.
+ * Si el error es de auth, dispara evento global para que app.js maneje el re-login.
+ */
+function handleApiError(err, fallbackMsg) {
+  const code = err?.code || err?.status || '';
+  const message = String(err?.message || err || '');
+  if (code === 401 || code === 403 || String(code) === '401' || String(code) === '403'
+      || code === 'PGRST301' || /JWT|token.*expir|unauthorized/i.test(message)) {
+    try { window.dispatchEvent(new CustomEvent('enote:auth-expired')); } catch {}
+    throw new Error('Sesión expirada — inicia sesión de nuevo');
+  }
+  if (code === '42501') throw new Error('Permisos insuficientes');
+  if (code === '23505') throw new Error('El registro ya existe');
+  throw new Error(fallbackMsg || 'Error del servidor — intenta de nuevo');
+}
+
 async function processImages(imagenes) {
   if (!imagenes || !Array.isArray(imagenes)) return [];
 
@@ -74,17 +91,26 @@ export async function getNotes() {
   if (!isOnline()) {
     return getOfflineNotes();
   }
-  const { data, error } = await supabase
-    .from('notes')
-    .select('*')
-    .order('prioridad', { ascending: true })
-    .order('id', { ascending: false });
-  if (error) throw error;
-  const notes = (data || []).map(mapDbNote);
+  try {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('prioridad', { ascending: true })
+      .order('id', { ascending: false });
+    if (error) throw error;
+    const notes = (data || []).map(mapDbNote);
 
-  // Cache de imágenes en segundo plano (fire-and-forget)
-  cacheImages(notes);
-  return notes;
+    // Cache de imágenes en segundo plano (fire-and-forget)
+    cacheImages(notes);
+    return notes;
+  } catch (err) {
+    // Lie-fi: navigator.onLine puede mentir; caer a caché en vez de propagar el error.
+    if (err?.code === 401 || err?.status === 401 || /JWT|token/i.test(err?.message || '')) {
+      handleApiError(err, 'No se pudo cargar las notas');
+    }
+    console.warn('Supabase inalcanzable, usando caché offline:', err?.message || err);
+    return getOfflineNotes();
+  }
 }
 
 export async function getNote(id) {
@@ -92,12 +118,25 @@ export async function getNote(id) {
     const cached = await getOfflineNote(id);
     return cached ? mapDbNote(cached) : null;
   }
-  const { data, error } = await supabase.from('notes').select('*').eq('id', id).single();
-  if (error) return null;
-  return mapDbNote(data);
+  try {
+    const { data, error } = await supabase.from('notes').select('*').eq('id', id).single();
+    if (error) {
+      // Auth errors deben propagarse
+      if (error.code === 'PGRST301' || /JWT|token/i.test(error.message || '')) {
+        try { handleApiError(error, 'No se pudo cargar la nota'); } catch { /* swallow */ }
+      }
+      return null;
+    }
+    return mapDbNote(data);
+  } catch (err) {
+    // Lie-fi: fallback a caché
+    console.warn('Supabase inalcanzable, usando caché offline:', err?.message || err);
+    const cached = await getOfflineNote(id);
+    return cached ? mapDbNote(cached) : null;
+  }
 }
 
-function validateNoteFields(fields) {
+export function validateNoteFields(fields) {
   const errors = [];
   if (!fields.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fields.fecha)) {
     errors.push('Fecha inválida (YYYY-MM-DD)');
@@ -168,7 +207,7 @@ export async function createNote(fields, session) {
     }])
     .select()
     .single();
-  if (error) throw error;
+  if (error) handleApiError(error, 'No se pudo crear la nota');
   return mapDbNote(data);
 }
 
@@ -254,7 +293,7 @@ export async function updateNote(id, fields, session) {
     .eq('id', id)
     .select()
     .single();
-  if (error) throw error;
+  if (error) handleApiError(error, 'No se pudo actualizar la nota');
 
   if (data.imagenes) cacheImages([mapDbNote(data)]);
 
@@ -265,7 +304,7 @@ export async function deleteNote(id) {
   // .select() devuelve las filas afectadas; sin él Supabase responde data:[] aunque
   // RLS haya bloqueado la operación, sin marcar error. Verificamos para no mentirle al usuario.
   const { data, error } = await supabase.from('notes').delete().eq('id', id).select();
-  if (error) throw error;
+  if (error) handleApiError(error, 'No se pudo eliminar la nota');
   if (!data || data.length === 0) {
     throw new Error('No se pudo eliminar la nota: permisos insuficientes o ya no existe.');
   }

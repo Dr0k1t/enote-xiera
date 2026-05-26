@@ -134,6 +134,12 @@ export async function syncPendingNotes(createNoteFn) {
     if (success) {
       await dbPut(STORES.PENDING_QUEUE, { ...item, synced: true });
       await deletePendingNote(item.localId);
+    } else {
+      const failCount = (item._failCount || 0) + 1;
+      if (failCount >= 9) {
+        console.error('Pending note permanently failed after 9 attempts:', item.localId);
+      }
+      try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: failCount }); } catch {}
     }
   }
 }

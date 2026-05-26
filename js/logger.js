@@ -35,4 +35,7 @@ export const log = {
            compressedSizeKB:  ((result.url.length * 0.75) / 1024).toFixed(1),
            width:             result.width,
            height:            result.height }),
+
+  error: (kind, payload) =>
+    post({ type: 'error', kind, ...payload }),
 };

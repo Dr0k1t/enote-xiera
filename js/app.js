@@ -1,6 +1,6 @@
 /// <reference path="./types.js" />
 import { CONFIG } from './config.js';
-import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada } from './store.js';
+import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada, validateNoteFields } from './store.js';
 import { login, requireAuth, canSeeAll, logout, clearSession } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
@@ -77,6 +77,43 @@ document.addEventListener('click', e => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 init();
 
+// ─── Global error handlers ────────────────────────────────────────────────────
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error || event.message);
+  if (event.error) {
+    try { void log.error?.('unhandled', { message: event.error.message, stack: event.error.stack?.slice(0, 500) }); } catch {}
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled rejection:', event.reason);
+  try {
+    void log.error?.('unhandledrejection', { message: event.reason?.message || String(event.reason) });
+  } catch {}
+  try { renderToast('Ocurrió un error inesperado. Intenta de nuevo.', 'error', 6000); } catch {}
+  event.preventDefault();
+});
+
+// Wrapper que captura errores en handlers async y los reporta vía toast.
+function safeHandler(fn) {
+  return async (...args) => {
+    try { return await fn(...args); }
+    catch (err) {
+      console.error('Handler error:', err);
+      try { renderToast('Error: ' + (err?.message || 'inesperado'), 'error'); } catch {}
+    }
+  };
+}
+
+// Escuchar eventos de auth expirada disparados desde store.js
+window.addEventListener('enote:auth-expired', () => {
+  clearSession();
+  currentSession = null;
+  closeModal();
+  showLoginView();
+  renderToast('Sesión expirada — inicia sesión de nuevo', 'info');
+});
+
 async function init() {
   document.getElementById('app').innerHTML = `
     <div id="view-login"       class="view"></div>
@@ -103,6 +140,12 @@ async function init() {
         currentSession = null;
         showLoginView();
         renderToast('Sesion expirada — inicia sesion de nuevo', 'info');
+      } else {
+        console.error('init failed:', err);
+        renderToast('Error al cargar la aplicación. Verifica tu conexión.', 'error', 8000);
+        if (currentSession) {
+          try { await routeByRole(); } catch (e2) { console.warn('Fallback routeByRole failed:', e2); }
+        }
       }
     }
   }
@@ -137,7 +180,7 @@ function setupEventDelegation() {
     if (e.target.id === 'login-form') { e.preventDefault(); await handleLogin(); }
   });
 
-  dash.addEventListener('click', handleDashboardClick);
+  dash.addEventListener('click', safeHandler(handleDashboardClick));
 
   dash.addEventListener('change', async e => {
     if (e.target.closest('.filter-estatus') || e.target.closest('.filter-destino')) {
@@ -156,21 +199,21 @@ function setupEventDelegation() {
     if (e.target.closest('.filter-search')) debouncedSearch();
   });
 
-  detail.addEventListener('click', handleDetailClick);
+  detail.addEventListener('click', safeHandler(handleDetailClick));
 
   const repartidor = document.getElementById('view-repartidor');
-  repartidor.addEventListener('click', handleRepartidorClick);
+  repartidor.addEventListener('click', safeHandler(handleRepartidorClick));
   repartidor.addEventListener('change', async e => {
     if (e.target.id === 'repartidor-sucursal') await renderNotasRepartidor(e.target.value);
   });
 
-  modal.addEventListener('click', handleModalClick);
-  modal.addEventListener('submit', async e => {
+  modal.addEventListener('click', safeHandler(handleModalClick));
+  modal.addEventListener('submit', safeHandler(async e => {
     if (e.target.id === 'note-form') {
       e.preventDefault();
       await handleFormSubmit(e.submitter?.dataset.action ?? 'save');
     }
-  });
+  }));
 
   modal.addEventListener('change', e => {
     if (e.target.id === 'nf-imagenes') {
@@ -499,7 +542,12 @@ async function showForm(noteId) {
 
 async function handleFormSubmit(action) {
   const fields = getFormData();
-  if (!fields || !validateForm(fields)) return;
+  if (!fields) return;
+  const errors = validateNoteFields(fields);
+  if (errors.length) {
+    renderToast(errors.join(' · '), 'error');
+    return;
+  }
 
   const imageInput = document.getElementById('nf-imagenes');
   let newImages = [];
@@ -799,18 +847,6 @@ function computeDiff(oldNote, newFields) {
   add('anticipo', 'Anticipo', oldNote.anticipo, newFields.anticipo);
   add('metodoPago', 'Metodo Pago', oldNote.metodoPago, newFields.metodoPago);
   return changes;
-}
-
-function validateForm(fields) {
-  if (!fields.fecha) { renderToast('La fecha es requerida', 'error'); return false; }
-  if (!fields.destino) { renderToast('El destino es requerido', 'error'); return false; }
-  const hasProductos = fields.productos.length > 0;
-  const hasPastelData = fields.clienteNombre || fields.sabor || fields.modelo || fields.costoPastel > 0;
-  if (!hasProductos && !hasPastelData) {
-    renderToast('Agrega al menos un producto o datos de cliente/pastel', 'error');
-    return false;
-  }
-  return true;
 }
 
 function debounce(fn, delay) {
