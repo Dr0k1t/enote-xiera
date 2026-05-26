@@ -77,7 +77,8 @@ export async function getNotes() {
   const { data, error } = await supabase
     .from('notes')
     .select('*')
-    .order('prioridad', { ascending: true });
+    .order('prioridad', { ascending: true })
+    .order('id', { ascending: false });
   if (error) throw error;
   const notes = (data || []).map(mapDbNote);
 

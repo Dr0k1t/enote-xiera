@@ -4,18 +4,24 @@
  * Uso: node audit-v2.js [URL]
  * Default URL: http://localhost:5500
  *
- * Credenciales de prueba (deben existir en Supabase):
- *   admin1 / pass
- *   planta1 / pass
- *   sucursal1 / pass
+ * Credenciales de produccion:
+ *   admin@xiera.com / passss
+ *   planta@xiera.com / passss
+ *   ocotlan@xiera.com / passss
  */
 
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-const BASE_URL = process.env.ENOTE_URL || process.argv[2] || 'http://localhost:5500';
+const BASE_URL = process.env.ENOTE_URL || process.argv[2] || 'https://enote-xiera.vercel.app';
 const SHOTS_DIR = path.join(__dirname, 'screenshots-v2');
+
+const CREDS = {
+  admin:    { email: 'admin@xiera.com',    pass: 'passss' },
+  planta:   { email: 'planta@xiera.com',   pass: 'passss' },
+  ocotlan:  { email: 'ocotlan@xiera.com',  pass: 'passss' },
+};
 
 if (!fs.existsSync(SHOTS_DIR)) fs.mkdirSync(SHOTS_DIR, { recursive: true });
 
@@ -49,8 +55,8 @@ function check(label, passed, detail = '') {
   console.log(`  ${icon} ${label}${msg}`);
 }
 
-async function loginAs(page, username, password = 'pass') {
-  await page.fill('#inp-user', username);
+async function loginAs(page, email, password) {
+  await page.fill('#inp-user', email);
   await page.fill('#inp-pass', password);
   await page.click('button[type="submit"]');
 }
@@ -87,15 +93,15 @@ async function run() {
     check('Boton submit visible', await page.locator('button[type="submit"]').isVisible());
 
     // Login invalido
-    await page.fill('#inp-user', 'noexiste');
-    await page.fill('#inp-pass', 'mal');
+    await page.fill('#inp-user', 'invalido@noexiste.com');
+    await page.fill('#inp-pass', 'mal123');
     await page.click('button[type="submit"]');
     await page.waitForTimeout(500);
     const errorVisible = await page.locator('#login-error').textContent();
     check('Login invalido muestra error', !!errorVisible, errorVisible);
 
     // Login admin
-    await loginAs(page, 'admin1');
+    await loginAs(page, CREDS.admin.email, CREDS.admin.pass);
     await page.waitForSelector('#view-dashboard.active', { timeout: 5000 });
     check('Login admin exitoso', true);
     await page.screenshot({ path: path.join(SHOTS_DIR, '01-dashboard-admin.png') });
@@ -234,13 +240,13 @@ async function run() {
     await page.waitForSelector('#view-login.active', { timeout: 3000 });
     check('Logout exitoso', true);
 
-    await loginAs(page, 'planta1');
+    await loginAs(page, CREDS.planta.email, CREDS.planta.pass);
     await page.waitForSelector('#view-dashboard.active', { timeout: 5000 });
     check('Login planta exitoso', true);
 
     // Planta ve nota creada por sucursal/admin solo si destino coincide
     const plantaVeNota = await page.locator(`.note-card:has-text("${testId}")`).isVisible().catch(() => false);
-    check('Planta ve nota (si destino coincide)', true, plantaVeNota ? 'Visible' : 'No visible (destino distinto)');
+    check('Planta ve nota (si destino coincide)', plantaVeNota, plantaVeNota ? 'Visible' : 'No visible (destino distinto)');
 
     await page.screenshot({ path: path.join(SHOTS_DIR, '05-planta-dashboard.png') });
 
@@ -250,15 +256,20 @@ async function run() {
     section('6. Cambio de estatus');
     if (plantaVeNota) {
       const plantaCard = page.locator(`.note-card:has-text("${testId}")`).first();
-      await plantaCard.locator('.btn-ver').click();
-      await page.waitForTimeout(500);
+      try {
+        await plantaCard.locator('.btn-ver').click();
+      } catch { /* card may have moved */ }
+      await page.waitForTimeout(800);
 
-      // Al abrir detalle, Nueva -> En Proceso automaticamente
       const badgeProceso = await page.locator('.badge--en-proceso').isVisible().catch(() => false);
-      check('Auto-transicion Nueva->En Proceso', badgeProceso);
+      check('Auto-transicion Nueva->En Proceso', badgeProceso, badgeProceso ? 'Badge En Proceso visible' : 'Badge no encontrado / no transito');
 
-      await page.click('.btn-volver');
+      try {
+        await page.click('.btn-volver');
+      } catch { /* overlay may not have btn-volver */ }
       await page.waitForTimeout(300);
+    } else {
+      check('Auto-transicion Nueva->En Proceso', false, 'Nota no visible para planta');
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -268,7 +279,7 @@ async function run() {
     await page.click('.btn-logout');
     await page.waitForSelector('#view-login.active', { timeout: 3000 });
 
-    await loginAs(page, 'sucursal1');
+    await loginAs(page, CREDS.ocotlan.email, CREDS.ocotlan.pass);
     await page.waitForSelector('#view-dashboard.active', { timeout: 5000 });
     check('Login sucursal exitoso', true);
 
