@@ -155,9 +155,9 @@ async function init() {
     renderToast('Conexión restaurada', 'success');
     if (currentSession) {
       await syncPendingNotes(async (item) => {
-        const { _session, synced, localId, createdAt, ...fields } = item;
+        const { _session, _userId, _failCount, synced, localId, createdAt, ...fields } = item;
         return createNote(fields, _session || currentSession);
-      });
+      }, currentSession.userId);
       void getBaseNotes(); // re-cachea notes + imágenes tras sync
       await updateOfflineBadge();
       updateInstallButton();
@@ -303,7 +303,7 @@ async function showDashboard() {
 async function updateOfflineBadge() {
   const headerEl = document.querySelector('.app-header');
   if (!headerEl) return;
-  const count = await getPendingCount();
+  const count = await getPendingCount(currentSession?.userId);
   let badge = headerEl.querySelector('.offline-badge');
   if (count > 0) {
     if (badge) {
@@ -580,7 +580,7 @@ async function handleFormSubmit(action) {
   } else {
     if (!isOnline()) {
       try {
-        await createNoteOffline({ ...fields, _session: currentSession });
+        await createNoteOffline({ ...fields, _session: currentSession }, currentSession.userId);
         renderToast('Nota guardada sin conexión — se enviará automáticamente al reconectar', 'info');
         closeModal();
         editingNoteId = null;

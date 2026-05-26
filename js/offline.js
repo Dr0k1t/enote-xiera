@@ -7,7 +7,11 @@ const STORES = {
   IMAGE_CACHE: 'image_cache',
 };
 
+const MAX_IMAGE_CACHE = 500;
+const FETCH_TIMEOUT_MS = 10000;
+
 let db = null;
+let _syncing = false;
 
 async function openDB() {
   if (db) return db;
@@ -15,6 +19,10 @@ async function openDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onerror = () => reject(req.error);
     req.onsuccess = () => resolve(req.result);
+    req.onblocked = () => {
+      console.warn('IndexedDB open blocked by another tab');
+      reject(new Error('DB bloqueada por otra pestaña — cierra otras pestañas de Enote'));
+    };
     req.onupgradeneeded = e => {
       const database = e.target.result;
       if (!database.objectStoreNames.contains(STORES.NOTES_CACHE)) {
@@ -23,13 +31,15 @@ async function openDB() {
       if (!database.objectStoreNames.contains(STORES.PENDING_QUEUE)) {
         database.createObjectStore(STORES.PENDING_QUEUE, { keyPath: 'localId', autoIncrement: true });
       }
-      // v3: recrear IMAGE_CACHE con keyPath 'url' (pierde caché previo — aceptable).
       if (database.objectStoreNames.contains(STORES.IMAGE_CACHE)) {
         database.deleteObjectStore(STORES.IMAGE_CACHE);
       }
-      database.createObjectStore(STORES.IMAGE_CACHE, { keyPath: 'url' });
+      const imgStore = database.createObjectStore(STORES.IMAGE_CACHE, { keyPath: 'url' });
+      imgStore.createIndex('cachedAt', 'cachedAt', { unique: false });
     };
   });
+  db.onclose = () => { db = null; };
+  db.onversionchange = () => { try { db.close(); } catch {} db = null; };
   return db;
 }
 
@@ -51,47 +61,79 @@ async function dbGetAll(storeName) {
   });
 }
 
+async function dbCount(storeName) {
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const req = database.transaction(storeName, 'readonly').objectStore(storeName).count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Resolver en tx.oncomplete garantiza que el commit terminó antes de continuar.
 async function dbPut(storeName, data) {
   const database = await openDB();
   return new Promise((resolve, reject) => {
-    const req = database.transaction(storeName, 'readwrite').objectStore(storeName).put(data);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    const tx = database.transaction(storeName, 'readwrite');
+    let result;
+    const req = tx.objectStore(storeName).put(data);
+    req.onsuccess = () => { result = req.result; };
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
   });
 }
 
 async function dbAdd(storeName, data) {
   const database = await openDB();
   return new Promise((resolve, reject) => {
-    const req = database.transaction(storeName, 'readwrite').objectStore(storeName).add(data);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    const tx = database.transaction(storeName, 'readwrite');
+    let result;
+    const req = tx.objectStore(storeName).add(data);
+    req.onsuccess = () => { result = req.result; };
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
   });
 }
 
 async function dbDelete(storeName, key) {
   const database = await openDB();
   return new Promise((resolve, reject) => {
-    const req = database.transaction(storeName, 'readwrite').objectStore(storeName).delete(key);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    const tx = database.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
   });
 }
 
 async function dbClear(storeName) {
   const database = await openDB();
   return new Promise((resolve, reject) => {
-    const req = database.transaction(storeName, 'readwrite').objectStore(storeName).clear();
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    const tx = database.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
   });
 }
 
+/**
+ * Reemplaza el caché de notas en una sola transacción atómica.
+ * Si la TX falla, el caché previo queda intacto.
+ */
 export async function syncNotesToCache(notes) {
-  await dbClear(STORES.NOTES_CACHE);
-  for (const note of notes) {
-    await dbPut(STORES.NOTES_CACHE, note);
-  }
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(STORES.NOTES_CACHE, 'readwrite');
+    const store = tx.objectStore(STORES.NOTES_CACHE);
+    store.clear();
+    for (const note of notes) store.put(note);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
+  });
 }
 
 export async function getOfflineNotes() {
@@ -102,12 +144,25 @@ export async function getOfflineNote(id) {
   return dbGet(STORES.NOTES_CACHE, id);
 }
 
-export async function createNoteOffline(noteData) {
-  await dbAdd(STORES.PENDING_QUEUE, { ...noteData, synced: false, createdAt: new Date().toISOString() });
+/**
+ * Encola nota offline con scope por userId para evitar que otro usuario la sincronice.
+ */
+export async function createNoteOffline(noteData, userId) {
+  await dbAdd(STORES.PENDING_QUEUE, {
+    ...noteData,
+    _userId: userId,
+    synced: false,
+    createdAt: new Date().toISOString(),
+  });
 }
 
-export async function getPendingNotes() {
-  return dbGetAll(STORES.PENDING_QUEUE);
+/**
+ * Devuelve solo las notas pendientes del userId dado (si no se pasa, todas).
+ */
+export async function getPendingNotes(userId) {
+  const all = await dbGetAll(STORES.PENDING_QUEUE);
+  if (!userId) return all;
+  return all.filter(item => item._userId === userId);
 }
 
 export async function deletePendingNote(localId) {
@@ -118,34 +173,44 @@ async function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-export async function syncPendingNotes(createNoteFn) {
-  const pending = await getPendingNotes();
-  for (const item of pending) {
-    let success = false;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await createNoteFn(item);
-        success = true;
-        break;
-      } catch {
-        if (attempt < 3) await sleep(1000 * Math.pow(2, attempt - 1));
+/**
+ * Sincroniza notas pendientes hacia el servidor.
+ * Guardia anti-concurrencia evita doble disparo por eventos online consecutivos.
+ * No marca synced:true antes de borrar — atomicidad simplificada.
+ */
+export async function syncPendingNotes(createNoteFn, userId) {
+  if (_syncing) return;
+  _syncing = true;
+  try {
+    const pending = await getPendingNotes(userId);
+    for (const item of pending) {
+      let success = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await createNoteFn(item);
+          success = true;
+          break;
+        } catch {
+          if (attempt < 3) await sleep(1000 * Math.pow(2, attempt - 1));
+        }
+      }
+      if (success) {
+        await deletePendingNote(item.localId);
+      } else {
+        const failCount = (item._failCount || 0) + 1;
+        if (failCount >= 9) {
+          console.error('Pending note permanently failed after 9 attempts:', item.localId);
+        }
+        try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: failCount }); } catch {}
       }
     }
-    if (success) {
-      await dbPut(STORES.PENDING_QUEUE, { ...item, synced: true });
-      await deletePendingNote(item.localId);
-    } else {
-      const failCount = (item._failCount || 0) + 1;
-      if (failCount >= 9) {
-        console.error('Pending note permanently failed after 9 attempts:', item.localId);
-      }
-      try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: failCount }); } catch {}
-    }
+  } finally {
+    _syncing = false;
   }
 }
 
-export async function getPendingCount() {
-  return (await getPendingNotes()).length;
+export async function getPendingCount(userId) {
+  return (await getPendingNotes(userId)).length;
 }
 
 export function isOnline() {
@@ -153,22 +218,52 @@ export function isOnline() {
 }
 
 /**
- * Guarda un Blob en IMAGE_CACHE con keyPath 'url'.
+ * Limpia todos los stores. Usado al hacer logout para evitar PII residual.
  */
-export async function saveImageToCache(url, blob) {
-  return dbPut(STORES.IMAGE_CACHE, { url, blob });
+export async function clearAllOfflineData() {
+  for (const store of Object.values(STORES)) {
+    try { await dbClear(store); } catch { /* ignorar errores por store */ }
+  }
 }
 
 /**
- * Recupera el registro completo { url, blob } del caché.
+ * Guarda un Blob en IMAGE_CACHE con keyPath 'url' y aplica evicción FIFO si excede MAX_IMAGE_CACHE.
  */
+export async function saveImageToCache(url, blob) {
+  try {
+    const count = await dbCount(STORES.IMAGE_CACHE);
+    if (count >= MAX_IMAGE_CACHE) {
+      await evictOldestImage();
+    }
+  } catch { /* si el conteo falla, igual intentar put */ }
+  return dbPut(STORES.IMAGE_CACHE, { url, blob, cachedAt: Date.now() });
+}
+
+async function evictOldestImage() {
+  const database = await openDB();
+  return new Promise((resolve) => {
+    const tx = database.transaction(STORES.IMAGE_CACHE, 'readwrite');
+    const store = tx.objectStore(STORES.IMAGE_CACHE);
+    let idx;
+    try { idx = store.index('cachedAt'); } catch { resolve(); return; }
+    const req = idx.openCursor();
+    req.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        store.delete(cursor.primaryKey);
+      }
+      resolve();
+    };
+    req.onerror = () => resolve();
+  });
+}
+
 export async function getImageFromCache(url) {
   return dbGet(STORES.IMAGE_CACHE, url);
 }
 
 /**
- * Descarga en paralelo (batches de 5) las imágenes de un set de notas.
- * Fire-and-forget — no se espera a que termine.
+ * Descarga imágenes en paralelo (batches de 5) con timeout por fetch.
  */
 export async function cacheImages(notes) {
   if (!isOnline()) return;
@@ -188,24 +283,26 @@ export async function cacheImages(notes) {
 
   for (const urlBatch of batch(allUrls, 5)) {
     await Promise.all(urlBatch.map(async url => {
+      const cached = await getImageFromCache(url).catch(() => null);
+      if (cached) return;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       try {
-        const cached = await getImageFromCache(url);
-        if (!cached) {
-          const res = await fetch(url);
-          if (res.ok) {
-            await saveImageToCache(url, await res.blob());
-          }
+        const res = await fetch(url, { signal: controller.signal });
+        if (res.ok) {
+          await saveImageToCache(url, await res.blob());
         }
       } catch {
-        // ignorar fallos individuales
+        // ignorar timeout y otros fallos individuales
+      } finally {
+        clearTimeout(timeout);
       }
     }));
   }
 }
 
 /**
- * Pre-cachea imágenes de un lote completo de notas.
- * Fire-and-forget — no bloquea el flujo principal.
+ * Pre-cachea imágenes de un lote completo de notas. Fire-and-forget.
  */
 export async function preCacheAllImages(notes) {
   if (!isOnline()) return;
