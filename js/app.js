@@ -7,7 +7,7 @@ import { log } from './logger.js';
 import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount, preCacheAllImages } from './offline.js';
 
 import {
-  showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl,
+  showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl, revokeBlobUrls,
 } from './ui/shared.js';
 
 import { renderLoginView } from './ui/login.js';
@@ -334,9 +334,12 @@ async function handleDashboardClick(e) {
   if (e.target.closest('.btn-prev-page'))    { if (currentPage > 1) { currentPage--; await applyFilters(); } return; }
   if (e.target.closest('.btn-next-page'))    { currentPage++; await applyFilters(); return; }
   if (e.target.closest('.btn-clear-filters')) {
-    document.querySelector('.filter-search').value  = '';
-    document.querySelector('.filter-estatus').value = '';
-    document.querySelector('.filter-destino').value = '';
+    const s = document.querySelector('.filter-search');
+    if (s) s.value = '';
+    const est = document.querySelector('.filter-estatus');
+    if (est) est.value = '';
+    const dest = document.querySelector('.filter-destino');
+    if (dest) dest.value = '';
     currentPage = 1;
     await applyFilters();
     return;
@@ -733,8 +736,9 @@ async function showImagePreview(index) {
   overlay.querySelector('.image-preview-container').appendChild(imgEl);
 
   document.body.appendChild(overlay);
-  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) overlay.remove(); });
-  overlay.querySelector('.btn-close-preview').addEventListener('click', () => overlay.remove());
+  const closePreview = () => { overlay.remove(); revokeBlobUrls(); };
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) closePreview(); });
+  overlay.querySelector('.btn-close-preview').addEventListener('click', closePreview);
 }
 
 // ─── Delete ──────────────────────────────────────────────────────────────────

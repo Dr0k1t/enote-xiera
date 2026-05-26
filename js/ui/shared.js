@@ -15,6 +15,11 @@ let _modalOpener = null;
 export function revokeBlobUrls() {
   _blobUrls.forEach(url => URL.revokeObjectURL(url));
   _blobUrls.clear();
+  // Limpiar blob URLs creadas por compressImage (preview de upload)
+  if (typeof window !== 'undefined' && window.__enoteBlobUrls) {
+    window.__enoteBlobUrls.forEach(url => URL.revokeObjectURL(url));
+    window.__enoteBlobUrls.clear();
+  }
 }
 
 /**
@@ -54,8 +59,12 @@ export function statusClass(estatus) {
 
 export function formatFecha(isoDate) {
   if (!isoDate) return '—';
-  return new Date(isoDate + 'T00:00:00').toLocaleDateString('es-MX', {
-    day: '2-digit', month: 'long', year: 'numeric',
+  // Parsear como UTC y formatear en UTC para evitar desplazamiento de día por timezone local.
+  const parts = String(isoDate).split('-');
+  if (parts.length !== 3) return '—';
+  const dt = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+  return dt.toLocaleDateString('es-MX', {
+    day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC',
   });
 }
 

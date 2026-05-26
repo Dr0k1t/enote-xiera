@@ -187,32 +187,34 @@ function fieldsTouchContent(fields) {
 }
 
 export async function updateNote(id, fields, session) {
-  const force = fields._force === true;
-  const localModifiedEn = fields._localModifiedEn;
-  // Limpiar metadatos internos antes de validar/guardar
-  delete fields._force;
-  delete fields._localModifiedEn;
+  // Extraer metadatos internos sin mutar el parámetro de entrada
+  const { _force: forceRaw, _localModifiedEn: localModifiedEn, ...cleanFields } = fields;
+  const force = forceRaw === true;
 
   // Validación parcial: si vienen campos críticos, exigir que sean válidos.
-  if (fields.fecha !== undefined || fields.destino !== undefined) {
-    if (fields.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(fields.fecha)) {
+  if (cleanFields.fecha !== undefined || cleanFields.destino !== undefined) {
+    if (cleanFields.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(cleanFields.fecha)) {
       throw new Error('Fecha inválida (YYYY-MM-DD)');
     }
-    if (fields.destino !== undefined && !CONFIG.locations.includes(fields.destino)) {
+    if (cleanFields.destino !== undefined && !CONFIG.locations.includes(cleanFields.destino)) {
       throw new Error(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
     }
   }
-  if (fields.observaciones && fields.observaciones.length > 2000) {
+  if (cleanFields.observaciones && cleanFields.observaciones.length > 2000) {
     throw new Error('Observaciones demasiado largas (máx 2000 caracteres)');
   }
 
   // Conflict detection: si el cliente declaró su versión local y otro escribió después, abortar.
   if (!force && localModifiedEn) {
-    const { data: current } = await supabase
+    const { data: current, error: conflictErr } = await supabase
       .from('notes')
       .select('modificado_en')
       .eq('id', id)
       .single();
+    if (conflictErr) {
+      console.warn('Conflict check failed:', conflictErr);
+      throw new Error('No se pudo verificar si la nota fue modificada. Intenta de nuevo.');
+    }
     if (current?.modificado_en) {
       const serverTime = new Date(current.modificado_en).getTime();
       const clientTime = new Date(localModifiedEn).getTime();
@@ -223,22 +225,22 @@ export async function updateNote(id, fields, session) {
     }
   }
 
-  if (fields.imagenes) {
-    fields.imagenes = await processImages(fields.imagenes);
+  if (cleanFields.imagenes) {
+    cleanFields.imagenes = await processImages(cleanFields.imagenes);
   }
 
   // Si admin edita contenido de una nota ya en proceso/completada, marcar unread_modified.
   let unreadModifiedFlag;
-  if (session?.role === 'admin' && fieldsTouchContent(fields)) {
+  if (session?.role === 'admin' && fieldsTouchContent(cleanFields)) {
     const existing = await getNote(id);
     if (existing && CONFIG.confirmEditStatuses.includes(existing.estatus)) {
-      const onlyStatus = Object.keys(fields).every(k => k === 'estatus' || !CONTENT_FIELDS.includes(k));
+      const onlyStatus = Object.keys(cleanFields).every(k => k === 'estatus' || !CONTENT_FIELDS.includes(k));
       if (!onlyStatus) unreadModifiedFlag = true;
     }
   }
 
   const dbFields = {};
-  for (const [key, val] of Object.entries(fields)) {
+  for (const [key, val] of Object.entries(cleanFields)) {
     const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
     dbFields[dbKey] = val;
   }

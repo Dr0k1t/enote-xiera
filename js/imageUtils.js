@@ -21,6 +21,10 @@ export function compressImage(file) {
     }
 
     const img = new Image();
+    const tempUrl = URL.createObjectURL(file);
+    const cleanupTemp = () => URL.revokeObjectURL(tempUrl);
+    img.addEventListener('load', cleanupTemp, { once: true });
+    img.addEventListener('error', cleanupTemp, { once: true });
     img.onload = () => {
       let width = img.naturalWidth;
       let height = img.naturalHeight;
@@ -44,10 +48,14 @@ export function compressImage(file) {
         }
 
         const nombre = file.name.replace(/\.[^/.]+$/, '') + '-' + Date.now() + '.webp';
+        const previewUrl = URL.createObjectURL(blob);
+        // Trackear blob URL para revocación global posterior
+        window.__enoteBlobUrls = window.__enoteBlobUrls || new Set();
+        window.__enoteBlobUrls.add(previewUrl);
         const result = {
           id: crypto.randomUUID(),
           blob,
-          url: URL.createObjectURL(blob), // URL temporal para previsualización en el DOM
+          url: previewUrl,
           width,
           height,
           nombre,
@@ -57,6 +65,6 @@ export function compressImage(file) {
       }, 'image/webp', QUALITY);
     };
     img.onerror = () => reject(new Error('Error al cargar imagen'));
-    img.src = URL.createObjectURL(file);
+    img.src = tempUrl;
   });
 }

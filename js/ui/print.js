@@ -2,13 +2,19 @@
 import { esc } from './shared.js';
 
 export function renderPrintableReceipt(note) {
-  const fecha = note.fecha ? new Date(note.fecha + 'T00:00:00') : new Date();
-  const dia = String(fecha.getDate()).padStart(2, '0');
-  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-  const anio = String(fecha.getFullYear());
+  let fecha;
+  if (note.fecha) {
+    const parts = String(note.fecha).split('-');
+    fecha = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+  } else {
+    fecha = new Date();
+  }
+  const dia = String(note.fecha ? fecha.getUTCDate() : fecha.getDate()).padStart(2, '0');
+  const mes = String((note.fecha ? fecha.getUTCMonth() : fecha.getMonth()) + 1).padStart(2, '0');
+  const anio = String(note.fecha ? fecha.getUTCFullYear() : fecha.getFullYear());
 
   const fechaFormato = note.fecha
-    ? fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+    ? fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })
     : '';
 
   const total = (note.costoPastel || 0) + (note.depositoEquipo || 0) +

@@ -97,12 +97,12 @@ export function renderNoteForm(note, session) {
             <div class="form-group">
               <label class="form-label" for="nf-pastel-cantidad">Cantidad de pasteles</label>
               <input class="form-input" id="nf-pastel-cantidad" name="pastelCantidad"
-                type="number" min="1" value="${isEdit && note.pastelCantidad ? note.pastelCantidad : 1}">
+                type="number" min="1" value="${isEdit && note.pastelCantidad != null ? note.pastelCantidad : 1}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-pisos">Pisos</label>
               <input class="form-input" id="nf-pisos" name="pisos"
-                type="number" min="1" value="${esc(isEdit && note.pisos ? note.pisos : '')}">
+                type="number" min="1" value="${esc(isEdit && note.pisos != null ? note.pisos : '')}">
             </div>
           </div>
           <div class="form-grid-2">
@@ -287,9 +287,9 @@ function renderImageUploadSection(note, r) {
 export function getFormData() {
   const form = document.getElementById('note-form');
   if (!form) return null;
-  const fecha = form.querySelector('[name="fecha"]').value;
-  const destino = form.querySelector('[name="destino"]').value;
-  const observaciones = (form.querySelector('[name="observaciones"]').value || '').trim();
+  const fecha = form.querySelector('[name="fecha"]')?.value || '';
+  const destino = form.querySelector('[name="destino"]')?.value || '';
+  const observaciones = (form.querySelector('[name="observaciones"]')?.value || '').trim();
   const productos = [];
   form.querySelectorAll('.prod-row').forEach(row => {
     const nombre = (row.querySelector('.prod-nombre-inp').value || '').trim();
