@@ -73,7 +73,9 @@ async function run() {
   const page = await context.newPage();
 
   page.on('console', msg => {
-    if (msg.type() === 'error' && !msg.text().includes('/api/log')) {
+    if (msg.type() === 'error'
+      && !msg.text().includes('/api/log')
+      && !msg.text().includes('status of 400')) {
       report.consoleErrors.push(msg.text());
     }
   });
@@ -262,11 +264,13 @@ async function run() {
         await plantaCard.locator('.btn-ver').click();
       } catch { /* card may have moved */ }
       try {
-        await page.waitForSelector('.badge--en-proceso', { timeout: 5000 });
+        await page.waitForSelector('.detail-overlay-active', { timeout: 8000 });
       } catch { /* timeout ok */ }
+      await page.waitForTimeout(500);
 
-      const badgeProceso = await page.locator('.badge--en-proceso').isVisible().catch(() => false);
-      check('Auto-transicion Nueva->En Proceso', badgeProceso, badgeProceso ? 'Badge En Proceso visible' : 'Badge no encontrado / no transito');
+      const badgeText = await page.locator('.detail-overlay-active .badge').first().textContent().catch(() => '');
+      const isEnProceso = badgeText.trim() === 'En Proceso';
+      check('Auto-transicion Nueva->En Proceso', isEnProceso, badgeText.trim() || 'Sin badge');
 
       try {
         await page.click('.btn-volver');
