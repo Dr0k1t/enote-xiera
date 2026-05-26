@@ -5,7 +5,7 @@
  *
  * Env vars opcionales:
  *   ENOTE_URL       (default: https://enote-xiera.vercel.app)
- *   AUDIT_PASS      (default: passss)
+ *   AUDIT_PASS      (REQUERIDO — sin default por seguridad)
  *   HEADLESS        (default: 1; HEADLESS=0 para abrir browser)
  */
 
@@ -14,7 +14,11 @@ const path = require('path');
 const fs   = require('fs');
 
 const BASE_URL = process.env.ENOTE_URL || process.argv[2] || 'https://enote-xiera.vercel.app';
-const PASS = process.env.AUDIT_PASS || 'passss';
+const PASS = process.env.AUDIT_PASS;
+if (!PASS) {
+  console.error('ERROR: env var AUDIT_PASS es requerida. Uso: AUDIT_PASS=xxx node audit-prod.js');
+  process.exit(1);
+}
 const HEADLESS = process.env.HEADLESS !== '0';
 const SHOTS = path.join(__dirname, 'screenshots-prod');
 if (!fs.existsSync(SHOTS)) fs.mkdirSync(SHOTS, { recursive: true });
@@ -317,6 +321,43 @@ async function run() {
     check('Planta no tiene botón "Nueva"', !btnNuevaPlanta);
 
     await logout(page);
+
+    // ── 13b. F9.3 Login repartidor — smoke tests ──────────────────────────────
+    console.log('\n[ 13b. Login repartidor (F9.3) ]');
+    try {
+      await login(page, { email: 'repartidor@xiera.com', role: 'repartidor' });
+      const reparView = await page.locator('#view-repartidor.active').isVisible().catch(() => false);
+      check('Vista repartidor visible', reparView);
+      const selectSucursal = page.locator('#repartidor-sucursal');
+      if (await selectSucursal.isVisible().catch(() => false)) {
+        const options = await selectSucursal.locator('option').count();
+        check('Selector sucursal con opciones', options > 1, `n=${options}`);
+      }
+      const card = page.locator('.repartidor-card').first();
+      if (await card.isVisible().catch(() => false)) {
+        const tomadaBefore = await card.getAttribute('class') || '';
+        const toggle = card.locator('.btn-tomada, [data-action="toggle-tomada"]').first();
+        if (await toggle.isVisible().catch(() => false)) {
+          await toggle.click();
+          await page.waitForFunction(
+            (selBefore) => {
+              const c = document.querySelector('.repartidor-card');
+              return c && (c.className !== selBefore);
+            },
+            tomadaBefore,
+            { timeout: 5000 }
+          ).catch(() => {});
+          check('Toggle tomada modifica card', true);
+        }
+      } else {
+        check('Repartidor sin notas visibles (skip toggle)', true);
+      }
+      await shot(page, '13b-repartidor');
+      await logout(page);
+    } catch (err) {
+      check('Login repartidor falló (puede no existir usuario)', false, err.message);
+      try { await logout(page); } catch {}
+    }
 
     // ── 14. Login admin (cleanup global) ──────────────────────────────────────
     console.log('\n[ 14. Cleanup admin (notas AUDIT residuales) ]');

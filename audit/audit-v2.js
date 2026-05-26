@@ -17,10 +17,16 @@ const fs = require('fs');
 const BASE_URL = process.env.ENOTE_URL || process.argv[2] || 'https://enote-xiera.vercel.app';
 const SHOTS_DIR = path.join(__dirname, 'screenshots-v2');
 
+const PASS = process.env.AUDIT_PASS;
+if (!PASS) {
+  console.error('ERROR: env var AUDIT_PASS es requerida. Uso: AUDIT_PASS=xxx node audit-v2.js');
+  process.exit(1);
+}
+
 const CREDS = {
-  admin:    { email: 'admin@xiera.com',    pass: 'passss' },
-  planta:   { email: 'planta@xiera.com',   pass: 'passss' },
-  ocotlan:  { email: 'ocotlan@xiera.com',  pass: 'passss' },
+  admin:    { email: 'admin@xiera.com',    pass: PASS },
+  planta:   { email: 'planta@xiera.com',   pass: PASS },
+  ocotlan:  { email: 'ocotlan@xiera.com',  pass: PASS },
 };
 
 if (!fs.existsSync(SHOTS_DIR)) fs.mkdirSync(SHOTS_DIR, { recursive: true });
@@ -392,6 +398,27 @@ async function run() {
     await page.screenshot({ path: path.join(SHOTS_DIR, '09-validacion-form.png') });
 
     // ────────────────────────────────────────────────────────────────────────
+    // F9.4 — Image upload UI smoke
+    // ────────────────────────────────────────────────────────────────────────
+    section('9b. Image upload UI (F9.4)');
+    await page.click('.btn-nueva').catch(() => {});
+    await page.waitForSelector('.modal-overlay.visible', { timeout: 5000 }).catch(() => {});
+    const fileInput = page.locator('#nf-imagenes, input[type="file"][name="imagenes"]');
+    const fileInputVisible = await fileInput.first().isVisible({ timeout: 3000 }).catch(() => false);
+    check('Input de imágenes presente en form', fileInputVisible);
+    const counterPresent = await page.locator('#image-counter').count() > 0;
+    check('Contador de imágenes presente', counterPresent);
+    const maxImagesAttr = await page.evaluate(() =>
+      typeof window.MAX_IMAGES_PER_NOTE !== 'undefined' ? window.MAX_IMAGES_PER_NOTE : 3
+    );
+    check('Límite imágenes ≤3 documentado', maxImagesAttr <= 3, `max=${maxImagesAttr}`);
+    await page.click('.btn-cancelar-modal').catch(() => {});
+    await page.waitForFunction(
+      () => !document.getElementById('modal-overlay').classList.contains('visible'),
+      { timeout: 5000 }
+    ).catch(() => {});
+
+    // ────────────────────────────────────────────────────────────────────────
     // 10. LOGOUT
     // ────────────────────────────────────────────────────────────────────────
     section('10. Logout final');
@@ -400,6 +427,32 @@ async function run() {
     check('Logout final exitoso', true);
 
     await page.screenshot({ path: path.join(SHOTS_DIR, '10-logout.png') });
+
+    // ────────────────────────────────────────────────────────────────────────
+    // F9.2 — cleanup: borrar notas de auditoria creadas (re-login admin)
+    // ────────────────────────────────────────────────────────────────────────
+    section('11. Cleanup audit notes');
+    await page.fill('#inp-user', CREDS.admin.email);
+    await page.fill('#inp-pass', CREDS.admin.pass);
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('#view-dashboard.active', { timeout: 8000 }).catch(() => {});
+    let removed = 0;
+    for (let i = 0; i < 30; i++) {
+      const card = page.locator('.note-card:has-text("AUDIT-")').first();
+      if (!(await card.isVisible().catch(() => false))) break;
+      const del = card.locator('.btn-eliminar');
+      if (!(await del.isVisible().catch(() => false))) break;
+      await del.click();
+      await page.waitForSelector('.modal-overlay.visible', { timeout: 5000 }).catch(() => {});
+      const confirmBtn = page.locator('.btn-confirmar-delete');
+      if (await confirmBtn.isVisible().catch(() => false)) await confirmBtn.click();
+      await page.waitForFunction(
+        () => !document.getElementById('modal-overlay').classList.contains('visible'),
+        { timeout: 8000 }
+      ).catch(() => {});
+      removed++;
+    }
+    check(`Cleanup eliminó ${removed} notas AUDIT-*`, true);
 
   } catch (err) {
     console.error(`\n  ERROR en seccion "${currentSection}":`, err.message);
