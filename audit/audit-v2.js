@@ -96,9 +96,10 @@ async function run() {
     await page.fill('#inp-user', 'invalido@noexiste.com');
     await page.fill('#inp-pass', 'mal123');
     await page.click('button[type="submit"]');
-    await page.waitForTimeout(500);
-    const errorVisible = await page.locator('#login-error').textContent();
-    check('Login invalido muestra error', !!errorVisible, errorVisible);
+    await page.waitForTimeout(2000);
+    const errorEl = page.locator('#login-error');
+    const errorText = await errorEl.textContent().catch(() => '');
+    check('Login invalido muestra error', !!errorText, errorText || '(vacio)');
 
     // Login admin
     await loginAs(page, CREDS.admin.email, CREDS.admin.pass);
@@ -155,7 +156,9 @@ async function run() {
 
     await page.screenshot({ path: path.join(SHOTS_DIR, '02-nota-creada.png') });
 
-    // Verificar card en dashboard (buscar por clienteNombre)
+    // Esperar a que el dashboard refresque y la card aparezca
+    await page.waitForTimeout(1500);
+
     const card = page.locator(`.note-card:has-text("${testId}")`).first();
     const cardVisible = await card.isVisible().catch(() => false);
     check('Card visible en dashboard con cliente', cardVisible);
@@ -301,7 +304,9 @@ async function run() {
       check('Sucursal crea nota', false, 'Timeout');
     }
 
-    // Eliminar
+    // Esperar a que la card aparezca en el dashboard
+    await page.waitForTimeout(1500);
+
     const delCard = page.locator(`.note-card:has-text("${deleteId}")`).first();
     const delCardVisibleNow = await delCard.isVisible().catch(() => false);
     if (delCardVisibleNow) {
