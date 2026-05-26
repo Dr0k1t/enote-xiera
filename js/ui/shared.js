@@ -139,8 +139,14 @@ export function renderToast(message, type = 'info', duration = 3000) {
     container.className = 'toast-container';
     document.body.appendChild(container);
   }
+  // Limitar a 3 toasts simultáneos para evitar spam visual
+  while (container.children.length >= 3) {
+    container.firstChild.remove();
+  }
   const el = document.createElement('div');
   el.className = `toast toast--${type}`;
+  el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   el.textContent = message;
   container.appendChild(el);
   setTimeout(() => {

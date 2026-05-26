@@ -1,5 +1,5 @@
 @media print {
-  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Jost:wght@300;400;500&display=swap');
+  /* @import previo era invalido dentro de @media; las fuentes se cargan en index.html */
 
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 

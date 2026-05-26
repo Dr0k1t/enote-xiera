@@ -98,6 +98,7 @@ a { color: var(--color-primary); text-decoration: none; }
   padding: var(--space-3) var(--space-4);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   outline: none;
+  -webkit-appearance: none;
   appearance: none;
 }
 
@@ -250,7 +251,6 @@ a { color: var(--color-primary); text-decoration: none; }
 
 .role-chip--admin       { background: var(--color-primary); color: var(--color-warm-white); border-color: var(--color-primary); }
 .role-chip--sucursal    { background: var(--color-sucursal); color: var(--color-warm-white); border-color: var(--color-sucursal); }
-.role-chip--repartidor  { background: var(--color-repartidor); color: var(--color-warm-white); border-color: var(--color-repartidor); }
 
 .offline-badge {
   display: inline-flex;
@@ -422,11 +422,6 @@ a { color: var(--color-primary); text-decoration: none; }
   flex-wrap: wrap;
 }
 
-.priority-controls {
-  display: flex;
-  gap: var(--space-1);
-  margin-left: auto;
-}
 
 /* Inline confirmation bar for status change */
 .status-confirm-bar {
@@ -484,6 +479,7 @@ a { color: var(--color-primary); text-decoration: none; }
   position: fixed;
   inset: 0;
   background: rgba(44, 24, 16, 0.45);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   z-index: 1000;
   display: flex;
@@ -492,12 +488,14 @@ a { color: var(--color-primary); text-decoration: none; }
   padding: var(--space-5);
   visibility: hidden;
   opacity: 0;
+  pointer-events: none;
   transition: opacity var(--transition-base), visibility var(--transition-base);
 }
 
 .modal-overlay.visible {
   visibility: visible;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .modal-overlay.visible .modal-card {
@@ -662,6 +660,7 @@ a { color: var(--color-primary); text-decoration: none; }
   inset: 0;
   z-index: 200;
   background: rgba(44, 24, 16, 0.55);
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   animation: fadeIn 0.2s ease;
   display: flex !important;
@@ -746,7 +745,6 @@ a { color: var(--color-primary); text-decoration: none; }
   text-align: right;
 }
 
-.detail-body { padding: var(--space-6) var(--space-7); }
 
 .detail-meta-grid {
   display: grid;
@@ -873,19 +871,19 @@ a { color: var(--color-primary); text-decoration: none; }
 .empty-state {
   text-align: center;
   padding: var(--space-8) var(--space-5);
-  color: var(--color-text-muted);
+  color: #5A3A2A; /* AA-compliant sobre warm-white */
 }
 
 .empty-state__icon {
   font-size: 2.5rem;
-  opacity: 0.4;
+  opacity: 0.55;
   margin-bottom: var(--space-4);
 }
 
 .empty-state__title {
   font-family: var(--font-heading);
   font-size: 1.4rem;
-  color: var(--color-text-muted);
+  color: #5A3A2A;
   margin-bottom: var(--space-2);
 }
 
@@ -1106,6 +1104,7 @@ a { color: var(--color-primary); text-decoration: none; }
   display: block;
   max-width: 90vw;
   max-height: 90vh;
+  object-fit: contain;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-modal);
 }
@@ -1265,6 +1264,7 @@ a { color: var(--color-primary); text-decoration: none; }
   .detail-header { padding: var(--space-3) var(--space-4); }
   .detail-footer { flex-direction: column; gap: var(--space-4); }
   .detail-meta-grid { grid-template-columns: 1fr; }
+  .detail-layout { flex-direction: column; }
 
   .app-header { padding: var(--space-3) var(--space-4); }
   .header-brand span { display: none; }
@@ -1337,4 +1337,23 @@ a { color: var(--color-primary); text-decoration: none; }
   .note-card:hover,
   .repartidor-card:hover { transform: none; box-shadow: var(--shadow-card); }
   .btn:active { transform: none; }
+}
+
+/* === F6.1 status-static-text para roles sin select de status === */
+.status-static-text {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* === F6.4 focus-visible en cards/botones === */
+.note-card:focus-visible,
+.repartidor-card:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.btn-close-preview:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
 }
