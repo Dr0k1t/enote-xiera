@@ -20,3 +20,10 @@ export const CONFIG = {
     repartidor: { canCreate: false, canEdit: false, canDelete: false, canSeeAll: true  },
   },
 };
+
+export const BUSINESS_INFO = {
+  instagram: 'xiera.xiera',
+  phone:     '392 92 2 42 29',
+  address:   'Ramón Corona 423, Centro, Ocotlán, Jalisco',
+  facebook:  'Xiera',
+};

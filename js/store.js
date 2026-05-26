@@ -2,6 +2,7 @@
 import { CONFIG } from './config.js';
 import { supabase, uploadImage } from './supabase.js';
 import { cacheImages, saveImageToCache, isOnline, getOfflineNotes, getOfflineNote } from './offline.js';
+import { canModifyNote } from './auth.js';
 
 /**
  * Mapea errores de Supabase a mensajes amigables sin exponer estructura interna.
@@ -226,6 +227,13 @@ function fieldsTouchContent(fields) {
 }
 
 export async function updateNote(id, fields, session) {
+  // Defensa en profundidad sobre RLS — validar permisos antes de tocar servidor
+  if (session) {
+    const existingForAuth = await getNote(id);
+    if (!existingForAuth) throw new Error('Nota no encontrada');
+    if (!canModifyNote(session, existingForAuth)) throw new Error('Permisos insuficientes');
+  }
+
   // Extraer metadatos internos sin mutar el parámetro de entrada
   const { _force: forceRaw, _localModifiedEn: localModifiedEn, ...cleanFields } = fields;
   const force = forceRaw === true;
@@ -300,7 +308,12 @@ export async function updateNote(id, fields, session) {
   return { old: null, new: mapDbNote(data) };
 }
 
-export async function deleteNote(id) {
+export async function deleteNote(id, session) {
+  if (session) {
+    const existing = await getNote(id);
+    if (!existing) throw new Error('Nota no encontrada');
+    if (!canModifyNote(session, existing)) throw new Error('Permisos insuficientes');
+  }
   // .select() devuelve las filas afectadas; sin él Supabase responde data:[] aunque
   // RLS haya bloqueado la operación, sin marcar error. Verificamos para no mentirle al usuario.
   const { data, error } = await supabase.from('notes').delete().eq('id', id).select();

@@ -1,6 +1,7 @@
 /// <reference path="./types.js" />
 import { CONFIG } from './config.js';
 import { supabase } from './supabase.js';
+import { clearAllOfflineData } from './offline.js';
 
 const SESSION_KEY = CONFIG.storagePrefix + 'session';
 
@@ -37,6 +38,20 @@ export async function logout() {
     console.warn('supabase signOut failed:', err);
   }
   clearSession();
+  // Limpiar IndexedDB para evitar PII residual entre usuarios en dispositivos compartidos
+  await clearAllOfflineData().catch(() => {});
+}
+
+/**
+ * Helper de autorización: defensa en profundidad sobre RLS.
+ */
+export function canModifyNote(session, note) {
+  if (!session || !note) return false;
+  if (session.role === 'admin') return true;
+  if (session.role === 'sucursal' &&
+      (note.destino === session.destino || note.creadoPor === session.username)) return true;
+  if (session.role === 'planta' && note.destino === session.destino) return true;
+  return false;
 }
 
 export function getSession() {

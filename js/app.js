@@ -1,7 +1,7 @@
 /// <reference path="./types.js" />
 import { CONFIG } from './config.js';
 import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada, validateNoteFields } from './store.js';
-import { login, requireAuth, canSeeAll, logout, clearSession } from './auth.js';
+import { login, requireAuth, canSeeAll, canCreate, canEdit, canDelete, logout, clearSession } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
 import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount, preCacheAllImages } from './offline.js';
@@ -373,7 +373,10 @@ async function applyFilters() {
 // ─── Dashboard clicks ─────────────────────────────────────────────────────────
 async function handleDashboardClick(e) {
   if (e.target.closest('.btn-logout'))       { handleLogout(); return; }
-  if (e.target.closest('.btn-nueva'))        { await showForm(null); return; }
+  if (e.target.closest('.btn-nueva'))        {
+    if (!canCreate(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
+    await showForm(null); return;
+  }
   if (e.target.closest('.btn-prev-page'))    { if (currentPage > 1) { currentPage--; await applyFilters(); } return; }
   if (e.target.closest('.btn-next-page'))    { currentPage++; await applyFilters(); return; }
   if (e.target.closest('.btn-clear-filters')) {
@@ -409,8 +412,14 @@ async function handleDashboardClick(e) {
   if (isNaN(noteId)) return;
 
   if (e.target.closest('.btn-ver'))      { await showDetail(noteId); return; }
-  if (e.target.closest('.btn-editar'))   { await showForm(noteId); return; }
-  if (e.target.closest('.btn-eliminar')) { await confirmDelete(noteId); return; }
+  if (e.target.closest('.btn-editar'))   {
+    if (!canEdit(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
+    await showForm(noteId); return;
+  }
+  if (e.target.closest('.btn-eliminar')) {
+    if (!canDelete(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
+    await confirmDelete(noteId); return;
+  }
 }
 
 // ─── Status change (planta) ──────────────────────────────────────────────────
@@ -496,6 +505,7 @@ async function handleDetailClick(e) {
   }
   if (e.target.closest('.btn-imprimir')) { window.print(); return; }
   if (e.target.closest('.btn-editar')) {
+    if (!canEdit(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
     const btn = e.target.closest('.btn-editar');
     const rawId = btn.dataset.noteId;
     if (rawId) {
@@ -714,7 +724,7 @@ async function handleModalClick(e) {
     const noteId = parseInt(btn.dataset.noteId);
     if (isNaN(noteId)) return;
     try {
-      await deleteNote(noteId);
+      await deleteNote(noteId, currentSession);
       closeModal();
       await showDashboard();
       renderToast('Nota eliminada', 'info');
