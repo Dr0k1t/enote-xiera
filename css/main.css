@@ -717,31 +717,31 @@ a { color: var(--color-primary); text-decoration: none; }
 .detail-header {
   background: var(--color-surface);
   border-bottom: 2px solid var(--color-border);
-  padding: var(--space-6) var(--space-7);
+  padding: var(--space-4) var(--space-5);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-4);
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .detail-brand-name {
   font-family: var(--font-heading);
-  font-size: 2rem;
+  font-size: 1.2rem;
   color: var(--color-primary);
   line-height: 1;
 }
 
 .detail-brand-sub {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--color-text-muted);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-top: var(--space-1);
+  margin-top: 2px;
 }
 
 .detail-numero {
   font-family: var(--font-heading);
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   color: var(--color-text-dark);
   text-align: right;
 }
@@ -1260,7 +1260,7 @@ a { color: var(--color-primary); text-decoration: none; }
 
   .modal-card { max-height: 100vh; border-radius: var(--radius-lg); }
 
-  .detail-header { flex-direction: column; }
+  .detail-header { padding: var(--space-3) var(--space-4); }
   .detail-footer { flex-direction: column; gap: var(--space-4); }
   .detail-meta-grid { grid-template-columns: 1fr; }
 
