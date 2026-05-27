@@ -24,6 +24,15 @@
     <div id="loading" aria-busy="true" aria-live="polite">Cargando Enote...</div>
   </div>
   <script>
+    // SW controllerchange: recargar cuando nuevo SW tome control.
+    // Este listener corre incluso si app.js (module) falla — cubre boot-fail recovery.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (sessionStorage.getItem('_sw_reloading')) return;
+        sessionStorage.setItem('_sw_reloading', '1');
+        window.location.reload();
+      });
+    }
     window.__bootFailsafe = setTimeout(function () {
       var el = document.getElementById('loading');
       if (!el) return;

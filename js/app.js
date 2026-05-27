@@ -135,6 +135,7 @@ window.addEventListener('enote:auth-expired', () => {
 
 async function init() {
   clearTimeout(window.__bootFailsafe);
+  sessionStorage.removeItem('_sw_reloading'); // limpiar flag de reload-recovery
   document.getElementById('app').innerHTML = `
     <div id="view-login"       class="view"></div>
     <div id="view-dashboard"   class="view"></div>

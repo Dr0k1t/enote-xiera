@@ -1,5 +1,5 @@
-// F5.1: versión inyectada por scripts/build-config.js. Default 1.3.1 si no se inyecta.
-const ENOTE_VERSION = '1.3.1';
+// F5.1: versión inyectada por scripts/build-config.js. Default 1.3.2 si no se inyecta.
+const ENOTE_VERSION = '1.3.2';
 const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
 const STATIC_ASSETS = [
   '/',
@@ -53,13 +53,23 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', e => {
+  // F5.2: usar {cache: 'reload'} para bypassear el HTTP cache del browser.
+  // Sin esto, cache.add() hereda respuestas inmutables (max-age=1yr) y puede
+  // precargar versiones stale de archivos que cambiaron sin cambiar URL.
   e.waitUntil(
     caches.open(CACHE_VERSION)
-      .then(cache => Promise.allSettled(
-        STATIC_ASSETS.map(url =>
-          cache.add(url).catch(err => console.warn('Failed to cache:', url, err))
+      .then(cache =>
+        Promise.allSettled(
+          STATIC_ASSETS.map(url =>
+            fetch(url, { cache: 'reload' })
+              .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return cache.put(url, res);
+              })
+              .catch(err => console.warn('[SW] Failed to cache:', url, err))
+          )
         )
-      ))
+      )
       .then(() => self.skipWaiting())
   );
 });
