@@ -29,13 +29,35 @@ export function renderRepartidorView(session) {
 }
 
 /**
- * Renderiza una tarjeta de nota simplificada para el repartidor.
+ * Renderiza una tarjeta de nota enriquecida para el repartidor.
+ * Muestra: productos, nombre del cliente, direccion, hora de entrega, y toggle tomada.
  */
 export function renderRepartidorCard(note) {
   const tomada = !!note.tomada;
+
+  const prodSummary = note.productos?.length
+    ? note.productos.map(p => `${p.cantidad} ${p.nombre}`).join(', ')
+    : '';
+
+  const clienteDisplay = (note.clienteNombre || '').trim();
+
+  const direccionDisplay = (note.direccionEntrega || note.clienteDireccion || '').trim();
+
+  const horaDisplay = note.horaEntrega
+    ? `${note.horaEntrega} ${note.horaPeriodo || 'AM'}`
+    : '';
+
+  const hasObs = !!(note.observaciones || '').trim();
+
+  const ariaParts = [`Nota ${note.numero}`];
+  if (prodSummary) ariaParts.push(prodSummary);
+  if (clienteDisplay) ariaParts.push(clienteDisplay);
+  if (note.destino) ariaParts.push(note.destino);
+  if (tomada) ariaParts.push('Tomada');
+
   return `
-  <article class="repartidor-card${tomada ? ' repartidor-card--tomada' : ''}" 
-    data-note-id="${note.id}" role="button" aria-pressed="${tomada}" aria-label="Nota ${esc(note.numero)}, ${esc(note.destino)}">
+  <article class="repartidor-card${tomada ? ' repartidor-card--tomada' : ''}"
+    data-note-id="${note.id}" role="button" aria-pressed="${tomada}" aria-label="${esc(ariaParts.join(', '))}">
     <div class="repartidor-card__check" aria-hidden="true">
       <span class="repartidor-checkbox-icon">${tomada ? '✓' : ''}</span>
     </div>
@@ -43,9 +65,17 @@ export function renderRepartidorCard(note) {
       <div class="repartidor-card__id">
         <strong>${esc(note.numero)}</strong>
         ${tomada ? '<span class="tomada-badge">Tomada</span>' : ''}
+        ${horaDisplay ? `<span class="repartidor-card__hora">${esc(horaDisplay)}</span>` : ''}
       </div>
-      <div class="repartidor-card__cliente">${esc(note.destino)}</div>
+      ${prodSummary ? `<div class="repartidor-card__productos">${esc(prodSummary)}</div>` : ''}
+      ${clienteDisplay || direccionDisplay ? `
+        <div class="repartidor-card__cliente">
+          ${clienteDisplay ? esc(clienteDisplay) : ''}
+          ${clienteDisplay && direccionDisplay ? ' · ' : ''}
+          ${direccionDisplay ? esc(direccionDisplay) : ''}
+        </div>` : ''}
       <div class="repartidor-card__fecha">Entrega: ${esc(formatFecha(note.fecha))}</div>
     </div>
+    ${hasObs ? '<span class="repartidor-card__obs-icon" aria-label="Tiene observaciones" title="Tiene observaciones">i</span>' : ''}
   </article>`;
 }

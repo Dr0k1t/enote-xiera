@@ -1165,7 +1165,7 @@ a { color: var(--color-primary); text-decoration: none; }
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-4);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast),
@@ -1203,6 +1203,7 @@ a { color: var(--color-primary); text-decoration: none; }
   background: var(--color-warm-white);
   flex-shrink: 0;
   transition: border-color var(--transition-fast), background var(--transition-fast);
+  margin-top: 2px;
 }
 
 .repartidor-card--tomada .repartidor-checkbox-icon {
@@ -1248,6 +1249,38 @@ a { color: var(--color-primary); text-decoration: none; }
 .repartidor-card__fecha {
   font-size: 0.78rem;
   color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.repartidor-card__hora {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--color-primary-dk);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.repartidor-card__productos {
+  font-size: 0.85rem;
+  color: var(--color-text-dark);
+  margin-top: var(--space-1);
+  line-height: 1.35;
+}
+
+.repartidor-card__obs-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-sucursal);
+  color: var(--color-warm-white);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
   margin-top: 2px;
 }
 
