@@ -1,5 +1,5 @@
-// F5.1: versión inyectada por scripts/build-config.js. Default 1.3.0 si no se inyecta.
-const ENOTE_VERSION = '1.3.0';
+// F5.1: versión inyectada por scripts/build-config.js. Default 1.3.1 si no se inyecta.
+const ENOTE_VERSION = '1.3.1';
 const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
 const STATIC_ASSETS = [
   '/',
@@ -25,11 +25,31 @@ const STATIC_ASSETS = [
   '/js/ui/detail.js',
   '/js/ui/repartidor.js',
   '/js/ui/print.js',
+  '/js/vendor/supabase-js.esm.js',
   '/icons/icon-192.png',
   '/icons/icon-192-maskable.png',
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
-  'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&family=Jost:wght@300;400;500&display=swap',
+  '/assets/fonts/fonts.css',
+  '/assets/fonts/92zatBhPNqw73oDd4iYl.woff2',
+  '/assets/fonts/92zatBhPNqw73oTd4g.woff2',
+  '/assets/fonts/92zatBhPNqw73ord4iYl.woff2',
+  '/assets/fonts/Wnz6HAc5bAfYB2Q7YjYYmg8.woff2',
+  '/assets/fonts/Wnz6HAc5bAfYB2Q7ZjYY.woff2',
+  '/assets/fonts/Wnz6HAc5bAfYB2Q7aDYYmg8.woff2',
+  '/assets/fonts/Wnz6HAc5bAfYB2Q7azYYmg8.woff2',
+  '/assets/fonts/co3bmX5slCNuHLi8bLeY9MK7whWMhyjYp3tKgS4.woff2',
+  '/assets/fonts/co3bmX5slCNuHLi8bLeY9MK7whWMhyjYpHtKgS4.woff2',
+  '/assets/fonts/co3bmX5slCNuHLi8bLeY9MK7whWMhyjYpntKgS4.woff2',
+  '/assets/fonts/co3bmX5slCNuHLi8bLeY9MK7whWMhyjYqXtK.woff2',
+  '/assets/fonts/co3bmX5slCNuHLi8bLeY9MK7whWMhyjYrXtKgS4.woff2',
+  '/assets/fonts/co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jD-h9M8Efs.woff2',
+  '/assets/fonts/co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jD-hdM8Efs.woff2',
+  '/assets/fonts/co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jD-htM8Efs.woff2',
+  '/assets/fonts/co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jD-iNM8.woff2',
+  '/assets/fonts/co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jD-jNM8Efs.woff2',
+  '/assets/fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K4.woff2',
+  '/assets/fonts/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6h9Q.woff2',
 ];
 
 self.addEventListener('install', e => {
@@ -94,6 +114,10 @@ self.addEventListener('fetch', e => {
             if (cached) return cached;
             if (request.destination === 'image') {
               return new Response('', { status: 503, statusText: 'Offline — image not cached' });
+            }
+            // scripts/fonts: empty body causes NS_ERROR_CORRUPTED_CONTENT in Firefox
+            if (request.destination === 'script' || request.destination === 'font') {
+              return Response.error();
             }
             return new Response('', { status: 503, statusText: 'Offline' });
           });

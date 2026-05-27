@@ -1,6 +1,6 @@
 // GENERATED — DO NOT EDIT
 // Regenerar con: node scripts/build-config.js
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { createClient } from './vendor/supabase-js.esm.js';
 
 const SUPABASE_URL = '__SUPABASE_URL__';
 const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
