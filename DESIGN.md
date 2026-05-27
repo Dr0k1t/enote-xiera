@@ -233,9 +233,7 @@ Sticky Papel Nuevo bar, 1px Pétalo Seco bottom border, low header shadow. Brand
 Role chips are pill-shaped, uppercase DM Sans at 0.68rem. Three contextual fills: admin (wine `#7A3045`), sucursal (forest `#1A5C32`), repartidor (cobalt `#2563EB`).
 
 ### Diff Alert (signature component)
-Shown when a note was modified between views. Amber background (`#FFF8E7`), amber text (`#7A5C00`), 8px radius, inner padding 16px 24px.
-
-**Current violation to fix:** the existing `.diff-alert` uses `border-left: 4px solid #C8A415`. This is a side-stripe border and is prohibited. Replace with a full amber border (`border: 1.5px solid #E8D080`) or a leading warning icon. The same issue exists on `.indicator-new` and `.indicator-modified` on note cards.
+Shown when a note was modified between views. Amber background (`#FFF8E7`), amber text (`#7A5C00`), full warm border (`#E8D080`), 8px radius, inner padding 16px 24px. Corrected away from side-stripe border pattern.
 
 ## 6. Do's and Don'ts
 
@@ -249,7 +247,7 @@ Shown when a note was modified between views. Amber background (`#FFF8E7`), ambe
 - **Do** size the `#7A3045` wine accent to convey authority: primary buttons, brand mark, note numbers. Rarity is the point.
 
 ### Don't:
-- **Don't** use `border-left` or `border-right` greater than 1px as a colored stripe accent on cards, alerts, or list items. This is prohibited. Use a full border, a tinted background, or a leading icon instead. The existing `.indicator-new`, `.indicator-modified`, and `.diff-alert` violate this rule and must be corrected.
+- **Don't** use `border-left` or `border-right` greater than 1px as a colored stripe accent on cards, alerts, or list items. This is prohibited. Use a full border, a tinted background, or a leading icon instead.
 - **Don't** use Cormorant Garamond in button labels, form inputs, table cells, badge text, or any text below 1rem. It is identity, not chrome.
 - **Don't** use pure-black shadows or cold grey borders. Every neutral carries a warm sepia tint toward `#2C1810`.
 - **Don't** make Enote look like a SaaS product (Notion, Linear, Jira): no blank white backgrounds, no cold blue accents, no identical icon-plus-heading card grids.

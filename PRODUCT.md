@@ -9,7 +9,7 @@ product
 Tres roles en una panadería física (Xiera, Ocotlán, Jalisco):
 
 - **Dueño / admin**: gestiona todas las notas, acceso completo desde desktop o celular. Contexto: oficina o piso de producción.
-- **Trabajadores de planta**: crean y procesan notas. Baja alfabetización digital. Usan celular o tablet, a veces con manos ocupadas o mojadas.
+- **Trabajadores de planta**: procesan notas y actualizan estatus. Baja alfabetización digital. Usan celular o tablet, a veces con manos ocupadas o mojadas.
 - **Repartidores**: marcan entregas desde celular Android en tránsito. Interacción mínima, velocidad máxima.
 
 Job to be done: reemplazar la nota de remisión en papel (carbón físico) con un sistema digital que no requiere aprendizaje ni capacitación técnica.

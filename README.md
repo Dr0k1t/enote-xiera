@@ -2,7 +2,7 @@
 
 > **Cliente:** Xiera — Panadería, Ocotlán, Jalisco
 > **Stack:** Vanilla JS SPA · Supabase (PostgreSQL + Auth) · PWA (Service Worker + IndexedDB) · Vercel
-> **Versión actual:** v1.2 — En producción (Supabase-only)
+> **Versión actual:** v1.3 — En desarrollo (remediación post-auditoría)
 
 ---
 
@@ -43,9 +43,10 @@ Si las variables no existen, el script emite warning y genera un cliente vacío 
 Genera notas de remisión digitales con flujo multi-usuario y workflow de estatus. Backend único: Supabase (Auth + PostgreSQL + RLS). PWA con cache offline y cola de pendientes vía IndexedDB.
 
 Docs:
-- `docs/ROADMAP-PRODUCCION-V1.2.md` — spec completa (schema SQL, RLS, roles, deploy)
-- `docs/SPRINT-PRODUCCION-V1.2.md` — desglose por semanas con horas estimadas
-- `docs/AUDIT-V1.1.md` — cierre del hardening v1.1
+- `docs/PLAN-REMEDIACION-V1.3.md` — plan de corrección de hallazgos (ACTUAL)
+- `docs/ROADMAP-PRODUCCION-V1.2.md` — [ARCHIVADO] spec v1.2
+- `docs/SPRINT-PRODUCCION-V1.2.md` — [ARCHIVADO] desglose v1.2
+- `docs/AUDIT-V1.1.md` — [ARCHIVADO] cierre hardening v1.1
 
 ## Arquitectura
 
@@ -71,6 +72,7 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 | `ui/form.js` | Formulario crear/editar nota. |
 | `ui/detail.js` | Detalle + diff view + delete confirm + **conflict view**. |
 | `ui/repartidor.js` | Vista repartidor. |
+| `ui/print.js` | `renderPrintableReceipt()` — recibo imprimible. |
 
 ### Scripts
 

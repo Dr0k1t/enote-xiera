@@ -1,6 +1,7 @@
 audit/node_modules/
 audit/screenshots/
 audit/screenshots-prod/
+audit/screenshots-v2/
 
 # Sandbox de pruebas locales (no se versiona)
 sandbox/

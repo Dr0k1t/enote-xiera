@@ -29,7 +29,7 @@ const STATIC_ASSETS = [
   '/icons/icon-192-maskable.png',
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
-  'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap',
+  'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&family=Jost:wght@300;400;500&display=swap',
 ];
 
 self.addEventListener('install', e => {
@@ -91,10 +91,11 @@ self.addEventListener('fetch', e => {
             return res;
           })
           .catch(() => {
+            if (cached) return cached;
             if (request.destination === 'image') {
               return new Response('', { status: 503, statusText: 'Offline — image not cached' });
             }
-            return cached;
+            return new Response('', { status: 503, statusText: 'Offline' });
           });
         return cached || fetchPromise;
       })

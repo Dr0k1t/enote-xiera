@@ -1,8 +1,10 @@
-# Sprint de Producción — Enote v1.2
+# Sprint de Producción — Enote v1.2 [ARCHIVADO]
+
+**ARCHIVADO:** 2026-05-26 — completado. Reemplazado por `docs/PLAN-REMEDIACION-V1.3.md`.
 
 **Cliente:** Xiera — Panadería, Ocotlán, Jalisco
 **Inicio:** Lunes 11 de mayo de 2026
-**Entrega estimada:** Viernes 13 de junio de 2026
+**Entrega real:** Junio 2026
 **Alcance:** 8 usuarios · 1 organización · PWA offline-first
 
 ---
@@ -15,7 +17,7 @@
 | 1 — Infraestructura | 11–16 mayo | 🟢 Completado | 6 / 6 |
 | 2 — Supabase + Offline + Hardening | 18–23 mayo | 🟢 Completado | 22 / 22 |
 | 3 — Repartidor + Pruebas + Paginación | 25–30 mayo | 🟢 Completado | 8 / 8 |
-| 4 — Deploy + Entrega | 01–06 junio | 🟡 En progreso | 4 / 7 |
+| 4 — Deploy + Entrega | 01–06 junio | 🟢 Completado | 7 / 7 |
 | 5 — Buffer + Conflict + Validación | 08–13 junio | 🟢 Completado | 4 / 4 |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completado

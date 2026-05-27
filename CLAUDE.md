@@ -6,12 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remisión para Xiera (panadería, Ocotlán, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.2 en producción. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.3 en desarrollo (remediación post-auditoría). Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
 
 Docs:
-- `docs/ROADMAP-PRODUCCION-V1.2.md` — spec completa (schema SQL, RLS, roles, deploy)
-- `docs/SPRINT-PRODUCCION-V1.2.md` — desglose por semanas
-- `docs/AUDIT-V1.1.md` — cierre hardening v1.1
+- `docs/PLAN-REMEDIACION-V1.3.md` — plan de corrección de hallazgos de auditoría completa (ACTUAL)
+- `docs/ROADMAP-PRODUCCION-V1.2.md` — [ARCHIVADO] spec v1.2 (schema SQL, RLS, roles, deploy)
+- `docs/SPRINT-PRODUCCION-V1.2.md` — [ARCHIVADO] desglose por semanas v1.2
+- `docs/AUDIT-V1.1.md` — [ARCHIVADO] cierre hardening v1.1
+- `docs/INFORME-AUDITORIA-V1.3.md` — hallazgos completos de auditoría (8 categorías, ~120 issues)
 
 ## Comandos
 
@@ -28,16 +30,18 @@ npx vercel --prod
 # Tests E2E (Playwright) — instalar dependencias solo la primera vez
 cd audit && npm install
 
-# Suite completa (login, dashboard, filtros, estatus, logout, rol planta, rol repartidor)
-node audit.js
-
-# Tests offline (IndexedDB, cola pending, badge, fallback store) — no requiere login
-node audit-offline.js [URL]          # default: http://localhost:5500
+# Suite offline (IndexedDB, cola pending, badge, fallback store) — no requiere login
+node audit-offline.js [URL]          # default: http://localhost:3000
 
 # Suite producción (3 roles, CRUD online, offline B.1/B.2/B.5, reconexión, PWA, a11y)
 node audit-prod.js [URL]             # default: https://enote-xiera.vercel.app
 # Env vars opcionales para audit-prod.js:
 #   ENOTE_URL=https://...   AUDIT_PASS=passss   HEADLESS=0
+
+# Suite v2 (pastelería, financiero, receipt impresión, conflict)
+node audit-v2.js [URL]               # default: https://enote-xiera.vercel.app
+
+# NOTA: audit.js está obsoleto — usaba credenciales demo ya eliminadas.
 ```
 
 **Env vars Vercel (producción):** `SUPABASE_URL` y `SUPABASE_ANON_KEY` — seteadas en `dr0k1ts-projects/enote-xiera`. Local: `.env` (gitignoreado). Ver `.env.example`.
@@ -66,6 +70,7 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 | `ui/form.js` | Formulario crear/editar nota. |
 | `ui/detail.js` | Detalle + diff view + delete confirm + **conflict view**. |
 | `ui/repartidor.js` | Vista repartidor. |
+| `ui/print.js` | `renderPrintableReceipt()` — recibo imprimible estilo papel. |
 
 ### Scripts y config
 
@@ -131,6 +136,19 @@ Evento DOM → app.js (delegación) → store.js (Supabase)
 - **Proyecto:** `https://ovlhabedefwbajrnfpup.supabase.co`
 - **Auth:** Email + contraseña. Confirm email OFF.
 - **RLS:** Activo en `profiles`, `notes`, `routes`
+
+### Problemas conocidos (v1.3 — pendientes de corrección)
+
+Ver `docs/PLAN-REMEDIACION-V1.3.md` para el plan completo. Los más críticos:
+- **C1:** TypeError crash para usuario `planta` al limpiar filtros (`app.js:337`).
+- **C2:** Detección de conflictos rota — no se verifica `error` en query de `modificado_en` (`store.js:210`).
+- **C3:** Memory leak — blob URLs de `compressImage` y `showImagePreview` nunca revocados (`imageUtils.js:50`, `app.js:717`).
+- **C4:** Falsy number bug — `pastelCantidad: 0` → `1`, `pisos: 0` → `null` (`form.js:100,105`).
+- **C5:** Timezone bug — `new Date(isoDate + 'T00:00:00')` sin offset explícito (`shared.js:57`).
+- **S1:** Sin `window.onerror` ni `unhandledrejection` — ~70% de errores se pierden en silencio.
+- **S2:** Sin CSP, HSTS, X-Frame-Options en `vercel.json`.
+- **O1:** Cola pending compartida entre usuarios — User B sincroniza notas de User A.
+- **O2:** Deadlock IndexedDB multi-tab — sin handler `onblocked` en `openDB()`.
 
 ### Agregar usuario
 

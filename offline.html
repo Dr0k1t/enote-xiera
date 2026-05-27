@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>Enote — Sin conexión</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      background: #C4A09A;
+      color: #2C1810;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .offline-card {
+      background: #F5EDEB;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(44,24,16,0.15);
+      padding: 3rem 2.5rem;
+      max-width: 420px;
+      text-align: center;
+    }
+    .offline-icon {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      line-height: 1;
+    }
+    h1 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #8B6E6A;
+      margin-bottom: 2rem;
+    }
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #7A3045;
+      color: #F5EDEB;
+      border: none;
+      border-radius: 8px;
+      padding: 0.8rem 2rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-retry:hover { background: #5A2030; transform: translateY(-1px); }
+    .btn-retry:active { transform: translateY(0); }
+    .offline-note {
+      font-size: 0.75rem;
+      color: #8B6E6A;
+      margin-top: 2rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="offline-icon">&#x1F4E1;</div>
+    <h1>Sin conexi&oacute;n</h1>
+    <p>Las notas guardadas sin conexi&oacute;n<br>se sincronizar&aacute;n autom&aacute;ticamente<br>cuando se restablezca la conexi&oacute;n.</p>
+    <button class="btn-retry" onclick="window.location.reload()">&uarr; Reintentar</button>
+    <div class="offline-note">
+      Los datos ya creados est&aacute;n disponibles en modo offline.
+    </div>
+  </div>
+</body>
+</html>

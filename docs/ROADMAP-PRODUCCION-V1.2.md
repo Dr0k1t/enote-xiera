@@ -1,8 +1,11 @@
-# Enote — Roadmap de Producción v1.2
+# Enote — Roadmap de Producción v1.2 [ARCHIVADO]
 
 > **Versión:** 1.2 (Offline-First / PWA Básico)
 > **Alcance:** 8 usuarios, 1 organización, dominio propio
-> **Timeline:** 5 semanas
+> **Timeline:** 5 semanas (completado)
+> **ARCHIVADO:** 2026-05-26 — reemplazado por `docs/PLAN-REMEDIACION-V1.3.md`
+>
+> **Nota:** El schema SQL en este documento no coincide con la implementación real (usa `loaded`/`route_id` en vez de `tomada`/`tomadaEn`/`tomadaPor`, y omite 21 columnas de pastelería/finanzas). Referirse a `js/types.js` y `store.js` para el schema actual.
 
 ---
 ## Nota: Todo código presentado es sugerencia, no deberá ser implementado sin antes ser analizado y revisado con cautela.

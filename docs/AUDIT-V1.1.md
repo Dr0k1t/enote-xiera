@@ -1,8 +1,9 @@
-# Audit v1.1 — Cierre de Hardening
+# Audit v1.1 — Cierre de Hardening [ARCHIVADO]
 
 > **Fecha:** 2026-05-16
 > **Versión:** 1.1 (hardening de v1.2)
 > **Estado:** 10 / 11 hallazgos resueltos · 1 postergado · 0 nuevos hallazgos
+> **ARCHIVADO:** 2026-05-26 — reemplazado por `docs/PLAN-REMEDIACION-V1.3.md` y `docs/INFORME-AUDITORIA-V1.3.md`
 
 Este reporte cierra los 11 hallazgos abiertos en `SECURITY-AUDIT-V1.0.md` aplicando el plan documentado en `PLAN-HARDENING-V1.2.md`.
 
