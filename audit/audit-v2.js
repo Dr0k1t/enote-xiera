@@ -408,10 +408,16 @@ async function run() {
     check('Input de imágenes presente en form', fileInputVisible);
     const counterPresent = await page.locator('#image-counter').count() > 0;
     check('Contador de imágenes presente', counterPresent);
-    const maxImagesAttr = await page.evaluate(() =>
-      typeof window.MAX_IMAGES_PER_NOTE !== 'undefined' ? window.MAX_IMAGES_PER_NOTE : 3
+    const maxImagesInfo = await page.evaluate(() => ({
+      fromWindow: window.MAX_IMAGES_PER_NOTE,
+      fromCounter: (document.getElementById('image-counter')?.textContent || '').match(/\/\s*(\d+)/)?.[1],
+    }));
+    const maxImages = maxImagesInfo.fromWindow ?? Number(maxImagesInfo.fromCounter);
+    check(
+      'Límite imágenes ≤3 documentado',
+      Number.isFinite(maxImages) && maxImages <= 3,
+      `max=${maxImages} (window=${maxImagesInfo.fromWindow}, counter=${maxImagesInfo.fromCounter})`
     );
-    check('Límite imágenes ≤3 documentado', maxImagesAttr <= 3, `max=${maxImagesAttr}`);
     await page.click('.btn-cancelar-modal').catch(() => {});
     await page.waitForFunction(
       () => !document.getElementById('modal-overlay').classList.contains('visible'),

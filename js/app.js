@@ -16,6 +16,9 @@ import { renderNoteForm, renderProductRow, getFormData, updateFinancialTotals } 
 import { renderDetailView, renderDiffView, renderDeleteConfirm, renderConflictView } from './ui/detail.js';
 import { renderRepartidorView, renderRepartidorCard } from './ui/repartidor.js';
 
+// Exponer constante para suite de audit (audit-v2.js F9.4)
+window.MAX_IMAGES_PER_NOTE = MAX_IMAGES_PER_NOTE;
+
 // ─── Module state ─────────────────────────────────────────────────────────────
 let currentSession      = null;
 let editingNoteId       = null;

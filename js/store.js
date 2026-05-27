@@ -122,9 +122,9 @@ export async function getNote(id) {
   try {
     const { data, error } = await supabase.from('notes').select('*').eq('id', id).single();
     if (error) {
-      // Auth errors deben propagarse
+      // Auth errors propagan (dispatchan enote:auth-expired y throw)
       if (error.code === 'PGRST301' || /JWT|token/i.test(error.message || '')) {
-        try { handleApiError(error, 'No se pudo cargar la nota'); } catch { /* swallow */ }
+        handleApiError(error, 'No se pudo cargar la nota');
       }
       return null;
     }
