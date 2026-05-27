@@ -1,6 +1,6 @@
 /// <reference path="./types.js" />
 const DB_NAME = 'enote-local';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORES = {
   NOTES_CACHE: 'notes_cache',
   PENDING_QUEUE: 'pending_queue',
@@ -25,17 +25,34 @@ async function openDB() {
     };
     req.onupgradeneeded = e => {
       const database = e.target.result;
+      const tx = e.target.transaction;
+      // v1+: stores iniciales
       if (!database.objectStoreNames.contains(STORES.NOTES_CACHE)) {
         database.createObjectStore(STORES.NOTES_CACHE, { keyPath: 'id' });
       }
       if (!database.objectStoreNames.contains(STORES.PENDING_QUEUE)) {
         database.createObjectStore(STORES.PENDING_QUEUE, { keyPath: 'localId', autoIncrement: true });
       }
-      if (database.objectStoreNames.contains(STORES.IMAGE_CACHE)) {
-        database.deleteObjectStore(STORES.IMAGE_CACHE);
+      // v2→v3: recrear IMAGE_CACHE con nuevo schema (keyPath url + índice cachedAt)
+      if (e.oldVersion < 3) {
+        if (database.objectStoreNames.contains(STORES.IMAGE_CACHE)) {
+          database.deleteObjectStore(STORES.IMAGE_CACHE);
+        }
+        const imgStore = database.createObjectStore(STORES.IMAGE_CACHE, { keyPath: 'url' });
+        imgStore.createIndex('cachedAt', 'cachedAt', { unique: false });
       }
-      const imgStore = database.createObjectStore(STORES.IMAGE_CACHE, { keyPath: 'url' });
-      imgStore.createIndex('cachedAt', 'cachedAt', { unique: false });
+      // v3→v4: backfill _userId desde _session.userId para items legacy (creados en v1.2 sin O1 fix)
+      if (e.oldVersion >= 2 && e.oldVersion < 4 && database.objectStoreNames.contains(STORES.PENDING_QUEUE)) {
+        const store = tx.objectStore(STORES.PENDING_QUEUE);
+        const getAllReq = store.getAll();
+        getAllReq.onsuccess = () => {
+          for (const item of getAllReq.result) {
+            if (item._userId === undefined && item._session?.userId) {
+              store.put({ ...item, _userId: item._session.userId });
+            }
+          }
+        };
+      }
     };
   });
   db.onclose = () => { db = null; };
@@ -162,7 +179,11 @@ export async function createNoteOffline(noteData, userId) {
 export async function getPendingNotes(userId) {
   const all = await dbGetAll(STORES.PENDING_QUEUE);
   if (!userId) return all;
-  return all.filter(item => item._userId === userId);
+  return all.filter(item =>
+    item._userId === userId ||
+    // items legacy (v1.2) sin _userId: asumir pertenecen al usuario actual como fallback seguro
+    (item._userId === undefined && (item._session?.userId === userId || !item._session))
+  );
 }
 
 export async function deletePendingNote(localId) {
@@ -178,7 +199,7 @@ async function sleep(ms) {
  * Guardia anti-concurrencia evita doble disparo por eventos online consecutivos.
  * No marca synced:true antes de borrar — atomicidad simplificada.
  */
-export async function syncPendingNotes(createNoteFn, userId) {
+export async function syncPendingNotes(createNoteFn, userId, onPermanentFailure) {
   if (_syncing) return;
   _syncing = true;
   try {
@@ -199,9 +220,13 @@ export async function syncPendingNotes(createNoteFn, userId) {
       } else {
         const failCount = (item._failCount || 0) + 1;
         if (failCount >= 9) {
+          // Falla permanente — eliminar de cola y notificar al caller
           console.error('Pending note permanently failed after 9 attempts:', item.localId);
+          try { await deletePendingNote(item.localId); } catch {}
+          if (onPermanentFailure) onPermanentFailure(item);
+        } else {
+          try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: failCount }); } catch {}
         }
-        try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: failCount }); } catch {}
       }
     }
   } finally {

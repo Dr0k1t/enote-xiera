@@ -32,6 +32,13 @@ if ('serviceWorker' in navigator) {
   let _reloadingFromSw = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (_reloadingFromSw) return;
+    // No recargar si hay un formulario abierto o imágenes pendientes — bug_014
+    const modalOpen = document.querySelector('.modal-overlay.visible');
+    const hasDraft  = editingNoteId !== null || pendingImages.length > 0;
+    if (modalOpen || hasDraft) {
+      renderToast('Nueva versión disponible — recárgala cuando termines', 'info', 10000);
+      return;
+    }
     _reloadingFromSw = true;
     window.location.reload();
   });
@@ -145,7 +152,7 @@ async function init() {
         syncPendingNotes(async (item) => {
           const { _session, _userId, _failCount, synced, localId, createdAt, ...fields } = item;
           return createNote(fields, _session || currentSession);
-        }, currentSession.userId)
+        }, currentSession.userId, () => renderToast('Una nota offline no pudo enviarse y fue descartada', 'error', 8000))
           .then(() => updateOfflineBadge())
           .catch(err => console.warn('Initial sync failed:', err));
       }
@@ -175,7 +182,7 @@ async function init() {
       await syncPendingNotes(async (item) => {
         const { _session, _userId, _failCount, synced, localId, createdAt, ...fields } = item;
         return createNote(fields, _session || currentSession);
-      }, currentSession.userId);
+      }, currentSession.userId, () => renderToast('Una nota offline no pudo enviarse y fue descartada', 'error', 8000));
       void getBaseNotes(); // re-cachea notes + imágenes tras sync
       await updateOfflineBadge();
       updateInstallButton();
