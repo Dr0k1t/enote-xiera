@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.3.2 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.3.3 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
 
 Docs:
 - `docs/PLAN-REMEDIACION-V1.3.md` — plan de correccion de hallazgos de auditoria completa (COMPLETADO)
@@ -91,6 +91,7 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 | `scripts/build-config.js` | Lee `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `ENOTE_VERSION` de `process.env` o `.env`, inyecta en `js/supabase.js` desde template. Tambien inyecta `ENOTE_VERSION` en `sw.js`. Sin deps externas (solo `fs`, `path`). |
 | `scripts/pw-verify.js` | Verifica post-deploy: config generada, PWA manifest, SW registrado, CSP headers, static assets. |
 | `scripts/generate-icons.js` | Genera iconos PWA (192, 512, maskable) en `icons/` desde `icons/icon.svg`. |
+| `scripts/generate-splash.js` | Genera 7 splash screens PNG `#7A3045` en `icons/splash/` para iOS `apple-touch-startup-image`. Sin deps externas. |
 | `vercel.json` | `buildCommand: node scripts/build-config.js`, `outputDirectory: .`, rewrites SPA. Headers de seguridad (CSP, HSTS, X-Frame-Options, X-Content-Type, Referrer-Policy, Permissions-Policy). CSP sin CDNs externos (fuentes y scripts self-hosted). `Cache-Control: no-cache, must-revalidate` en `/js/supabase.js`. `Cache-Control: immutable` en assets estaticos versionados. |
 
 ### Assets estaticos
@@ -99,6 +100,7 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 |------|-----|
 | `assets/fonts/` | Fuentes self-hosted (Inter + Material Symbols). `fonts.css` con `@font-face` declarations. Sin dependencia de Google Fonts CDN. |
 | `icons/` | Iconos PWA (192, 512, maskable, SVG). Generados por `scripts/generate-icons.js`. |
+| `icons/splash/` | 7 splash screens PNG para iOS (1125–2048px). Generados por `scripts/generate-splash.js`. Pre-cacheados por SW. |
 | `manifest.json` | PWA manifest — `start_url: /`, `display: standalone`, theme colors. |
 | `offline.html` | Pagina fallback offline (cacheada por SW). |
 | `robots.txt` | `User-agent: * Disallow: /` |

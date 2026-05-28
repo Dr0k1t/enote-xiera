@@ -8,6 +8,7 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text-dark);
   min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 600; line-height: 1.2; }
@@ -197,7 +198,7 @@ a { color: var(--color-primary); text-decoration: none; }
 .app-header {
   background: var(--color-warm-white);
   border-bottom: 1px solid var(--color-border);
-  padding: var(--space-3) var(--space-5);
+  padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--space-5) var(--space-3);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1138,7 +1139,7 @@ a { color: var(--color-primary); text-decoration: none; }
 .repartidor-main {
   max-width: 580px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-5);
+  padding: var(--space-6) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
 }
 
 .repartidor-header {

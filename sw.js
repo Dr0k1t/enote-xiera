@@ -1,5 +1,5 @@
 // F5.1: versión inyectada por scripts/build-config.js. Default 1.3.2 si no se inyecta.
-const ENOTE_VERSION = '1.3.2';
+const ENOTE_VERSION = '1.3.3';
 const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
 const STATIC_ASSETS = [
   '/',
@@ -30,6 +30,13 @@ const STATIC_ASSETS = [
   '/icons/icon-192-maskable.png',
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
+  '/icons/splash/splash-1125x2436.png',
+  '/icons/splash/splash-1170x2532.png',
+  '/icons/splash/splash-1179x2556.png',
+  '/icons/splash/splash-1284x2778.png',
+  '/icons/splash/splash-1290x2796.png',
+  '/icons/splash/splash-1536x2048.png',
+  '/icons/splash/splash-2048x2732.png',
   '/assets/fonts/fonts.css',
   '/assets/fonts/92zatBhPNqw73oDd4iYl.woff2',
   '/assets/fonts/92zatBhPNqw73oTd4g.woff2',
