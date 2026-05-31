@@ -57,8 +57,11 @@ function mapDbNote(note) {
     try { imagenes = JSON.parse(imagenes); } catch { imagenes = []; }
   }
   if (!Array.isArray(imagenes)) imagenes = [];
+  // Excluir columnas dormidas y renombrar snake_case → camelCase explícitamente.
+  // productos se omite: columna dormida; la UI ya no la usa (ver Fase 1 para migración JSONB).
+  const { productos: _productos, ...rest } = note;
   return {
-    ...note,
+    ...rest,
     imagenes,
     unreadNew: note.unread_new,
     unreadModified: note.unread_modified,
@@ -149,17 +152,14 @@ export function validateNoteFields(fields) {
   if (!fields.destino || !CONFIG.locations.includes(fields.destino)) {
     errors.push(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
   }
-  const hasProductos = fields.productos && Array.isArray(fields.productos) && fields.productos.length > 0;
-  if (hasProductos) {
-    if (fields.productos.length > 50) errors.push('Demasiados productos (máx 50)');
-    for (const p of fields.productos) {
-      if (!p || typeof p.nombre !== 'string') { errors.push('Producto con nombre inválido'); break; }
-      if (p.nombre.length > 200) { errors.push('Nombre de producto demasiado largo (máx 200)'); break; }
-    }
-  }
-  const hasPastelData = (fields.clienteNombre || '').trim() || (fields.sabor || '').trim() || (fields.modelo || '').trim() || (fields.costoPastel > 0);
-  if (!hasProductos && !hasPastelData) {
-    errors.push('Debe haber al menos un producto o datos de cliente/pastel');
+  // Una nota debe tener contenido: datos de pastel, cliente, texto o costo.
+  // Cubre pedidos de pastel y pedidos escritos a mano en campos de texto.
+  const REQUIRED_CONTENT_TEXT = ['clienteNombre', 'sabor', 'modelo', 'texto', 'observaciones'];
+  const hasContent =
+    REQUIRED_CONTENT_TEXT.some(f => (fields[f] || '').trim()) ||
+    (fields.costoPastel > 0);
+  if (!hasContent) {
+    errors.push('Completa al menos un campo de pastel, cliente u observaciones');
   }
   if (fields.observaciones && fields.observaciones.length > 2000) {
     errors.push('Observaciones demasiado largas (máx 2000 caracteres)');
@@ -213,7 +213,7 @@ export async function createNote(fields, session) {
       numero,
       fecha: fields.fecha,
       destino: fields.destino,
-      productos: fields.productos,
+      productos: [],           // columna dormida — UI ya no expone productos
       observaciones: fields.observaciones || '',
       estatus: 'Nueva',
       imagenes,
@@ -249,7 +249,7 @@ export async function createNote(fields, session) {
 
 // Campos cuyo cambio se considera "contenido" para marcar unread_modified.
 const CONTENT_FIELDS = [
-  'fecha', 'destino', 'productos', 'observaciones', 'imagenes',
+  'fecha', 'destino', 'observaciones', 'imagenes',
   'clienteNombre', 'clienteDireccion', 'clienteTelefono',
   'pastelCantidad', 'pisos', 'sabor', 'kilos', 'modelo', 'texto', 'colores',
   'horaEntrega', 'horaPeriodo', 'direccionEntrega',
@@ -330,7 +330,7 @@ export async function updateNote(id, fields, session) {
 
   // Whitelist explícita: solo columnas conocidas pueden actualizarse desde el cliente
   const ALLOWED_UPDATE_FIELDS = new Set([
-    'fecha', 'destino', 'productos', 'observaciones', 'estatus', 'imagenes', 'prioridad',
+    'fecha', 'destino', 'observaciones', 'estatus', 'imagenes', 'prioridad',
     'tomada', 'tomadaPor', 'tomadaEn', 'unreadNew', 'unreadModified',
     'clienteNombre', 'clienteDireccion', 'clienteTelefono',
     'pastelCantidad', 'pisos', 'sabor', 'kilos', 'modelo', 'texto', 'colores',

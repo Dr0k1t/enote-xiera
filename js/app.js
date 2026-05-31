@@ -12,7 +12,7 @@ import {
 
 import { renderLoginView } from './ui/login.js';
 import { renderDashboardView, refreshGrid } from './ui/dashboard.js';
-import { renderNoteForm, renderProductRow, getFormData, updateFinancialTotals } from './ui/form.js';
+import { renderNoteForm, getFormData, updateFinancialTotals } from './ui/form.js';
 import { renderDetailView, renderDiffView, renderDeleteConfirm, renderConflictView } from './ui/detail.js';
 import { renderRepartidorView, renderRepartidorCard } from './ui/repartidor.js';
 
@@ -268,21 +268,6 @@ function setupEventDelegation() {
     }
   });
 
-  modal.addEventListener('click', e => {
-    if (e.target.closest('.btn-add-row')) {
-      const tbody = document.getElementById('prod-tbody');
-      if (tbody) tbody.insertAdjacentHTML('beforeend', renderProductRow());
-    }
-    if (e.target.closest('.btn-remove-row')) {
-      const row = e.target.closest('.prod-row');
-      const tbody = row?.closest('tbody');
-      if (tbody && tbody.querySelectorAll('.prod-row').length > 1) {
-        row.remove();
-      } else {
-        renderToast('Debe haber al menos un producto', 'error');
-      }
-    }
-  });
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && modal.classList.contains('visible')) closeModal();
@@ -388,7 +373,10 @@ async function getFilteredNotes() {
       n.numero.toLowerCase().includes(searchFilter) ||
       (n.observaciones || '').toLowerCase().includes(searchFilter) ||
       n.destino.toLowerCase().includes(searchFilter) ||
-      n.productos.some(p => (p.nombre || '').toLowerCase().includes(searchFilter))
+      (n.clienteNombre || '').toLowerCase().includes(searchFilter) ||
+      (n.sabor || '').toLowerCase().includes(searchFilter) ||
+      (n.modelo || '').toLowerCase().includes(searchFilter) ||
+      (n.texto || '').toLowerCase().includes(searchFilter)
     );
   }
   return notes;
@@ -869,13 +857,6 @@ function computeDiff(oldNote, newFields) {
   add('fecha', 'Fecha', formatFecha(oldNote.fecha), formatFecha(newFields.fecha));
   add('destino', 'Destino', oldNote.destino, newFields.destino);
   add('observaciones', 'Observaciones', (oldNote.observaciones || '').trim(), (newFields.observaciones || '').trim());
-  const oldProds = oldNote.productos.map(p => `${p.nombre}|${p.cantidad}`).join(';');
-  const newProds = newFields.productos.map(p => `${p.nombre}|${p.cantidad}`).join(';');
-  if (oldProds !== newProds) {
-    changes.push({ field: 'productos', label: 'Productos',
-      old: oldNote.productos.map(p => `${p.nombre} ×${p.cantidad}`).join(', '),
-      new: newFields.productos.map(p => `${p.nombre} ×${p.cantidad}`).join(', ') });
-  }
   add('clienteNombre', 'Cliente', oldNote.clienteNombre, newFields.clienteNombre);
   add('clienteDireccion', 'Dir. Cliente', oldNote.clienteDireccion, newFields.clienteDireccion);
   add('clienteTelefono', 'Tel. Cliente', oldNote.clienteTelefono, newFields.clienteTelefono);

@@ -64,11 +64,11 @@ async function logout(page) {
   }
 }
 
-async function fillNoteForm(page, { destino, productoNombre, productoCantidad, observaciones }) {
+async function fillNoteForm(page, { destino, sabor, clienteNombre, observaciones }) {
   await page.waitForSelector('.modal-overlay.visible', { timeout: 5000 });
   if (destino) await page.selectOption('#nf-destino', destino);
-  await page.fill('.prod-nombre-inp', productoNombre);
-  await page.fill('.prod-cantidad-inp', productoCantidad);
+  if (sabor) await page.fill('#nf-sabor', sabor);
+  if (clienteNombre) await page.fill('#nf-cliente-nombre', clienteNombre);
   if (observaciones) await page.fill('#nf-obs', observaciones);
 }
 
@@ -177,8 +177,8 @@ async function run() {
     await page.click('.btn-nueva');
     await fillNoteForm(page, {
       destino: 'Planta de Producción',
-      productoNombre: `${NOTE_TAG}-create`,
-      productoCantidad: '5',
+      sabor: `${NOTE_TAG}-create`,
+      clienteNombre: 'Audit Cliente',
       observaciones: 'audit nota creación',
     });
     await saveAndWaitClose(page);
@@ -237,8 +237,7 @@ async function run() {
     await page.click('.btn-nueva');
     await fillNoteForm(page, {
       destino: undefined,
-      productoNombre: `${NOTE_TAG}-offline1`,
-      productoCantidad: '1',
+      sabor: `${NOTE_TAG}-offline1`,
       observaciones: 'offline test 1',
     });
     await page.click('button[data-action="save"]');
@@ -260,8 +259,7 @@ async function run() {
       await page.click('.btn-nueva');
       await fillNoteForm(page, {
         destino: undefined,
-        productoNombre: `${NOTE_TAG}-offline${i}`,
-        productoCantidad: String(i),
+        sabor: `${NOTE_TAG}-offline${i}`,
         observaciones: `offline test ${i}`,
       });
       await page.click('button[data-action="save"]');

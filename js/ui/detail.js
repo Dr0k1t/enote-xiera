@@ -11,12 +11,6 @@ export function renderDetailView(note, session) {
     ? `<button class="btn btn-secondary btn-editar" data-note-id="${note.id}" aria-label="Editar esta nota">Editar nota</button>`
     : '';
 
-  const prodRows = note.productos.map(p => `
-    <tr>
-      <td>${esc(p.nombre)}</td>
-      <td>${esc(p.cantidad)}</td>
-    </tr>`).join('');
-
   const obsContent = note.observaciones
     ? esc(note.observaciones)
     : '<em class="detail-obs--empty">Sin observaciones adicionales</em>';
@@ -69,19 +63,6 @@ export function renderDetailView(note, session) {
             <span class="badge badge--${esc(note.estatus.toLowerCase().replace(/\s+/g, '-'))}">${esc(note.estatus)}</span>
           </div>
         </div>
-      </div>
-
-      <div class="detail-section">
-        <h3 class="detail-section-title">Productos</h3>
-        <table class="detail-products-table">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th style="width:80px">Cant.</th>
-            </tr>
-          </thead>
-          <tbody>${prodRows}</tbody>
-        </table>
       </div>
 
       <div class="detail-section">
@@ -218,9 +199,6 @@ export function renderConflictView(serverNote, clientFields) {
     { label: 'Observaciones',
       server: (serverNote.observaciones || '(vacío)'),
       client: (clientFields.observaciones || '(vacío)') },
-    { label: 'Productos',
-      server: (serverNote.productos || []).map(p => `${p.nombre} ×${p.cantidad}`).join(', '),
-      client: (clientFields.productos || []).map(p => `${p.nombre} ×${p.cantidad}`).join(', ') },
   ];
 
   const tableRows = rows.map(r => `

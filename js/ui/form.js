@@ -15,15 +15,10 @@ export function renderNoteForm(note, session) {
   const destino = isEdit ? note.destino : CONFIG.defaultDestino;
   
   const obs = isEdit ? note.observaciones : '';
-  const productos = isEdit && note.productos.length > 0
-    ? note.productos
-    : [{ nombre: '', cantidad: '' }];
 
   const destinoOpts = CONFIG.locations.map(l =>
     `<option value="${esc(l)}" ${l === destino ? 'selected' : ''}>${esc(l)}</option>`
   ).join('');
-
-  const prodRows = productos.map(p => renderProductRow(p)).join('');
 
   return `
   <div class="modal-card" role="dialog" aria-labelledby="modal-title" aria-modal="true">
@@ -44,23 +39,6 @@ export function renderNoteForm(note, session) {
               ${destinoOpts}
             </select>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Lista de productos</label>
-          <table class="products-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th aria-label="Acciones"></th>
-              </tr>
-            </thead>
-            <tbody id="prod-tbody">
-              ${prodRows}
-            </tbody>
-          </table>
-          <button type="button" class="btn-add-row" aria-label="Agregar otra fila de producto">+ Agregar producto</button>
         </div>
 
         <div class="form-group">
@@ -225,26 +203,6 @@ export function renderNoteForm(note, session) {
 }
 
 /**
- * Renderiza una fila de la tabla de productos.
- */
-export function renderProductRow(prod = { nombre: '', cantidad: '' }) {
-  return `
-  <tr class="prod-row">
-    <td class="prod-nombre">
-      <input class="form-input prod-nombre-inp" type="text"
-        placeholder="Nombre del producto" value="${esc(prod.nombre)}" autocomplete="off" aria-label="Nombre del producto">
-    </td>
-    <td class="prod-cantidad">
-      <input class="form-input prod-cantidad-inp" type="text" inputmode="numeric"
-        placeholder="Cant." value="${esc(prod.cantidad)}" autocomplete="off" aria-label="Cantidad">
-    </td>
-    <td class="prod-actions">
-      <button type="button" class="btn btn-ghost btn-icon btn-remove-row" title="Quitar producto" aria-label="Quitar producto">✕</button>
-    </td>
-  </tr>`;
-}
-
-/**
  * Renderiza la sección de carga de imágenes.
  */
 function renderImageUploadSection(note, r) {
@@ -290,16 +248,9 @@ export function getFormData() {
   const fecha = form.querySelector('[name="fecha"]')?.value || '';
   const destino = form.querySelector('[name="destino"]')?.value || '';
   const observaciones = (form.querySelector('[name="observaciones"]')?.value || '').trim();
-  const productos = [];
-  form.querySelectorAll('.prod-row').forEach(row => {
-    const nombre = (row.querySelector('.prod-nombre-inp').value || '').trim();
-    const cantidad = (row.querySelector('.prod-cantidad-inp').value || '').trim();
-    if (nombre) productos.push({ nombre, cantidad });
-  });
   return {
     fecha,
     destino,
-    productos,
     observaciones,
     clienteNombre: (form.querySelector('[name="clienteNombre"]')?.value || '').trim(),
     clienteDireccion: (form.querySelector('[name="clienteDireccion"]')?.value || '').trim(),

@@ -7,7 +7,7 @@
  * @property {string} numero          '#0001'
  * @property {string} fecha           'YYYY-MM-DD'
  * @property {string} destino         uno de CONFIG.locations
- * @property {Product[]} productos
+ * @property {any[]} productos        columna dormida — siempre [] en UI; migrar a JSONB domain en Fase 1
  * @property {('Nueva'|'En Proceso'|'Completada'|'Cancelada')} estatus
  * @property {string} observaciones
  * @property {(string|ImageRef)[]} imagenes
@@ -56,5 +56,4 @@
  * @property {string} loginAt
  */
 
-/** @typedef {{nombre:string, cantidad:string}} Product */
 /** @typedef {{id:string, url:string, blob?:Blob, width?:number, height?:number, nombre?:string}} ImageRef */

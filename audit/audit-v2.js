@@ -377,11 +377,11 @@ async function run() {
     await page.click('button[data-action="save"]');
     await page.waitForTimeout(500);
 
-    // Debe mostrar toast de error pq no hay productos ni datos pastel
+    // Debe mostrar toast de error porque no hay contenido (sin datos pastel ni observaciones)
     const toastVisible = await page.locator('.toast-container .toast--error').isVisible().catch(() => false);
-    check('Muestra error al guardar sin datos pastel ni productos', toastVisible);
+    check('Muestra error al guardar sin ningún dato de contenido', toastVisible);
 
-    // Ahora llenar solo datos pastel (sin productos)
+    // Llenar datos de pastel y cliente
     await page.fill('#nf-cliente-nombre', 'Cliente SoloPastel');
     await page.fill('#nf-sabor', 'Fresa');
     await page.click('button[data-action="save"]');
@@ -390,9 +390,9 @@ async function run() {
         () => !document.getElementById('modal-overlay').classList.contains('visible'),
         { timeout: 8000 }
       );
-      check('Guarda con solo datos pastel (sin productos)', true);
+      check('Guarda con datos de pastel y cliente', true);
     } catch {
-      check('Guarda con solo datos pastel (sin productos)', false, 'Timeout');
+      check('Guarda con datos de pastel y cliente', false, 'Timeout');
     }
 
     await page.screenshot({ path: path.join(SHOTS_DIR, '09-validacion-form.png') });

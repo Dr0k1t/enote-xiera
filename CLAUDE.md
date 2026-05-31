@@ -6,10 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.3.3 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.3.5 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
 
 Docs:
-- `docs/PLAN-REMEDIACION-V1.3.md` — plan de correccion de hallazgos de auditoria completa (COMPLETADO)
+- `docs/FASE-0-ESTABILIZACION.md` — COMPLETADO — bugs movil/PWA, seguridad, recorte formulario al recibo
+- `docs/FASE-1-CORE.md` — PENDIENTE — plan para construir `enote-core` (field-engine, JSONB)
+- `docs/FASE-2-CLIENTE-NUEVO.md` — PENDIENTE — primer cliente nuevo, criterio de exito del producto
+- `docs/PLAN-REMEDIACION-V1.3.md` — [ARCHIVADO] plan de correccion de hallazgos de auditoria completa
 - `docs/INFORME-AUDITORIA-V1.3.md` — hallazgos completos de auditoria (8 categorias, ~120 issues)
 - `docs/ROADMAP-PRODUCCION-V1.2.md` — [ARCHIVADO] spec v1.2 (schema SQL, RLS, roles, deploy)
 - `docs/SPRINT-PRODUCCION-V1.2.md` — [ARCHIVADO] desglose por semanas v1.2

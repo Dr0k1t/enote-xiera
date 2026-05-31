@@ -35,10 +35,6 @@ export function renderRepartidorView(session) {
 export function renderRepartidorCard(note) {
   const tomada = !!note.tomada;
 
-  const prodSummary = note.productos?.length
-    ? note.productos.map(p => `${p.cantidad} ${p.nombre}`).join(', ')
-    : '';
-
   const clienteDisplay = (note.clienteNombre || '').trim();
 
   const direccionDisplay = (note.direccionEntrega || note.clienteDireccion || '').trim();
@@ -50,7 +46,6 @@ export function renderRepartidorCard(note) {
   const hasObs = !!(note.observaciones || '').trim();
 
   const ariaParts = [`Nota ${note.numero}`];
-  if (prodSummary) ariaParts.push(prodSummary);
   if (clienteDisplay) ariaParts.push(clienteDisplay);
   if (note.destino) ariaParts.push(note.destino);
   if (tomada) ariaParts.push('Tomada');
@@ -67,7 +62,6 @@ export function renderRepartidorCard(note) {
         ${tomada ? '<span class="tomada-badge">Tomada</span>' : ''}
         ${horaDisplay ? `<span class="repartidor-card__hora">${esc(horaDisplay)}</span>` : ''}
       </div>
-      ${prodSummary ? `<div class="repartidor-card__productos">${esc(prodSummary)}</div>` : ''}
       ${clienteDisplay || direccionDisplay ? `
         <div class="repartidor-card__cliente">
           ${clienteDisplay ? esc(clienteDisplay) : ''}

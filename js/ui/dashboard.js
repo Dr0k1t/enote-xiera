@@ -126,8 +126,6 @@ export function renderNoteCard(note, session) {
     </div>`;
   }
 
-  const prodCount = note.productos.length;
-  const prodLabel = prodCount === 1 ? '1 producto' : `${prodCount} productos`;
   const clienteInfo = note.clienteNombre
     ? `<span class="meta-icon" aria-hidden="true">👤</span> ${esc(note.clienteNombre)}`
     : '';
@@ -160,10 +158,6 @@ export function renderNoteCard(note, session) {
     </div>
     ${cardBody}`;
 
-  const productosRow = (!clienteInfo && !pastelInfo && !totalInfo)
-    ? `<div class="note-card__prods"><strong>${esc(prodLabel)}:</strong> ${esc(note.productos.map(p => p.nombre).join(', '))}</div>`
-    : '';
-
   return `
   <article class="${cardClass}" data-note-id="${note.id}">
     <div class="note-card__top">
@@ -171,7 +165,6 @@ export function renderNoteCard(note, session) {
       ${badge}
     </div>
     <div class="note-card__meta">${metaRows}</div>
-    ${productosRow}
     <footer class="note-card__footer">${footer}</footer>
   </article>`;
 }
