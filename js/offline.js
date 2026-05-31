@@ -12,16 +12,22 @@ const FETCH_TIMEOUT_MS = 10000;
 
 let db = null;
 let _syncing = false;
+let _dbBlocked = false;
 
 async function openDB() {
   if (db) return db;
+  if (_dbBlocked) throw new Error('DB_BLOCKED');
   db = await new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onerror = () => reject(req.error);
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => { _dbBlocked = false; resolve(req.result); };
     req.onblocked = () => {
-      console.warn('IndexedDB open blocked by another tab');
-      reject(new Error('DB bloqueada por otra pestaña — cierra otras pestañas de Enote'));
+      console.warn('IndexedDB open blocked — waiting for other tab to close');
+      _dbBlocked = true;
+      // Si después de 5s sigue bloqueado, rechazar para degradar a online-only
+      setTimeout(() => {
+        if (!db) { _dbBlocked = false; reject(new Error('DB_BLOCKED')); }
+      }, 5000);
     };
     req.onupgradeneeded = e => {
       const database = e.target.result;
@@ -141,6 +147,7 @@ async function dbClear(storeName) {
  * Si la TX falla, el caché previo queda intacto.
  */
 export async function syncNotesToCache(notes) {
+  if (_dbBlocked) return;
   const database = await openDB();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(STORES.NOTES_CACHE, 'readwrite');
@@ -154,11 +161,13 @@ export async function syncNotesToCache(notes) {
 }
 
 export async function getOfflineNotes() {
-  return dbGetAll(STORES.NOTES_CACHE);
+  if (_dbBlocked) return [];
+  try { return await dbGetAll(STORES.NOTES_CACHE); } catch (e) { if (e.message === 'DB_BLOCKED') return []; throw e; }
 }
 
 export async function getOfflineNote(id) {
-  return dbGet(STORES.NOTES_CACHE, id);
+  if (_dbBlocked) return null;
+  try { return await dbGet(STORES.NOTES_CACHE, id); } catch (e) { if (e.message === 'DB_BLOCKED') return null; throw e; }
 }
 
 /**
@@ -177,13 +186,15 @@ export async function createNoteOffline(noteData, userId) {
  * Devuelve solo las notas pendientes del userId dado (si no se pasa, todas).
  */
 export async function getPendingNotes(userId) {
+  if (_dbBlocked) return [];
   const all = await dbGetAll(STORES.PENDING_QUEUE);
-  if (!userId) return all;
-  return all.filter(item =>
+  const base = !userId ? all : all.filter(item =>
     item._userId === userId ||
     // items legacy (v1.2) sin _userId: asumir pertenecen al usuario actual como fallback seguro
     (item._userId === undefined && (item._session?.userId === userId || !item._session))
   );
+  // Excluir items ya marcados con error permanente (evita re-sync infinito)
+  return base.filter(item => item._permanentError === undefined);
 }
 
 export async function deletePendingNote(localId) {
@@ -206,24 +217,38 @@ export async function syncPendingNotes(createNoteFn, userId, onPermanentFailure)
     const pending = await getPendingNotes(userId);
     for (const item of pending) {
       let success = false;
+      let permanentError = null;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           await createNoteFn(item);
           success = true;
           break;
-        } catch {
+        } catch (err) {
+          // Error permanente (validación/autorización): no reintentar
+          const status = err?.status ?? err?.code;
+          if (err?.permanent || status === 400 || status === 422 || status === 403 || status === 401) {
+            permanentError = err;
+            break;
+          }
           if (attempt < 3) await sleep(1000 * Math.pow(2, attempt - 1));
         }
       }
       if (success) {
         await deletePendingNote(item.localId);
+      } else if (permanentError) {
+        // Falla no recuperable — preservar en cola marcada para revisión manual, notificar
+        const reason = permanentError?.message || String(permanentError);
+        console.error('Pending note rejected permanently (status error):', item.localId, reason);
+        try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: 9, _permanentError: reason }); } catch {}
+        if (onPermanentFailure) onPermanentFailure(item, reason);
       } else {
         const failCount = (item._failCount || 0) + 1;
         if (failCount >= 9) {
-          // Falla permanente — eliminar de cola y notificar al caller
-          console.error('Pending note permanently failed after 9 attempts:', item.localId);
-          try { await deletePendingNote(item.localId); } catch {}
-          if (onPermanentFailure) onPermanentFailure(item);
+          // Falla transitoria repetida — preservar en cola marcada, NO eliminar silenciosamente
+          const reason = 'Max retries (9) alcanzado sin error permanente';
+          console.error('Pending note stalled after 9 attempts — kept in queue:', item.localId);
+          try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: failCount, _permanentError: reason }); } catch {}
+          if (onPermanentFailure) onPermanentFailure(item, reason);
         } else {
           try { await dbPut(STORES.PENDING_QUEUE, { ...item, _failCount: failCount }); } catch {}
         }

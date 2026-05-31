@@ -1,5 +1,5 @@
 // F5.1: versión inyectada por scripts/build-config.js. Default 1.3.2 si no se inyecta.
-const ENOTE_VERSION = '1.3.3';
+const ENOTE_VERSION = '1.3.4';
 const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
 const STATIC_ASSETS = [
   '/',
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   '/css/variables.css',
   '/css/main.css',
   '/css/print.css',
+  '/js/boot.js',
   '/js/app.js',
   '/js/config.js',
   '/js/auth.js',

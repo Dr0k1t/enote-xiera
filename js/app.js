@@ -45,6 +45,9 @@ if ('serviceWorker' in navigator) {
     _reloadingFromSw = true;
     window.location.reload();
   });
+  // Señal para boot.js: app.js cargó y su listener controllerchange está activo,
+  // así boot.js delega aquí (respeta borradores) en vez de recargar a ciegas.
+  window.__enoteAppLoaded = true;
 
   navigator.serviceWorker.register('/sw.js')
     .then(reg => {
@@ -185,9 +188,12 @@ async function init() {
     renderToast('Conexión restaurada', 'success');
     if (currentSession) {
       await syncPendingNotes(async (item) => {
-        const { _session, _userId, _failCount, synced, localId, createdAt, ...fields } = item;
+        const { _session, _userId, _failCount, _permanentError, synced, localId, createdAt, ...fields } = item;
         return createNote(fields, _session || currentSession);
-      }, currentSession.userId, () => renderToast('Una nota offline no pudo enviarse y fue descartada', 'error', 8000));
+      }, currentSession.userId, (_item, reason) => {
+        const msg = reason ? `Nota offline no se pudo enviar: ${reason}` : 'Nota offline no se pudo enviar — revisa tu conexión';
+        renderToast(msg, 'error', 10000);
+      });
       void getBaseNotes(); // re-cachea notes + imágenes tras sync
       await updateOfflineBadge();
       updateInstallButton();
@@ -238,6 +244,9 @@ function setupEventDelegation() {
   });
 
   modal.addEventListener('click', safeHandler(handleModalClick));
+  // Anti drag-close: registra si el pointer BAJÓ sobre el overlay mismo.
+  // Evita cierre accidental (y pérdida de borrador) al arrastrar desde dentro hacia afuera.
+  modal.addEventListener('pointerdown', e => { modal._downOnOverlay = (e.target === modal); });
   modal.addEventListener('submit', safeHandler(async e => {
     if (e.target.id === 'note-form') {
       e.preventDefault();
@@ -674,7 +683,7 @@ async function commitUpdate(noteId, fields, action) {
 // ─── Modal clicks ─────────────────────────────────────────────────────────────
 async function handleModalClick(e) {
   const overlay = document.getElementById('modal-overlay');
-  if (e.target === overlay) { closeModal(); return; }
+  if (e.target === overlay && overlay._downOnOverlay) { closeModal(); return; }
 
   if (e.target.closest('.btn-cancelar-modal')) { closeModal(); return; }
 

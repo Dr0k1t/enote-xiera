@@ -41,13 +41,8 @@ export function compressImage(file) {
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
 
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error('Error al generar el Blob de la imagen'));
-          return;
-        }
-
-        const nombre = file.name.replace(/\.[^/.]+$/, '') + '-' + Date.now() + '.webp';
+      const finalize = (blob, ext) => {
+        const nombre = file.name.replace(/\.[^/.]+$/, '') + '-' + Date.now() + '.' + ext;
         const previewUrl = URL.createObjectURL(blob);
         // Trackear blob URL para revocación global posterior
         window.__enoteBlobUrls = window.__enoteBlobUrls || new Set();
@@ -62,6 +57,15 @@ export function compressImage(file) {
         };
         log.imageCompressed(file, result);
         resolve(result);
+      };
+
+      canvas.toBlob((blob) => {
+        if (blob) { finalize(blob, 'webp'); return; }
+        // Fallback: navegadores sin soporte WebP en toBlob (Safari iOS antiguo) → JPEG
+        canvas.toBlob((jpegBlob) => {
+          if (!jpegBlob) { reject(new Error('Error al generar el Blob de la imagen')); return; }
+          finalize(jpegBlob, 'jpg');
+        }, 'image/jpeg', 0.7);
       }, 'image/webp', QUALITY);
     };
     img.onerror = () => reject(new Error('Error al cargar imagen'));

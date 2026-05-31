@@ -137,6 +137,10 @@ export async function getNote(id) {
   }
 }
 
+const METODO_PAGO_VALUES = ['', 'Efectivo', 'Tarjeta', 'Transferencia'];
+const HORA_PERIODO_VALUES = ['', 'AM', 'PM'];
+const TEXT_FIELD_MAX = 500;
+
 export function validateNoteFields(fields) {
   const errors = [];
   if (!fields.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fields.fecha)) {
@@ -146,6 +150,13 @@ export function validateNoteFields(fields) {
     errors.push(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
   }
   const hasProductos = fields.productos && Array.isArray(fields.productos) && fields.productos.length > 0;
+  if (hasProductos) {
+    if (fields.productos.length > 50) errors.push('Demasiados productos (máx 50)');
+    for (const p of fields.productos) {
+      if (!p || typeof p.nombre !== 'string') { errors.push('Producto con nombre inválido'); break; }
+      if (p.nombre.length > 200) { errors.push('Nombre de producto demasiado largo (máx 200)'); break; }
+    }
+  }
   const hasPastelData = (fields.clienteNombre || '').trim() || (fields.sabor || '').trim() || (fields.modelo || '').trim() || (fields.costoPastel > 0);
   if (!hasProductos && !hasPastelData) {
     errors.push('Debe haber al menos un producto o datos de cliente/pastel');
@@ -153,12 +164,36 @@ export function validateNoteFields(fields) {
   if (fields.observaciones && fields.observaciones.length > 2000) {
     errors.push('Observaciones demasiado largas (máx 2000 caracteres)');
   }
+  const textFields = ['clienteNombre', 'clienteDireccion', 'clienteTelefono', 'sabor', 'modelo', 'texto', 'colores', 'direccionEntrega', 'horaEntrega'];
+  for (const f of textFields) {
+    if (fields[f] && String(fields[f]).length > TEXT_FIELD_MAX) {
+      errors.push(`Campo "${f}" demasiado largo (máx ${TEXT_FIELD_MAX} caracteres)`);
+    }
+  }
+  if (fields.metodoPago !== undefined && !METODO_PAGO_VALUES.includes(fields.metodoPago)) {
+    errors.push('Método de pago inválido');
+  }
+  if (fields.horaPeriodo !== undefined && !HORA_PERIODO_VALUES.includes(fields.horaPeriodo)) {
+    errors.push('Período de hora inválido');
+  }
+  const numericFields = ['costoPastel', 'depositoEquipo', 'arreglosFigura', 'servicioDomicilio', 'anticipo'];
+  for (const f of numericFields) {
+    if (fields[f] !== undefined && fields[f] !== null) {
+      const n = Number(fields[f]);
+      if (!isFinite(n) || n < 0) errors.push(`Campo "${f}" debe ser un número no negativo`);
+    }
+  }
   return errors;
 }
 
 export async function createNote(fields, session) {
   const errors = validateNoteFields(fields);
-  if (errors.length) throw new Error(errors.join('\n'));
+  if (errors.length) {
+    // Marcar como permanente: una nota offline inválida no debe reintentarse en bucle
+    const e = new Error(errors.join('\n'));
+    e.permanent = true;
+    throw e;
+  }
 
   const { data: maxNote } = await supabase
     .from('notes')
@@ -239,13 +274,20 @@ export async function updateNote(id, fields, session) {
   const force = forceRaw === true;
 
   // Validación parcial: si vienen campos críticos, exigir que sean válidos.
-  if (cleanFields.fecha !== undefined || cleanFields.destino !== undefined) {
-    if (cleanFields.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(cleanFields.fecha)) {
-      throw new Error('Fecha inválida (YYYY-MM-DD)');
-    }
-    if (cleanFields.destino !== undefined && !CONFIG.locations.includes(cleanFields.destino)) {
-      throw new Error(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
-    }
+  if (cleanFields.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(cleanFields.fecha)) {
+    throw new Error('Fecha inválida (YYYY-MM-DD)');
+  }
+  if (cleanFields.destino !== undefined && !CONFIG.locations.includes(cleanFields.destino)) {
+    throw new Error(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
+  }
+  if (cleanFields.estatus !== undefined && !CONFIG.statuses.includes(cleanFields.estatus)) {
+    throw new Error(`Estatus inválido. Debe ser: ${CONFIG.statuses.join(', ')}`);
+  }
+  if (cleanFields.metodoPago !== undefined && !METODO_PAGO_VALUES.includes(cleanFields.metodoPago)) {
+    throw new Error('Método de pago inválido');
+  }
+  if (cleanFields.horaPeriodo !== undefined && !HORA_PERIODO_VALUES.includes(cleanFields.horaPeriodo)) {
+    throw new Error('Período de hora inválido');
   }
   if (cleanFields.observaciones && cleanFields.observaciones.length > 2000) {
     throw new Error('Observaciones demasiado largas (máx 2000 caracteres)');
@@ -286,8 +328,19 @@ export async function updateNote(id, fields, session) {
     }
   }
 
+  // Whitelist explícita: solo columnas conocidas pueden actualizarse desde el cliente
+  const ALLOWED_UPDATE_FIELDS = new Set([
+    'fecha', 'destino', 'productos', 'observaciones', 'estatus', 'imagenes', 'prioridad',
+    'tomada', 'tomadaPor', 'tomadaEn', 'unreadNew', 'unreadModified',
+    'clienteNombre', 'clienteDireccion', 'clienteTelefono',
+    'pastelCantidad', 'pisos', 'sabor', 'kilos', 'modelo', 'texto', 'colores',
+    'horaEntrega', 'horaPeriodo', 'direccionEntrega',
+    'costoPastel', 'depositoEquipo', 'arreglosFigura', 'servicioDomicilio',
+    'anticipo', 'metodoPago',
+  ]);
   const dbFields = {};
   for (const [key, val] of Object.entries(cleanFields)) {
+    if (!ALLOWED_UPDATE_FIELDS.has(key)) continue;
     const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
     dbFields[dbKey] = val;
   }

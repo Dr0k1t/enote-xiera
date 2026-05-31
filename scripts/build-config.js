@@ -36,7 +36,7 @@ function loadEnv() {
   return {
     SUPABASE_URL: stripBom(process.env.SUPABASE_URL || envFile.SUPABASE_URL || ''),
     SUPABASE_ANON_KEY: stripBom(process.env.SUPABASE_ANON_KEY || envFile.SUPABASE_ANON_KEY || ''),
-    ENOTE_VERSION: stripBom(process.env.ENOTE_VERSION || envFile.ENOTE_VERSION || '1.3.2'),
+    ENOTE_VERSION: stripBom(process.env.ENOTE_VERSION || envFile.ENOTE_VERSION || '1.3.4'),
   };
 }
 

@@ -167,24 +167,24 @@ export function renderNoteForm(note, session) {
             <div class="form-group">
               <label class="form-label" for="nf-costo-pastel">Costo pastel</label>
               <input class="form-input nf-financiero-input" id="nf-costo-pastel" name="costoPastel"
-                type="number" step="0.01" min="0" value="${isEdit && note.costoPastel ? note.costoPastel : 0}">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.costoPastel ? note.costoPastel : 0}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-deposito-equipo">Depósito equipo</label>
               <input class="form-input nf-financiero-input" id="nf-deposito-equipo" name="depositoEquipo"
-                type="number" step="0.01" min="0" value="${isEdit && note.depositoEquipo ? note.depositoEquipo : 0}">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.depositoEquipo ? note.depositoEquipo : 0}">
             </div>
           </div>
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-arreglos-figura">Arreglos y figura</label>
               <input class="form-input nf-financiero-input" id="nf-arreglos-figura" name="arreglosFigura"
-                type="number" step="0.01" min="0" value="${isEdit && note.arreglosFigura ? note.arreglosFigura : 0}">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.arreglosFigura ? note.arreglosFigura : 0}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-servicio-domicilio">Servicio a domicilio</label>
               <input class="form-input nf-financiero-input" id="nf-servicio-domicilio" name="servicioDomicilio"
-                type="number" step="0.01" min="0" value="${isEdit && note.servicioDomicilio ? note.servicioDomicilio : 0}">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.servicioDomicilio ? note.servicioDomicilio : 0}">
             </div>
           </div>
           <div class="form-group" style="background:var(--color-surface);padding:var(--space-3);border-radius:var(--radius-md);border:1px solid var(--color-border)">
@@ -194,7 +194,7 @@ export function renderNoteForm(note, session) {
             <div class="form-group">
               <label class="form-label" for="nf-anticipo">Anticipo</label>
               <input class="form-input nf-financiero-input" id="nf-anticipo" name="anticipo"
-                type="number" step="0.01" min="0" value="${isEdit && note.anticipo ? note.anticipo : 0}">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.anticipo ? note.anticipo : 0}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-metodo-pago">Método de pago</label>
@@ -235,7 +235,7 @@ export function renderProductRow(prod = { nombre: '', cantidad: '' }) {
         placeholder="Nombre del producto" value="${esc(prod.nombre)}" autocomplete="off" aria-label="Nombre del producto">
     </td>
     <td class="prod-cantidad">
-      <input class="form-input prod-cantidad-inp" type="text"
+      <input class="form-input prod-cantidad-inp" type="text" inputmode="numeric"
         placeholder="Cant." value="${esc(prod.cantidad)}" autocomplete="off" aria-label="Cantidad">
     </td>
     <td class="prod-actions">
