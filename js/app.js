@@ -532,7 +532,14 @@ async function handleDetailClick(e) {
     document.body.style.overflow = ''; // Restaura scroll del body al volver
     return;
   }
-  if (e.target.closest('.btn-imprimir')) { window.print(); return; }
+  if (e.target.closest('.btn-imprimir')) {
+    document.documentElement.style.setProperty('color-scheme', 'light');
+    window.print();
+    window.addEventListener('afterprint', () => {
+      document.documentElement.style.removeProperty('color-scheme');
+    }, { once: true });
+    return;
+  }
   if (e.target.closest('.btn-editar')) {
     if (!canEdit(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
     const btn = e.target.closest('.btn-editar');

@@ -1,7 +1,12 @@
 @media print {
   /* @import previo era invalido dentro de @media; las fuentes se cargan en index.html */
 
-  html { background: #fff !important; color: #000 !important; }
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    color-scheme: light !important;
+    forced-color-adjust: none !important;
+  }
 
   #view-login,
   #view-dashboard,
