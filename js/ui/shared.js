@@ -27,7 +27,12 @@ export function revokeBlobUrls() {
  */
 export async function resolveImageUrl(url) {
   if (!url) return '';
-  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+  if (url.startsWith('data:')) return url;
+  // Un blob: URL no es una identidad válida: muere al recargar la página, así que
+  // si llega aquí (legado / nota offline de sesión previa) está casi seguro muerto.
+  // Devolver '' para que el caller muestre placeholder en vez de disparar el error
+  // "Security Error: may not load data from blob:".
+  if (url.startsWith('blob:')) return '';
 
   try {
     const record = await getImageFromCache(url);
@@ -173,6 +178,7 @@ export function renderHeader(session, pendingCount = 0) {
         ${esc(session.username)}&nbsp;<span class="${chipClass}">${esc(session.role)}</span>
       </div>
       ${badge}
+      <button class="btn btn-ghost btn-sm btn-refresh" aria-label="Actualizar app y notas" title="Actualizar app y notas">⟳</button>
       <button class="btn btn-ghost btn-sm btn-logout" aria-label="Cerrar sesión">Salir</button>
     </div>
   </header>`;

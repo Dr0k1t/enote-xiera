@@ -7,7 +7,7 @@ import { log } from './logger.js';
 import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount, preCacheAllImages } from './offline.js';
 
 import {
-  showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl, revokeBlobUrls,
+  showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl,
 } from './ui/shared.js';
 
 import { renderLoginView } from './ui/login.js';
@@ -30,6 +30,7 @@ let currentDetailNoteId = null;
 let currentPage         = 1;
 let deferredPrompt      = null;
 let isInstalled         = false;
+let _repartidorNotes    = []; // notas renderizadas en vista repartidor (para UI optimista en toggle tomada)
 
 // ─── Service Worker ───────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -83,6 +84,7 @@ window.addEventListener('appinstalled', () => {
 });
 
 document.addEventListener('click', e => {
+  if (e.target.closest('.btn-refresh')) { refreshApp(); return; }
   if (e.target.closest('.install-btn')) {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -96,6 +98,35 @@ document.addEventListener('click', e => {
     });
   }
 });
+
+// ─── Refresh manual (SW + notas) ────────────────────────────────────────────
+async function refreshApp() {
+  if (!currentSession) return;
+  const btn = document.querySelector('.btn-refresh');
+  if (btn?.classList.contains('is-spinning')) return; // anti doble-click
+  btn?.classList.add('is-spinning');
+  renderToast('Buscando actualizaciones…', 'info', 2500);
+  try {
+    // 1. Chequear nueva versión del SW (no bloquea; flujo updatefound maneja el reload)
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      reg?.update().catch(() => {});
+    }
+    // 2. Re-consultar notas + re-render vista actual
+    if (currentSession.role === 'repartidor') {
+      const sel = document.getElementById('repartidor-sucursal');
+      await renderNotasRepartidor(sel?.value || '');
+    } else {
+      await applyFilters(); // preserva filtros/búsqueda; re-consulta vía getBaseNotes
+    }
+    renderToast('Actualizado', 'success', 1800);
+  } catch (err) {
+    log.error('refresh_failed', { message: String(err?.message || err) });
+    renderToast('No se pudo actualizar — revisa tu conexión', 'error', 5000);
+  } finally {
+    btn?.classList.remove('is-spinning');
+  }
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 init();
@@ -210,7 +241,6 @@ async function init() {
 function setupEventDelegation() {
   const loginView = document.getElementById('view-login');
   const dash      = document.getElementById('view-dashboard');
-  const detail    = document.getElementById('view-detail');
   const modal     = document.getElementById('modal-overlay');
 
   loginView.addEventListener('submit', async e => {
@@ -235,8 +265,6 @@ function setupEventDelegation() {
   dash.addEventListener('input', e => {
     if (e.target.closest('.filter-search')) debouncedSearch();
   });
-
-  detail.addEventListener('click', safeHandler(handleDetailClick));
 
   const repartidor = document.getElementById('view-repartidor');
   repartidor.addEventListener('click', safeHandler(handleRepartidorClick));
@@ -517,43 +545,9 @@ async function showDetail(noteId) {
   }
 
   currentDetailNoteId = noteId;
-  document.getElementById('view-detail').innerHTML = renderDetailView(note, currentSession);
-  const viewDetail = document.getElementById('view-detail');
-  viewDetail.classList.add('detail-overlay-active');
-  viewDetail.style.display = 'block';
-  document.body.style.overflow = 'hidden'; // iOS: previene rubber-band del viewport
-  window.scrollTo(0, 0);
-}
-
-async function handleDetailClick(e) {
-  if (e.target.closest('.btn-volver')) {
-    const viewDetail = document.getElementById('view-detail');
-    viewDetail.classList.remove('detail-overlay-active');
-    viewDetail.style.display = '';
-    document.body.style.overflow = ''; // Restaura scroll del body al volver
-    return;
-  }
-  if (e.target.closest('.btn-imprimir')) {
-    const note = await getNote(currentDetailNoteId);
-    if (note) await printReceipt(note);
-    return;
-  }
-  if (e.target.closest('.btn-editar')) {
-    if (!canEdit(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
-    const btn = e.target.closest('.btn-editar');
-    const rawId = btn.dataset.noteId;
-    if (rawId) {
-      const id = isNaN(rawId) ? rawId : Number(rawId);
-      await showForm(id);
-    }
-    return;
-  }
-  if (e.target.closest('.image-selector-btn')) {
-    const btn = e.target.closest('.image-selector-btn');
-    const idx = parseInt(btn.dataset.imageIndex);
-    if (!isNaN(idx)) await showImagePreview(idx);
-    return;
-  }
+  // Detalle renderizado dentro del modal-overlay (mismo mecanismo que editar):
+  // hereda click-fuera, ESC, focus-trap, anti-drag y scroll de .modal-card.
+  openModal(renderDetailView(note, currentSession));
 }
 
 // ─── Note form ────────────────────────────────────────────────────────────────
@@ -562,19 +556,17 @@ async function showForm(noteId) {
   const note = editingNoteId !== null ? await getNote(editingNoteId) : null;
   editingNoteModifiedEn = note?.modificadoEn || note?.creadoEn || null;
 
-  if (note?.imagenes) {
-    const resolvedImagenes = await Promise.all(note.imagenes.map(async img => {
-      const url = typeof img === 'string' ? img : img.url;
-      const resolvedUrl = await resolveImageUrl(url);
-      return typeof img === 'string' ? resolvedUrl : { ...img, url: resolvedUrl };
-    }));
-    pendingImages = resolvedImagenes;
-  } else {
-    pendingImages = [];
-  }
+  // Identidad canónica: conservar la URL original (https Supabase) en pendingImages.
+  // El blob URL es solo artefacto de display en runtime; nunca debe entrar al modelo
+  // ni persistirse (un blob muere al recargar → "may not load data from blob:").
+  pendingImages = note?.imagenes ? [...note.imagenes] : [];
 
   openModal(renderNoteForm(note ? { ...note, imagenes: pendingImages } : null, currentSession));
   document.getElementById('nf-fecha')?.focus();
+
+  // Pase de display: sustituir el src de las miniaturas por su blob de caché si existe
+  // (visualización offline) sin tocar la identidad canónica (data-canonical-url).
+  void resolveExistingThumbnails();
 
   setTimeout(() => {
     updateFinancialTotals();
@@ -582,6 +574,22 @@ async function showForm(noteId) {
       input.addEventListener('input', updateFinancialTotals);
     });
   }, 0);
+}
+
+// Resuelve las miniaturas de imágenes existentes del formulario: si hay blob en caché
+// IndexedDB lo usa para mostrar offline; si la imagen no carga, oculta el thumbnail.
+// data-canonical-url (identidad) permanece intacto — no toca pendingImages.
+async function resolveExistingThumbnails() {
+  const imgs = document.querySelectorAll('#existing-image-previews .image-preview-item img[data-canonical-url]');
+  for (const imgEl of imgs) {
+    imgEl.addEventListener('error', () => { imgEl.style.display = 'none'; }, { once: true });
+    const canonical = imgEl.dataset.canonicalUrl;
+    if (!canonical || canonical.startsWith('blob:') || canonical.startsWith('data:')) continue;
+    try {
+      const resolved = await resolveImageUrl(canonical);
+      if (resolved && resolved !== canonical) imgEl.src = resolved;
+    } catch { /* conserva src https; el listener de error lo maneja */ }
+  }
 }
 
 async function handleFormSubmit(action) {
@@ -681,6 +689,29 @@ async function handleModalClick(e) {
   if (e.target === overlay && overlay._downOnOverlay) { closeModal(); return; }
 
   if (e.target.closest('.btn-cancelar-modal')) { closeModal(); return; }
+
+  // Detalle (renderizado dentro del modal): imprimir / editar / ver imagen.
+  if (e.target.closest('.btn-imprimir')) {
+    const note = await getNote(currentDetailNoteId);
+    if (note) await printReceipt(note);
+    return;
+  }
+  if (e.target.closest('.btn-editar')) {
+    if (!canEdit(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
+    const btn = e.target.closest('.btn-editar');
+    const rawId = btn.dataset.noteId;
+    if (rawId) {
+      const id = isNaN(rawId) ? rawId : Number(rawId);
+      await showForm(id);
+    }
+    return;
+  }
+  if (e.target.closest('.image-selector-btn')) {
+    const btn = e.target.closest('.image-selector-btn');
+    const idx = parseInt(btn.dataset.imageIndex);
+    if (!isNaN(idx)) await showImagePreview(idx);
+    return;
+  }
 
   if (e.target.closest('.btn-remove-image')) {
     const btn      = e.target.closest('.btn-remove-image');
@@ -785,9 +816,19 @@ async function renderNotasRepartidor(sucursal) {
   }
   const allNotes = await getNotes();
   const notes = allNotes.filter(n => n.destino === sucursal && n.estatus !== 'Cancelada');
+  _repartidorNotes = notes; // cache para UI optimista en toggleTomada
   container.innerHTML = notes.length > 0
     ? notes.map(renderRepartidorCard).join('')
     : '<div class="repartidor-empty">Sin notas activas para esta sucursal.</div>';
+}
+
+// Reemplaza una tarjeta repartidor en el DOM por su versión re-renderizada.
+function replaceCard(cardEl, noteObj) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = renderRepartidorCard(noteObj).trim();
+  const fresh = wrapper.firstElementChild;
+  cardEl.replaceWith(fresh);
+  return fresh;
 }
 
 async function handleRepartidorClick(e) {
@@ -796,16 +837,37 @@ async function handleRepartidorClick(e) {
   const card = e.target.closest('.repartidor-card');
   if (!card) return;
 
-  const noteId  = parseInt(card.dataset.noteId);
+  const noteId = parseInt(card.dataset.noteId);
   if (isNaN(noteId)) return;
-  const updated = await toggleTomada(noteId, currentSession);
-  if (!updated) return;
 
-  const newCard = document.createElement('div');
-  newCard.innerHTML = renderRepartidorCard(updated).trim();
-  card.replaceWith(newCard.firstElementChild);
+  const note = _repartidorNotes.find(n => n.id === noteId);
+  if (!note) return;
 
-  log.noteTomada(updated);
+  // 1. UI optimista: reflejar el toggle al instante (sin esperar la red)
+  const nextTomada = !note.tomada;
+  const optimistic = {
+    ...note,
+    tomada:    nextTomada,
+    tomadaPor: nextTomada ? currentSession.username : null,
+    tomadaEn:  nextTomada ? new Date().toISOString() : null,
+  };
+  replaceCard(card, optimistic);
+
+  // 2. Persistir en segundo plano
+  try {
+    const updated = await toggleTomada(noteId, currentSession, note);
+    if (updated) {
+      Object.assign(note, updated); // reconciliar cache en memoria
+      const liveCard = document.querySelector(`.repartidor-card[data-note-id="${noteId}"]`);
+      if (liveCard) replaceCard(liveCard, updated);
+      log.noteTomada(updated);
+    }
+  } catch (err) {
+    // 3. Revertir al estado original
+    const liveCard = document.querySelector(`.repartidor-card[data-note-id="${noteId}"]`);
+    if (liveCard) replaceCard(liveCard, note);
+    renderToast('No se pudo actualizar la nota — reintenta', 'error', 4000);
+  }
 }
 
 // ─── Image preview ───────────────────────────────────────────────────────────
@@ -822,17 +884,42 @@ async function showImagePreview(index) {
       <button class="btn btn-ghost btn-close-preview" aria-label="Cerrar">✕</button>
     </div>`;
 
-  const imgEl = document.createElement('img');
+  const container = overlay.querySelector('.image-preview-container');
   const resolvedSrc = await resolveImageUrl(imgUrl);
-  if (!resolvedSrc) console.error('[enote] resolveImageUrl devolvió vacío para:', imgUrl);
-  imgEl.src = resolvedSrc;
-  imgEl.alt = `Imagen ${index + 1}`;
-  overlay.querySelector('.image-preview-container').appendChild(imgEl);
+  if (resolvedSrc) {
+    const imgEl = document.createElement('img');
+    imgEl.alt = `Imagen ${index + 1}`;
+    imgEl.addEventListener('error', () => { imgEl.replaceWith(buildPreviewError()); }, { once: true });
+    imgEl.src = resolvedSrc;
+    container.appendChild(imgEl);
+  } else {
+    container.appendChild(buildPreviewError());
+  }
 
   document.body.appendChild(overlay);
-  const closePreview = () => { overlay.remove(); revokeBlobUrls(); };
+
+  // Overlay autónomo: revoca SOLO el blob que creó (no global) y captura ESC en fase
+  // de captura para cerrarse antes que el modal de detalle de fondo.
+  const closePreview = () => {
+    document.removeEventListener('keydown', onKey, true);
+    overlay.remove();
+    if (resolvedSrc && resolvedSrc.startsWith('blob:')) {
+      try { URL.revokeObjectURL(resolvedSrc); } catch {}
+    }
+  };
+  const onKey = (ev) => {
+    if (ev.key === 'Escape') { ev.stopPropagation(); closePreview(); }
+  };
+  document.addEventListener('keydown', onKey, true);
   overlay.addEventListener('click', (ev) => { if (ev.target === overlay) closePreview(); });
   overlay.querySelector('.btn-close-preview').addEventListener('click', closePreview);
+}
+
+function buildPreviewError() {
+  const p = document.createElement('p');
+  p.style.cssText = 'color:#fff;padding:2rem;text-align:center;font-size:0.95rem';
+  p.textContent = 'No se pudo cargar la imagen.';
+  return p;
 }
 
 // ─── Delete ──────────────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ import { renderPrintableReceipt } from './print.js';
 export function renderDetailView(note, session) {
   const r = role(session);
   const editBtn = r.canEdit
-    ? `<button class="btn btn-secondary btn-editar" data-note-id="${note.id}" aria-label="Editar esta nota">Editar nota</button>`
+    ? `<button class="btn btn-secondary btn-sm btn-editar" data-note-id="${note.id}" aria-label="Editar esta nota">Editar</button>`
     : '';
 
   const obsContent = note.observaciones
@@ -29,14 +29,16 @@ export function renderDetailView(note, session) {
     </section>` : '';
 
   return `
-  <nav class="detail-toolbar">
-    <button class="btn btn-ghost btn-volver" aria-label="Volver al dashboard">← Volver</button>
-    <div style="margin-left:auto;display:flex;gap:var(--space-3)">
-      <button class="btn btn-secondary btn-imprimir" aria-label="Imprimir esta nota">Imprimir</button>
-      ${editBtn}
+  <div class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal-header">
+      <h2 class="modal-title" id="detail-title">Detalle ${esc(note.numero)}</h2>
+      <div class="detail-header-actions">
+        <button class="btn btn-secondary btn-sm btn-imprimir" aria-label="Imprimir esta nota">Imprimir</button>
+        ${editBtn}
+        <button type="button" class="btn btn-ghost btn-icon btn-cancelar-modal" aria-label="Cerrar detalle">✕</button>
+      </div>
     </div>
-  </nav>
-
+    <div class="modal-body">
   <div class="detail-wrapper ${images.length > 0 ? 'detail-layout' : ''}">
     <article class="detail-card">
       <header class="detail-header">
@@ -152,7 +154,9 @@ export function renderDetailView(note, session) {
     </article>
     ${imagePanel}
   </div>
-  ${renderPrintableReceipt(note)}`;
+    </div>
+    ${renderPrintableReceipt(note)}
+  </div>`;
 }
 
 /**
