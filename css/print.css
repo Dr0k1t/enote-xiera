@@ -1,7 +1,7 @@
 @media print {
   /* @import previo era invalido dentro de @media; las fuentes se cargan en index.html */
 
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  html { background: #fff !important; color: #000 !important; }
 
   #view-login,
   #view-dashboard,
@@ -57,6 +57,8 @@
     box-shadow: none;
     background-color: #e8e7e3;
     margin: 0 auto;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
 

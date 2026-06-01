@@ -51,6 +51,7 @@ export function canModifyNote(session, note) {
   if (session.role === 'sucursal' &&
       (note.destino === session.destino || note.creadoPor === session.username)) return true;
   if (session.role === 'planta' && note.destino === session.destino) return true;
+  if (session.role === 'repartidor') return true;
   return false;
 }
 
