@@ -666,8 +666,8 @@ a { color: var(--color-primary); text-decoration: none; }
   inset: 0;
   z-index: 200;
   background: rgba(44, 24, 16, 0.55);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  /* Sin backdrop-filter: en iOS WebKit congela el momentum-scroll del hijo
+     y rasteriza en negro al imprimir. El bg translúcido basta para atenuar. */
   animation: fadeIn 0.2s ease;
   display: flex !important;
   flex-direction: column;
@@ -686,6 +686,7 @@ a { color: var(--color-primary); text-decoration: none; }
   padding: 0 var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y; /* iOS: asegura gesto de scroll vertical */
   -webkit-overflow-scrolling: touch; /* iOS: scroll inercial suave */
 }
 
