@@ -65,11 +65,18 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+}
 
-  #receipt-print-clone {
-    display: block !important;
-    position: static !important;
-  }
+/* Cuando el body tenga esta clase, se oculta la app normal (mobile preview usa screen) */
+body.enote-printing > *:not(#receipt-print-clone) {
+  display: none !important;
+}
+
+/* Y el recibo se fuerza a bloque, sin depender de @media print */
+body.enote-printing #receipt-print-clone,
+body.enote-printing #receipt-print-clone .receipt-print {
+  display: block !important;
+  position: static !important;
 }
 
 .receipt-scalloped-top {

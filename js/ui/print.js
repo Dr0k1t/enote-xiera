@@ -13,36 +13,49 @@ import { BUSINESS_INFO } from '../config.js';
  */
 export function printReceipt(note) {
   return new Promise((resolve) => {
+    // 1. Crear el clon e inyectarlo en el body
     const clone = document.createElement('div');
     clone.id = 'receipt-print-clone';
     clone.innerHTML = renderPrintableReceipt(note);
     document.body.appendChild(clone);
 
-    const style = document.createElement('style');
-    style.textContent =
-      '@media print{' +
-        'body>*:not(#receipt-print-clone){display:none!important}' +
-        '#receipt-print-clone{display:block!important}' +
-      '}';
-    document.head.appendChild(style);
+    // 2. Aplicar la clase para el flujo nativo de mobile preview (Opencode Plan)
+    document.body.classList.add('enote-printing');
 
-    let done = false;
+    // Función segura de limpieza
+    let isDone = false;
     const cleanup = () => {
-      if (done) return;
-      done = true;
+      if (isDone) return;
+      isDone = true;
+      document.body.classList.remove('enote-printing');
       clone.remove();
-      style.remove();
       resolve();
     };
 
+    // 3. Manejadores avanzados de limpieza sin depender de setTimeout (Codexplan Alt 3)
+    const mql = window.matchMedia('print');
+    const onMatchMediaChange = (e) => {
+      if (!e.matches) {
+        mql.removeEventListener('change', onMatchMediaChange);
+        cleanup();
+      }
+    };
+    mql.addEventListener('change', onMatchMediaChange);
     window.addEventListener('afterprint', cleanup, { once: true });
-    // iOS no dispara afterprint de forma fiable: fallback de limpieza.
-    setTimeout(cleanup, 3000);
 
-    // Respiro para que el DOM pinte el clon antes de imprimir.
-    setTimeout(() => {
-      try { window.print(); } catch (_) { cleanup(); }
-    }, 80);
+    // 4. Forzar un repintado síncrono del navegador para asegurar que vea las clases (Claude Plan)
+    void document.body.offsetHeight; 
+
+    // 5. Llamar sincrónicamente a la impresión nativa
+    try {
+      window.print();
+    } catch (_) {
+      cleanup();
+    }
+    
+    // Sólo como seguro de vida extremo por si el motor Android se cuelga, 
+    // pero configurado a 3 MINUTOS, no a 3 segundos, dándole tiempo suficiente al usuario.
+    setTimeout(cleanup, 180000);
   });
 }
 
