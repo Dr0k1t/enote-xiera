@@ -6,7 +6,7 @@ This file provides guidance for AI agents and automated tools working with this 
 
 Enote — digital delivery notes for Xiera Bakery, Ocotlan, Jalisco. Multi-user SPA with status workflow. Vanilla JS, no framework. Supabase backend + Vercel hosting.
 
-**Version:** 1.3.8 | **URL:** https://enote-xiera.vercel.app
+**Version:** 1.3.9 | **URL:** https://enote-xiera.vercel.app
 
 ## Quick Start
 

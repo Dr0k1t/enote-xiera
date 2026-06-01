@@ -534,10 +534,14 @@ async function handleDetailClick(e) {
   }
   if (e.target.closest('.btn-imprimir')) {
     document.documentElement.style.setProperty('color-scheme', 'light');
-    window.print();
-    window.addEventListener('afterprint', () => {
-      document.documentElement.style.removeProperty('color-scheme');
-    }, { once: true });
+    document.body.style.backgroundColor = '#ffffff';
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.documentElement.style.removeProperty('color-scheme');
+        document.body.style.backgroundColor = '';
+      }, 500);
+    }, 150);
     return;
   }
   if (e.target.closest('.btn-editar')) {
