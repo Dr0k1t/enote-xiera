@@ -195,6 +195,8 @@ export async function createNote(fields, session) {
     throw e;
   }
 
+  await supabase.auth.getSession();
+
   const { data: maxNote } = await supabase
     .from('notes')
     .select('numero')
@@ -262,6 +264,8 @@ function fieldsTouchContent(fields) {
 }
 
 export async function updateNote(id, fields, session) {
+  await supabase.auth.getSession();
+
   // Defensa en profundidad sobre RLS — validar permisos antes de tocar servidor
   if (session) {
     const existingForAuth = await getNote(id);
@@ -362,6 +366,8 @@ export async function updateNote(id, fields, session) {
 }
 
 export async function deleteNote(id, session) {
+  await supabase.auth.getSession();
+
   if (session) {
     const existing = await getNote(id);
     if (!existing) throw new Error('Nota no encontrada');
@@ -376,8 +382,8 @@ export async function deleteNote(id, session) {
   }
 }
 
-export async function toggleTomada(id, session) {
-  const note = await getNote(id);
+export async function toggleTomada(id, session, knownNote = null) {
+  const note = knownNote || await getNote(id);
   if (!note) return null;
   const tomada = !note.tomada;
   const updated = await updateNote(id, {
