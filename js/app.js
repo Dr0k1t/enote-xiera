@@ -15,6 +15,7 @@ import { renderDashboardView, refreshGrid } from './ui/dashboard.js';
 import { renderNoteForm, getFormData, updateFinancialTotals } from './ui/form.js';
 import { renderDetailView, renderDiffView, renderDeleteConfirm, renderConflictView } from './ui/detail.js';
 import { renderRepartidorView, renderRepartidorCard } from './ui/repartidor.js';
+import { printReceipt } from './ui/print.js';
 
 // Exponer constante para suite de audit (audit-v2.js F9.4)
 window.MAX_IMAGES_PER_NOTE = MAX_IMAGES_PER_NOTE;
@@ -533,15 +534,8 @@ async function handleDetailClick(e) {
     return;
   }
   if (e.target.closest('.btn-imprimir')) {
-    document.documentElement.style.setProperty('color-scheme', 'light');
-    document.body.style.backgroundColor = '#ffffff';
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        document.documentElement.style.removeProperty('color-scheme');
-        document.body.style.backgroundColor = '';
-      }, 500);
-    }, 150);
+    const note = await getNote(currentDetailNoteId);
+    if (note) await printReceipt(note);
     return;
   }
   if (e.target.closest('.btn-editar')) {
