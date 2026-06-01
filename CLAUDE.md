@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.3.5 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.4.2 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
 
 Docs:
 - `docs/FASE-0-ESTABILIZACION.md` — COMPLETADO — bugs movil/PWA, seguridad, recorte formulario al recibo
@@ -63,23 +63,24 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 
 | Archivo | Rol |
 |---------|-----|
-| `app.js` | Orquestador. Estado global (`currentSession`, `editingNoteId`, `editingNoteModifiedEn`, `pendingFormData`, `pendingImages`, `currentDetailNoteId`, `currentPage`), delegacion eventos, paginacion, conflict-view dispatch. `safeHandler` wrapper para handlers. `window.onerror` + `unhandledrejection` global. `init()` limpia `_sw_reloading` flag al boot exitoso. |
+| `app.js` | Orquestador. Estado global (`currentSession`, `editingNoteId`, `editingNoteModifiedEn`, `pendingFormData`, `pendingImages`, `currentDetailNoteId`, `currentPage`, `_repartidorNotes`), delegacion eventos, paginacion, conflict-view dispatch. `safeHandler` wrapper para handlers. `window.onerror` + `unhandledrejection` global. `init()` limpia `_sw_reloading` flag al boot exitoso y setea `window.__enoteAppLoaded = true` (cancela failsafe de boot.js). `refreshApp()` — botón `⟳`: consulta SW updates sin bloquear + re-renderiza vista actual preservando filtros. |
 | `config.js` | Roles, estatus, destinos, `PAGE_SIZE = 20`, textos UI, `BUSINESS_INFO` exportado. Sin usuarios demo. |
 | `store.js` | CRUD async sobre Supabase. `validateNoteFields()`, conflict detection via `_localModifiedEn`, override via `_force`, numero correlativo `MAX(numero)+1`. `handleApiError()` mapea codes Supabase (401, PGRST301, 42501, 23505). RBAC defense-in-depth: `updateNote`/`deleteNote` validan permisos antes de servidor. |
 | `auth.js` | Supabase Auth unicamente. `login()`, `logout()`, `requireAuth()`, helpers permisos. `canModifyNote()` para RBAC. `logout()` llama `clearAllOfflineData()` (IndexedDB). |
 | `supabase.js` | **Generado** por `scripts/build-config.js`. `isSupabaseConfigured()` retorna `!!supabase`. Ver `scripts/pw-verify.js` para verificacion post-deploy. |
 | `supabase.js.template` | Plantilla con `__SUPABASE_URL__`, `__SUPABASE_ANON_KEY__`, y `__ENOTE_VERSION__`. |
-| `offline.js` | IndexedDB v3 — `IMAGE_CACHE` keyPath `url` con evitacion FIFO (limite 500 via `cachedAt`). `PENDING_QUEUE` scoped por `_userId`. `cacheImages` con `AbortController` + 10s timeout. `syncPendingNotes` con guardia `_syncing` anti-concurrencia. `openDB()` con handlers `onblocked`/`onversionchange`/`onclose`. Transacciones atomicas (tx.oncomplete). `createNoteOffline`, `getOfflineNotes`, `getOfflineNote`, `getPendingCount`, `isOnline`, `clearAllOfflineData`. |
+| `boot.js` | Boot recovery. SW `controllerchange` handler respeta borradores en progreso (delega a `app.js` si `window.__enoteAppLoaded`). Failsafe 8s: si app no carga, muestra toast de error persistente. |
+| `offline.js` | IndexedDB v4 — `IMAGE_CACHE` keyPath `url` con evitacion FIFO (limite 500 via `cachedAt`). `PENDING_QUEUE` scoped por `_userId` (v4 migra items legacy con backfill `_userId`). `cacheImages` con `AbortController` + 10s timeout. `syncPendingNotes` con guardia `_syncing` anti-concurrencia. `preCacheAllImages(notes)` fire-and-forget pre-cache batch. `openDB()` con handlers `onblocked`/`onversionchange`/`onclose`. Transacciones atomicas (tx.oncomplete). `createNoteOffline`, `getOfflineNotes`, `getOfflineNote`, `getPendingCount`, `isOnline`, `clearAllOfflineData`. |
 | `logger.js` | Logger eventos. POST silencioso a `/api/log`. `log.error()` para handlers globales. |
 | `imageUtils.js` | `compressImage()` → WebP 40% via Canvas. `MAX_IMAGES_PER_NOTE = 3`. Trackea blob URLs creadas via `_blobUrls`. |
 | `types.js` | `@typedef` JSDoc (`Note`, `Session`, `Role`, `Product`, `ImageRef`). |
-| `ui/shared.js` | `esc()`, `showView()`, `openModal()`, `closeModal()` (revoca blob URLs antes de vaciar DOM), `renderToast()`, `renderHeader()`, `resolveImageUrl()` (IndexedDB → blob URL con tracking en `_blobUrls`), `revokeBlobUrls()`, `formatFecha()` (usa UTC para evitar shift por timezone). |
+| `ui/shared.js` | `esc()`, `showView()`, `openModal()`, `closeModal()` (revoca blob URLs antes de vaciar DOM), `renderToast()`, `renderHeader()`, `resolveImageUrl()` (IndexedDB → blob URL con tracking en `_blobUrls`), `revokeBlobUrls()`, `formatFecha()` (usa UTC para evitar shift por timezone), `formatTs(iso)` (timestamp ISO → `es-MX` con hora; usado en footer de detalle). |
 | `ui/login.js` | Vista login Supabase (email + contrasena). |
 | `ui/dashboard.js` | Grid + filtros + barra paginacion. |
 | `ui/form.js` | Formulario crear/editar nota. `getFormData()` con optional chaining en fecha/destino/observaciones. `pastelCantidad`/`pisos` usan `!= null` (no falsy). |
-| `ui/detail.js` | Detalle + diff view + delete confirm + **conflict view**. |
+| `ui/detail.js` | Detalle + diff view + delete confirm + **conflict view**. Renderiza como modal via `openModal(renderDetailView(note, session))` (v1.4.1). |
 | `ui/repartidor.js` | Vista repartidor. |
-| `ui/print.js` | `renderPrintableReceipt()` — recibo imprimible estilo papel. Referencia `BUSINESS_INFO` de config (sin PII hardcodeada). |
+| `ui/print.js` | `renderPrintableReceipt()` + `printReceipt()` — recibo imprimible estilo papel. Referencia `BUSINESS_INFO` de config (sin PII hardcodeada). Imprime clonando HTML en `<body>` (fuera del modal) y usando `window.print()` en la ventana principal (v1.4.2). Evita el bug de iframe + IOSurface sharing en WKWebKit (rasterizacion negra en iOS PWA standalone). |
 
 ### Vendor
 
@@ -131,7 +132,7 @@ Evento DOM → app.js (safeHandler) → store.js (Supabase + handleApiError)
 - **Templates:** HTML como strings.
 - **Fechas:** ISO en store; `es-MX` en UI. `formatFecha()` usa UTC para evitar shift de dia por timezone.
 - **Estatus workflow:** `Nueva` → sobrescritura. `En Proceso`/`Completada` → confirmacion + diff visible.
-- **Detail view:** No usa `showView()`. Usa `detail-overlay-active` + `display: block` para superponer sobre dashboard. `currentDetailNoteId` mantiene ID abierto para `showImagePreview`.
+- **Detail view:** Renderiza como modal: `openModal(renderDetailView(note, session))` (v1.4.1). `currentDetailNoteId` mantiene ID abierto para `showImagePreview`.
 - **Rol `planta`:** Auto-transiciona `Nueva→En Proceso` al abrir detalle. Usa `_force: true` para evitar conflict spurious.
 - **Rol `repartidor`:** Vista `view-repartidor`. Toggle `tomada` via `store.toggleTomada()`.
 - **`pendingFormData`:** Tercer estado en `app.js` para flujo diff/conflict. Estructura `{ noteId, fields, action }`.
@@ -148,8 +149,12 @@ Evento DOM → app.js (safeHandler) → store.js (Supabase + handleApiError)
 - **Badge offline:** `renderHeader(session, pendingCount)` muestra `⟳ N` si hay notas pendientes. `updateOfflineBadge()` se llama desde `init()`, listener `online`, creacion offline, y `showDashboard()`.
 - **IndexedDB hardening:** `PENDING_QUEUE` scoped por `_userId` (getPendingNotes/getPendingCount filtran). `openDB()` con `onblocked`/`onversionchange`/`onclose` para multi-tab. Transacciones atomicas resuelven en `tx.oncomplete`. `IMAGE_CACHE` evitacion FIFO via `cachedAt` (limite 500). `_syncing` guardia anti-concurrencia en `syncPendingNotes`. `_failCount` tracking en cola pending.
 - **Self-hosted:** Supabase JS client y fuentes vendorizados localmente. CSP no permite CDNs externos.
-- **SW controllerchange:** `index.html` inline: recarga al activarse nuevo SW. Flag `_sw_reloading` en sessionStorage previene loop. `app.js init()` limpia el flag en boot exitoso.
+- **SW controllerchange:** Manejado en `js/boot.js` (v1.4.1). Respeta borradores en progreso antes de recargar. Flag `_sw_reloading` en sessionStorage previene loop. `app.js init()` limpia el flag en boot exitoso.
 - **`/js/supabase.js` no-cache:** Ver `vercel.json` — `Cache-Control: no-cache, must-revalidate` para evitar config stale en cliente.
+- **Optimistic UI repartidor:** `_repartidorNotes` en app.js cachea notas renderizadas. `replaceCard(cardEl, noteObj)` reemplaza card DOM en-place tras toggle `tomada` sin re-fetch completo.
+- **Refresh manual:** Botón `.btn-refresh` dispara `refreshApp()`. Consulta SW updates sin bloquear, luego re-renderiza vista actual (repartidor o dashboard) preservando filtros/busqueda.
+- **Boot failsafe:** `boot.js` arranca timer 8s. `app.js init()` exitoso setea `window.__enoteAppLoaded = true`. Si falla, toast de error persistente con sugerencia de recarga.
+- **getSession() race fix (v1.4.1):** `store.js createNote`/`updateNote`/`deleteNote` hacen `await supabase.auth.getSession()` antes de operar para forzar refresh de JWT si expiro.
 - **Logout limpia IndexedDB:** `auth.js logout()` llama `clearAllOfflineData()` para eliminar PII residual.
 
 ## Estructura de una Nota

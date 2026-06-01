@@ -65,6 +65,11 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  #receipt-print-clone {
+    display: block !important;
+    position: static !important;
+  }
 }
 
 .receipt-scalloped-top {

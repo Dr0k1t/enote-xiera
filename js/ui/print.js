@@ -3,69 +3,46 @@ import { esc } from './shared.js';
 import { BUSINESS_INFO } from '../config.js';
 
 /**
- * Imprime el recibo de una nota en un iframe aislado: documento limpio, fondo
- * blanco, sin overlay ni backdrop-filter. Evita el bug de iOS WebKit que
- * rasteriza en negro el DOM compuesto del app al imprimir (la causa real de
- * "imprimir sale negro"). En iOS la hoja nativa de impresión permite además
- * "Guardar en Archivos" / Compartir como PDF.
+ * Imprime el recibo clonando el HTML directamente en <body> (fuera del modal
+ * y de cualquier capa GPU-composited). Llama window.print() en la ventana
+ * principal para activar el share sheet nativo de iOS en PWA standalone.
+ * Evita el bug de iframe + compositing WebKit (rasterización negra) y el bug
+ * WKWebView de Blob URL (WebKit #216918) que rompe descargas jsPDF.
  * @param {Note} note
  * @returns {Promise<void>}
  */
 export function printReceipt(note) {
   return new Promise((resolve) => {
-    const doc = '<!doctype html><html lang="es"><head>' +
-      '<meta charset="UTF-8">' +
-      '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-      '<meta name="color-scheme" content="light">' +
-      '<link rel="stylesheet" href="/assets/fonts/fonts.css">' +
-      '<link rel="stylesheet" href="/css/print.css">' +
-      '<style>' +
-        'html,body{margin:0;padding:0;background:#fff}' +
-        '.receipt-print{display:block !important;margin:0 auto;box-shadow:none;max-width:none}' +
-        '@media print{@page{margin:0.8cm;size:letter portrait}}' +
-      '</style>' +
-      '</head><body>' + renderPrintableReceipt(note) + '</body></html>';
+    const clone = document.createElement('div');
+    clone.id = 'receipt-print-clone';
+    clone.innerHTML = renderPrintableReceipt(note);
+    document.body.appendChild(clone);
 
-    const iframe = document.createElement('iframe');
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;border:0;opacity:0;pointer-events:none;z-index:-1';
+    const style = document.createElement('style');
+    style.textContent =
+      '@media print{' +
+        'body>*:not(#receipt-print-clone){display:none!important}' +
+        '#receipt-print-clone{display:block!important}' +
+      '}';
+    document.head.appendChild(style);
 
     let done = false;
     const cleanup = () => {
       if (done) return;
       done = true;
-      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      clone.remove();
+      style.remove();
       resolve();
     };
 
-    document.body.appendChild(iframe);
-    const win = iframe.contentWindow;
-    const d = win.document;
-    d.open();
-    d.write(doc);
-    d.close();
+    window.addEventListener('afterprint', cleanup, { once: true });
+    // iOS no dispara afterprint de forma fiable: fallback de limpieza.
+    setTimeout(cleanup, 3000);
 
-    const doPrint = async () => {
-      try {
-        if (d.fonts && d.fonts.ready) await d.fonts.ready;
-      } catch (_) { /* fonts.ready no soportado: continuar */ }
-      // Respiro para que WebKit pinte fuentes/estilos antes de imprimir.
-      setTimeout(() => {
-        win.onafterprint = cleanup;
-        try {
-          win.focus();
-          win.print();
-        } catch (_) {
-          cleanup();
-          return;
-        }
-        // iOS no dispara afterprint de forma fiable: fallback de limpieza.
-        setTimeout(cleanup, 2000);
-      }, 80);
-    };
-
-    if (d.readyState === 'complete') doPrint();
-    else win.addEventListener('load', doPrint, { once: true });
+    // Respiro para que el DOM pinte el clon antes de imprimir.
+    setTimeout(() => {
+      try { window.print(); } catch (_) { cleanup(); }
+    }, 80);
   });
 }
 
