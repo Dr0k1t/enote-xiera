@@ -520,6 +520,7 @@ async function showDetail(noteId) {
   const viewDetail = document.getElementById('view-detail');
   viewDetail.classList.add('detail-overlay-active');
   viewDetail.style.display = 'block';
+  document.body.style.overflow = 'hidden'; // iOS: previene rubber-band del viewport
   window.scrollTo(0, 0);
 }
 
@@ -528,6 +529,7 @@ async function handleDetailClick(e) {
     const viewDetail = document.getElementById('view-detail');
     viewDetail.classList.remove('detail-overlay-active');
     viewDetail.style.display = '';
+    document.body.style.overflow = ''; // Restaura scroll del body al volver
     return;
   }
   if (e.target.closest('.btn-imprimir')) { window.print(); return; }
@@ -816,7 +818,9 @@ async function showImagePreview(index) {
     </div>`;
 
   const imgEl = document.createElement('img');
-  imgEl.src = await resolveImageUrl(imgUrl);
+  const resolvedSrc = await resolveImageUrl(imgUrl);
+  if (!resolvedSrc) console.error('[enote] resolveImageUrl devolvió vacío para:', imgUrl);
+  imgEl.src = resolvedSrc;
   imgEl.alt = `Imagen ${index + 1}`;
   overlay.querySelector('.image-preview-container').appendChild(imgEl);
 

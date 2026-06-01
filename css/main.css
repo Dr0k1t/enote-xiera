@@ -686,6 +686,7 @@ a { color: var(--color-primary); text-decoration: none; }
   padding: 0 var(--space-4);
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; /* iOS: scroll inercial suave */
 }
 
 .detail-toolbar {
