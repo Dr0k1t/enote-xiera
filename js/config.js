@@ -8,8 +8,8 @@ export const CONFIG = {
   appName:        'Enote',
   storagePrefix:  'enote_',
 
-  locations: ['Sucursal 1', 'Sucursal 2', 'Sucursal 3', 'Sucursal 4', 'Sucursal 5', 'Planta de Producción'],
-  defaultDestino: 'Planta de Producción',
+  locations: ['Ocotlán', 'Atequiza', 'Tototlán'],
+  defaultDestino: '',
 
   statuses: ['Nueva', 'En Proceso', 'Completada', 'Cancelada'],
 

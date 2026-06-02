@@ -13,10 +13,11 @@ export function renderNoteForm(note, session) {
   
   // CORRECCIÓN: Para nuevas notas, el destino siempre debe ser Planta de Producción por defecto.
   const destino = isEdit ? note.destino : CONFIG.defaultDestino;
-  
+
   const obs = isEdit ? note.observaciones : '';
 
-  const destinoOpts = CONFIG.locations.map(l =>
+  const placeholderOpt = (!isEdit && !destino) ? '<option value="" disabled selected>Selecciona un destino</option>' : '';
+  const destinoOpts = placeholderOpt + CONFIG.locations.map(l =>
     `<option value="${esc(l)}" ${l === destino ? 'selected' : ''}>${esc(l)}</option>`
   ).join('');
 
