@@ -154,12 +154,16 @@ export function renderToast(message, type = 'info', duration = 3000) {
   el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   el.textContent = message;
   container.appendChild(el);
-  setTimeout(() => {
-    el.style.opacity   = '0';
-    el.style.transform = 'translateY(8px)';
-    el.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
-    setTimeout(() => el.remove(), 380);
-  }, duration);
+  // duration <= 0 → toast persistente (el caller lo retira con el.remove()).
+  if (duration > 0) {
+    setTimeout(() => {
+      el.style.opacity   = '0';
+      el.style.transform = 'translateY(8px)';
+      el.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+      setTimeout(() => el.remove(), 380);
+    }, duration);
+  }
+  return el;
 }
 
 export function renderHeader(session, pendingCount = 0) {

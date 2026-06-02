@@ -36,15 +36,36 @@ function loadEnv() {
   return {
     SUPABASE_URL: stripBom(process.env.SUPABASE_URL || envFile.SUPABASE_URL || ''),
     SUPABASE_ANON_KEY: stripBom(process.env.SUPABASE_ANON_KEY || envFile.SUPABASE_ANON_KEY || ''),
-    ENOTE_VERSION: stripBom(process.env.ENOTE_VERSION || envFile.ENOTE_VERSION || '1.4.2'),
+    ENOTE_VERSION: stripBom(process.env.ENOTE_VERSION || envFile.ENOTE_VERSION || '1.5.0'),
   };
+}
+
+// El compiler WASM de Typst (~27MB) NO se commitea (ver .gitignore). Se descarga
+// en build/setup desde jsdelivr (versión pinneada). En Vercel el build tiene red;
+// localmente queda cacheado tras la primera ejecución.
+const TYPST_WASM_VERSION = '0.7.0';
+const TYPST_WASM_URL = `https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-web-compiler@${TYPST_WASM_VERSION}/pkg/typst_ts_web_compiler_bg.wasm`;
+
+async function ensureTypstWasm() {
+  const dest = path.join(ROOT, 'assets', 'typst', 'typst_ts_web_compiler_bg.wasm');
+  if (fs.existsSync(dest) && fs.statSync(dest).size > 1_000_000) {
+    console.log('[build-config] Typst WASM ya presente, skip descarga.');
+    return;
+  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  console.log('[build-config] Descargando Typst WASM:', TYPST_WASM_URL);
+  const res = await fetch(TYPST_WASM_URL);
+  if (!res.ok) throw new Error(`Typst WASM HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(dest, buf);
+  console.log('[build-config] Typst WASM escrito:', (buf.length / 1024 / 1024).toFixed(1), 'MB');
 }
 
 function replaceLiteral(haystack, needle, replacement) {
   return haystack.split(needle).join(replacement);
 }
 
-function main() {
+async function main() {
   if (!fs.existsSync(TEMPLATE_PATH)) {
     console.error('[build-config] Falta template:', TEMPLATE_PATH);
     process.exit(1);
@@ -76,6 +97,11 @@ function main() {
       console.log('[build-config] sw.js ENOTE_VERSION =>', ENOTE_VERSION);
     }
   }
+
+  await ensureTypstWasm();
 }
 
-main();
+main().catch(err => {
+  console.error('[build-config] ERROR:', err.message);
+  process.exit(1);
+});

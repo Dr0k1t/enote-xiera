@@ -9,6 +9,9 @@ sandbox/
 # Generado por scripts/build-config.js
 js/supabase.js
 
+# Compiler WASM de Typst (~27MB) — descargado en build desde jsdelivr (pinneado)
+assets/typst/typst_ts_web_compiler_bg.wasm
+
 # Variables de entorno locales
 .env
 .env.local

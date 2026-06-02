@@ -1,6 +1,17 @@
 // F5.1: versión inyectada por scripts/build-config.js. Default 1.3.2 si no se inyecta.
-const ENOTE_VERSION = '1.4.2';
+const ENOTE_VERSION = '1.5.0';
 const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
+
+// Assets de Typst (recibo PDF). NO van en el precache de install: el compiler
+// WASM pesa ~27MB y bloquearía el primer arranque offline. Se cachean diferido
+// vía mensaje WARM_TYPST_CACHE (app.js los pide en idle tras boot online).
+const TYPST_ASSETS = [
+  '/js/vendor/typst.ts.esm.js',
+  '/assets/typst/typst_ts_web_compiler_bg.wasm',
+  '/assets/typst/fonts/Jost-VF.ttf',
+  '/assets/typst/fonts/Caveat-VF.ttf',
+  '/templates/nota.typ',
+];
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -99,6 +110,23 @@ self.addEventListener('fetch', e => {
   if (request.method !== 'GET') return;
   if (url.hostname.endsWith('.supabase.co')) return;
 
+  // Assets de Typst (wasm/fuentes/template/vendor): request.destination suele
+  // ser '' (fetch). Cache-first: una vez warm-cacheados, sirven offline.
+  if (url.pathname.startsWith('/assets/typst/') ||
+      url.pathname.startsWith('/templates/') ||
+      url.pathname === '/js/vendor/typst.ts.esm.js') {
+    e.respondWith(
+      caches.match(request).then(cached => cached || fetch(request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+        }
+        return res;
+      }))
+    );
+    return;
+  }
+
   const isDoc = request.destination === 'document';
   const isAsset = ['style', 'script', 'font', 'image', 'manifest'].includes(request.destination);
 
@@ -147,4 +175,20 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('message', e => {
   if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  // Warm-cache diferido de los assets pesados de Typst (recibo PDF).
+  if (e.data?.type === 'WARM_TYPST_CACHE') {
+    e.waitUntil(
+      caches.open(CACHE_VERSION).then(cache =>
+        Promise.allSettled(
+          TYPST_ASSETS.map(url =>
+            cache.match(url).then(hit =>
+              hit || fetch(url, { cache: 'reload' }).then(res => {
+                if (res.ok) return cache.put(url, res);
+              }).catch(err => console.warn('[SW] Typst warm-cache failed:', url, err))
+            )
+          )
+        )
+      )
+    );
+  }
 });

@@ -1,17 +1,47 @@
 /// <reference path="../types.js" />
-import { esc } from './shared.js';
+import { esc, renderToast } from './shared.js';
 import { BUSINESS_INFO } from '../config.js';
+import { log } from '../logger.js';
+
+// Typst (glue ~206KB + wasm ~27MB) se carga lazy vía dynamic import: solo al
+// imprimir, nunca en el boot. Mantiene el arranque liviano (offline-first).
 
 /**
- * Imprime el recibo clonando el HTML directamente en <body> (fuera del modal
- * y de cualquier capa GPU-composited). Llama window.print() en la ventana
- * principal para activar el share sheet nativo de iOS en PWA standalone.
- * Evita el bug de iframe + compositing WebKit (rasterización negra) y el bug
- * WKWebView de Blob URL (WebKit #216918) que rompe descargas jsPDF.
+ * Genera el recibo. Ruta principal: PDF vectorial con Typst (WASM) →
+ * navigator.share / descarga. Si Typst no está disponible (assets no
+ * cacheados sin red) o falla, degrada a la impresión nativa del navegador.
  * @param {Note} note
  * @returns {Promise<void>}
  */
-export function printReceipt(note) {
+export async function printReceipt(note) {
+  let toastEl;
+  try {
+    const { generateReceiptPdf, shareOrDownloadPdf, typstAvailable } =
+      await import('../typstReceipt.js');
+    if (!(await typstAvailable())) return printViaBrowser(note);
+
+    toastEl = renderToast('Generando PDF…', 'info', 0);
+    const pdf = await generateReceiptPdf(note);
+    if (toastEl && toastEl.remove) toastEl.remove();
+    await shareOrDownloadPdf(pdf, note);
+    return;
+  } catch (err) {
+    if (toastEl && toastEl.remove) toastEl.remove();
+    log.error('typst-pdf-failed', { message: String(err && err.message || err) });
+    renderToast('PDF no disponible, usando impresión del navegador', 'error');
+    return printViaBrowser(note);
+  }
+}
+
+/**
+ * Fallback: imprime el recibo clonando el HTML directamente en <body> (fuera
+ * del modal y de cualquier capa GPU-composited). Llama window.print() en la
+ * ventana principal. Evita el bug de iframe + compositing WebKit (rasterización
+ * negra) en iOS PWA standalone.
+ * @param {Note} note
+ * @returns {Promise<void>}
+ */
+export function printViaBrowser(note) {
   return new Promise((resolve) => {
     // 1. Crear el clon e inyectarlo en el body
     const clone = document.createElement('div');

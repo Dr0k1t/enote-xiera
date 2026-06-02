@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.4.2 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.5.0 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+
+**v1.5.0:** Recibo PDF vectorial con Typst (WASM) en cliente — reemplaza ruta principal de `window.print()`. Output determinista compartible via `navigator.share` (WhatsApp/Archivos). Fallback a clon+`window.print()` si Typst no disponible/falla. Compiler WASM (~27MB) gitignoreado, descargado en build, warm-cacheado diferido (no bloquea boot/offline-first).
 
 Docs:
 - `docs/FASE-0-ESTABILIZACION.md` — COMPLETADO — bugs movil/PWA, seguridad, recorte formulario al recibo
@@ -80,35 +82,39 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 | `ui/form.js` | Formulario crear/editar nota. `getFormData()` con optional chaining en fecha/destino/observaciones. `pastelCantidad`/`pisos` usan `!= null` (no falsy). |
 | `ui/detail.js` | Detalle + diff view + delete confirm + **conflict view**. Renderiza como modal via `openModal(renderDetailView(note, session))` (v1.4.1). |
 | `ui/repartidor.js` | Vista repartidor. |
-| `ui/print.js` | `renderPrintableReceipt()` + `printReceipt()` — recibo imprimible estilo papel. Referencia `BUSINESS_INFO` de config (sin PII hardcodeada). Imprime clonando HTML en `<body>` (fuera del modal) y usando `window.print()` en la ventana principal (v1.4.2). Evita el bug de iframe + IOSurface sharing en WKWebKit (rasterizacion negra en iOS PWA standalone). |
+| `ui/print.js` | `printReceipt()` — orquestador. **Ruta principal (v1.5.0):** dynamic-import de `typstReceipt.js` → PDF Typst → `shareOrDownloadPdf`. Muestra toast "Generando PDF…" persistente. **Fallback** `printViaBrowser()` (clon HTML en `<body>` + `window.print()`, v1.4.2) si Typst no disponible (offline sin cache) o falla. Conserva `renderPrintableReceipt()` (usado por fallback + detail.js). |
+| `typstReceipt.js` | (v1.5.0) Generación PDF con Typst WASM. Dynamic-import desde `print.js` (no carga en boot). `ensureReady()` single-flight: `setCompilerInitOptions({getModule})` + `disableDefaultFontAssets()` + `preloadFontFromUrl` (Jost/Caveat). `noteToInputs(note)` mapea Note → strings de `sys.inputs` (replica formateo de `renderPrintableReceipt`: fecha UTC, montos es-MX). `generateReceiptPdf(note) → Uint8Array`. `shareOrDownloadPdf()`: `navigator.share({files})` (File directo, esquiva bug WKWebView blob #216918) o descarga `<a download>`. `typstAvailable()` HEAD-check de assets. |
 
 ### Vendor
 
 | Archivo | Rol |
 |---------|-----|
 | `js/vendor/supabase-js.esm.js` | Supabase JS client v2 vendorizado. 44 KB. Self-hosted para evitar NS_ERROR_CORRUPTED_CONTENT en Firefox con carga CDN. |
+| `js/vendor/typst.ts.esm.js` | (v1.5.0) `@myriaddreamin/typst.ts` 0.7.0 all-in-one-lite bundle. 206 KB. Exporta `$typst`, `TypstSnippet`. Carga el compiler WASM via `getModule`. |
 
 ### Scripts y config
 
 | Archivo | Rol |
 |---------|-----|
-| `scripts/build-config.js` | Lee `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `ENOTE_VERSION` de `process.env` o `.env`, inyecta en `js/supabase.js` desde template. Tambien inyecta `ENOTE_VERSION` en `sw.js`. Sin deps externas (solo `fs`, `path`). |
+| `scripts/build-config.js` | Lee `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `ENOTE_VERSION` de `process.env` o `.env`, inyecta en `js/supabase.js` desde template. Tambien inyecta `ENOTE_VERSION` en `sw.js`. (v1.5.0) `ensureTypstWasm()` descarga el compiler WASM (~27MB, gitignoreado) desde jsdelivr (`@myriaddreamin/typst-ts-web-compiler@0.7.0`) si falta. Sin deps externas (solo `fs`, `path`, `fetch` global). |
 | `scripts/pw-verify.js` | Verifica post-deploy: config generada, PWA manifest, SW registrado, CSP headers, static assets. |
 | `scripts/generate-icons.js` | Genera iconos PWA (192, 512, maskable) en `icons/` desde `icons/icon.svg`. |
 | `scripts/generate-splash.js` | Genera 7 splash screens PNG `#7A3045` en `icons/splash/` para iOS `apple-touch-startup-image`. Sin deps externas. |
-| `vercel.json` | `buildCommand: node scripts/build-config.js`, `outputDirectory: .`, rewrites SPA. Headers de seguridad (CSP, HSTS, X-Frame-Options, X-Content-Type, Referrer-Policy, Permissions-Policy). CSP sin CDNs externos (fuentes y scripts self-hosted). `Cache-Control: no-cache, must-revalidate` en `/js/supabase.js`. `Cache-Control: immutable` en assets estaticos versionados. |
+| `vercel.json` | `buildCommand: node scripts/build-config.js`, `outputDirectory: .`, rewrites SPA. Headers de seguridad (CSP, HSTS, X-Frame-Options, X-Content-Type, Referrer-Policy, Permissions-Policy). CSP sin CDNs externos (fuentes y scripts self-hosted). (v1.5.0) `script-src` incluye `'wasm-unsafe-eval'` (instanciar WASM Typst) y `worker-src 'self' blob:`. `Cache-Control: no-cache, must-revalidate` en `/js/supabase.js`. `Cache-Control: immutable` en assets estaticos versionados (incl. `/assets/typst/`). |
 
 ### Assets estaticos
 
 | Path | Rol |
 |------|-----|
 | `assets/fonts/` | Fuentes self-hosted (Inter + Material Symbols). `fonts.css` con `@font-face` declarations. Sin dependencia de Google Fonts CDN. |
+| `assets/typst/` | (v1.5.0) Compiler WASM (`typst_ts_web_compiler_bg.wasm`, ~27MB, gitignoreado — bajado en build) + `fonts/Jost-VF.ttf`, `fonts/Caveat-VF.ttf` (variables, OFL). Warm-cacheado por SW. |
+| `templates/nota.typ` | (v1.5.0) Template Typst del recibo (réplica carbón). Datos via `sys.inputs`. Página fitida 16cm. `image(bytes(svg))` para corazón. Caveat manuscrita azul `#172c5c` / pedido rojo `#b32626`. |
 | `icons/` | Iconos PWA (192, 512, maskable, SVG). Generados por `scripts/generate-icons.js`. |
 | `icons/splash/` | 7 splash screens PNG para iOS (1125–2048px). Generados por `scripts/generate-splash.js`. Pre-cacheados por SW. |
 | `manifest.json` | PWA manifest — `start_url: /`, `display: standalone`, theme colors. |
 | `offline.html` | Pagina fallback offline (cacheada por SW). |
 | `robots.txt` | `User-agent: * Disallow: /` |
-| `sw.js` | Service Worker con cache versionado (`enote-` + version). `install` usa `fetch({cache:'reload'})` para evitar stale cache HTTP. `skipWaiting()` + `clientsClaim()`. Stale-while-revalidate para navegacion. |
+| `sw.js` | Service Worker con cache versionado (`enote-` + version). `install` usa `fetch({cache:'reload'})` para evitar stale cache HTTP. `skipWaiting()` + `clientsClaim()`. Stale-while-revalidate para navegacion. (v1.5.0) `TYPST_ASSETS` (wasm/fuentes/template/vendor) **fuera** del precache install; cache-first en fetch para `/assets/typst/`, `/templates/`, vendor Typst; handler `WARM_TYPST_CACHE` los cachea diferido (disparado por `app.js` en idle online). |
 | `css/main.css` | Estilos principales. |
 | `css/print.css` | Estilos impresion (receipt). `media="print"`. |
 

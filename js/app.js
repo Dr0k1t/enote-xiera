@@ -66,6 +66,19 @@ if ('serviceWorker' in navigator) {
       });
     })
     .catch(err => console.warn('SW registration failed:', err));
+
+  // Warm-cache diferido de los assets pesados de Typst (recibo PDF). En idle y
+  // solo online, para que la impresión funcione offline desde la 2.ª sesión sin
+  // bloquear el boot ni el primer arranque sobre internet inestable.
+  const warmTypst = () => {
+    if (!navigator.onLine) return;
+    navigator.serviceWorker.ready
+      .then(reg => (reg.active || navigator.serviceWorker.controller)?.postMessage({ type: 'WARM_TYPST_CACHE' }))
+      .catch(() => {});
+  };
+  const scheduleWarm = () => (window.requestIdleCallback || setTimeout)(warmTypst, 3000);
+  if (navigator.onLine) scheduleWarm();
+  else window.addEventListener('online', scheduleWarm, { once: true });
 }
 
 // ─── PWA Install ──────────────────────────────────────────────────────────────
