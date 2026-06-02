@@ -1,27 +1,15 @@
 /// <reference path="../types.js" />
 import { CONFIG } from '../config.js';
 import { esc, formatFecha, statusClass, role, renderHeader } from './shared.js';
+import { renderWeekPickerButton } from './weekPicker.js';
 
-export function renderDashboardView(notes, session, total = notes.length, page = 1, totalPages = 1, hasFilters = false, availableYears = []) {
+export function renderDashboardView(notes, session, total = notes.length, page = 1, totalPages = 1, hasFilters = false) {
   const r = role(session);
   const destinoFilter = r.canSeeAll ? `
     <select class="form-select filter-destino" aria-label="Filtrar por destino">
       <option value="">Todos los destinos</option>
       ${CONFIG.locations.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('')}
     </select>` : '';
-
-  const years = [...new Set(availableYears)].sort((a, b) => b - a);
-  const yearFilter = `
-    <select class="form-select filter-year" aria-label="Filtrar por año">
-      <option value="">Todos los años</option>
-      ${years.map(y => `<option value="${y}">${y}</option>`).join('')}
-    </select>`;
-
-  const monthFilter = `
-    <select class="form-select filter-month" aria-label="Filtrar por mes">
-      <option value="">Todos los meses</option>
-      ${CONFIG.MESES.map(m => `<option value="${m.value}">${m.label}</option>`).join('')}
-    </select>`;
 
   const createBtn = r.canCreate ? `
     <div class="toolbar-actions">
@@ -43,8 +31,7 @@ export function renderDashboardView(notes, session, total = notes.length, page =
           ${CONFIG.statuses.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
         </select>
         ${destinoFilter}
-        ${yearFilter}
-        ${monthFilter}
+        ${renderWeekPickerButton('', '')}
       </div>
       ${createBtn}
     </section>

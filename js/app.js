@@ -15,6 +15,7 @@ import { renderDashboardView, refreshGrid } from './ui/dashboard.js';
 import { renderNoteForm, getFormData, updateFinancialTotals } from './ui/form.js';
 import { renderDetailView, renderDiffView, renderDeleteConfirm, renderConflictView } from './ui/detail.js';
 import { renderRepartidorView, renderRepartidorCard } from './ui/repartidor.js';
+import { toggleCalendarPanel, resetWeekPicker } from './ui/weekPicker.js';
 import { printReceipt } from './ui/print.js';
 
 // Exponer constante para suite de audit (audit-v2.js F9.4)
@@ -283,7 +284,7 @@ function setupEventDelegation() {
   dash.addEventListener('click', safeHandler(handleDashboardClick));
 
   dash.addEventListener('change', async e => {
-    if (e.target.closest('.filter-estatus') || e.target.closest('.filter-destino') || e.target.closest('.filter-year') || e.target.closest('.filter-month')) {
+    if (e.target.closest('.filter-estatus') || e.target.closest('.filter-destino') || e.target.closest('.filter-week-start') || e.target.closest('.filter-week-end')) {
       currentPage = 1;
       await applyFilters();
     } else if (e.target.closest('.status-select')) {
@@ -378,12 +379,8 @@ async function showDashboard() {
   const total = notes.length;
   const totalPages = Math.max(1, Math.ceil(total / CONFIG.PAGE_SIZE));
   const pageNotes = notes.slice(0, CONFIG.PAGE_SIZE);
-  const availableYears = notes.reduce((acc, n) => {
-    if (n.fecha) { const y = String(n.fecha).substring(0, 4); if (y) acc.add(y); }
-    return acc;
-  }, new Set());
   document.getElementById('view-dashboard').innerHTML = renderDashboardView(
-    pageNotes, currentSession, total, currentPage, totalPages, false, [...availableYears]
+    pageNotes, currentSession, total, currentPage, totalPages, false
   );
   showView('dashboard');
   updateInstallButton();
@@ -430,14 +427,16 @@ async function getFilteredNotes() {
   let notes = await getBaseNotes();
   const statusFilter  = document.querySelector('.filter-estatus')?.value  ?? '';
   const destinoFilter = document.querySelector('.filter-destino')?.value  ?? '';
-  const yearFilter    = document.querySelector('.filter-year')?.value    ?? '';
-  const monthFilter   = document.querySelector('.filter-month')?.value   ?? '';
+  const weekStart     = document.querySelector('.filter-week-start')?.value ?? '';
+  const weekEnd       = document.querySelector('.filter-week-end')?.value   ?? '';
   const searchFilter  = (document.querySelector('.filter-search')?.value ?? '').trim().toLowerCase();
 
   if (statusFilter)  notes = notes.filter(n => n.estatus === statusFilter);
   if (destinoFilter) notes = notes.filter(n => n.destino === destinoFilter);
-  if (yearFilter)    notes = notes.filter(n => String(n.fecha || '').startsWith(yearFilter + '-'));
-  if (monthFilter)   notes = notes.filter(n => String(n.fecha || '').substring(5, 7) === monthFilter);
+  if (weekStart && weekEnd) notes = notes.filter(n => {
+    const f = String(n.fecha || '');
+    return f >= weekStart && f <= weekEnd;
+  });
   if (searchFilter) {
     notes = notes.filter(n =>
       n.numero.toLowerCase().includes(searchFilter) ||
@@ -457,8 +456,7 @@ async function applyFilters() {
   const hasFilters = !!(
     document.querySelector('.filter-estatus')?.value ||
     document.querySelector('.filter-destino')?.value ||
-    document.querySelector('.filter-year')?.value ||
-    document.querySelector('.filter-month')?.value ||
+    document.querySelector('.filter-week-start')?.value ||
     document.querySelector('.filter-search')?.value?.trim()
   );
   const total = filtered.length;
@@ -478,6 +476,16 @@ async function handleDashboardClick(e) {
   }
   if (e.target.closest('.btn-prev-page'))    { if (currentPage > 1) { currentPage--; await applyFilters(); } return; }
   if (e.target.closest('.btn-next-page'))    { currentPage++; await applyFilters(); return; }
+  if (e.target.closest('.btn-week-clear')) {
+    const ws = document.querySelector('.filter-week-start');
+    if (ws) { ws.value = ''; ws.dispatchEvent(new Event('change', { bubbles: true })); }
+    resetWeekPicker();
+    return;
+  }
+  if (e.target.closest('.btn-week-picker')) {
+    toggleCalendarPanel(e.target.closest('.btn-week-picker'));
+    return;
+  }
   if (e.target.closest('.btn-clear-filters')) {
     const s = document.querySelector('.filter-search');
     if (s) s.value = '';
@@ -485,10 +493,7 @@ async function handleDashboardClick(e) {
     if (est) est.value = '';
     const dest = document.querySelector('.filter-destino');
     if (dest) dest.value = '';
-    const y = document.querySelector('.filter-year');
-    if (y) y.value = '';
-    const m = document.querySelector('.filter-month');
-    if (m) m.value = '';
+    resetWeekPicker();
     currentPage = 1;
     await applyFilters();
     return;
