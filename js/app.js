@@ -76,7 +76,9 @@ if ('serviceWorker' in navigator) {
       .then(reg => (reg.active || navigator.serviceWorker.controller)?.postMessage({ type: 'WARM_TYPST_CACHE' }))
       .catch(() => {});
   };
-  const scheduleWarm = () => (window.requestIdleCallback || setTimeout)(warmTypst, 3000);
+  const scheduleWarm = () => window.requestIdleCallback
+    ? requestIdleCallback(warmTypst, { timeout: 5000 })
+    : setTimeout(warmTypst, 3000);
   if (navigator.onLine) scheduleWarm();
   else window.addEventListener('online', scheduleWarm, { once: true });
 }

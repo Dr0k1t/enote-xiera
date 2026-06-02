@@ -100,7 +100,7 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 | `scripts/pw-verify.js` | Verifica post-deploy: config generada, PWA manifest, SW registrado, CSP headers, static assets. |
 | `scripts/generate-icons.js` | Genera iconos PWA (192, 512, maskable) en `icons/` desde `icons/icon.svg`. |
 | `scripts/generate-splash.js` | Genera 7 splash screens PNG `#7A3045` en `icons/splash/` para iOS `apple-touch-startup-image`. Sin deps externas. |
-| `vercel.json` | `buildCommand: node scripts/build-config.js`, `outputDirectory: .`, rewrites SPA. Headers de seguridad (CSP, HSTS, X-Frame-Options, X-Content-Type, Referrer-Policy, Permissions-Policy). CSP sin CDNs externos (fuentes y scripts self-hosted). (v1.5.0) `script-src` incluye `'wasm-unsafe-eval'` (instanciar WASM Typst) y `worker-src 'self' blob:`. `Cache-Control: no-cache, must-revalidate` en `/js/supabase.js`. `Cache-Control: immutable` en assets estaticos versionados (incl. `/assets/typst/`). |
+| `vercel.json` | `buildCommand: node scripts/build-config.js`, `outputDirectory: .`, rewrites SPA. Headers de seguridad (CSP, HSTS, X-Frame-Options, X-Content-Type, Referrer-Policy, Permissions-Policy). CSP sin CDNs externos (fuentes y scripts self-hosted). (v1.5.0) `script-src` incluye `'wasm-unsafe-eval'` + `'unsafe-eval'` (el compiler WASM de Typst llama `new Function`/`__wbg_new_no_args` en su init — `wasm-unsafe-eval` no basta; verificado contra CSP de prod) y `worker-src 'self' blob:`. `Cache-Control: no-cache, must-revalidate` en `/js/supabase.js`. `Cache-Control: immutable` en assets estaticos versionados (incl. `/assets/typst/`). |
 
 ### Assets estaticos
 
