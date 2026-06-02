@@ -1,5 +1,5 @@
 /// <reference path="./types.js" />
-import { CONFIG } from './config.js';
+import { CONFIG, ENOTE_VERSION } from './config.js';
 import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada, validateNoteFields } from './store.js';
 import { login, requireAuth, canSeeAll, canCreate, canEdit, canDelete, logout, clearSession } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
@@ -122,10 +122,18 @@ async function refreshApp() {
   btn?.classList.add('is-spinning');
   renderToast('Buscando actualizaciones…', 'info', 2500);
   try {
-    // 1. Chequear nueva versión del SW (no bloquea; flujo updatefound maneja el reload)
+    // 1. Chequear nueva versión del SW y aplicarla en 1 clic.
+    //    Si ya hay un SW esperando (waiting), reg.update() no dispara updatefound,
+    //    así que hay que postearle SKIP_WAITING directamente → controllerchange → reload.
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.getRegistration();
-      reg?.update().catch(() => {});
+      if (reg) {
+        await reg.update().catch(() => {});
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          return; // controllerchange recargará la página con la versión nueva
+        }
+      }
     }
     // 2. Re-consultar notas + re-render vista actual
     if (currentSession.role === 'repartidor') {
@@ -183,8 +191,18 @@ window.addEventListener('enote:auth-expired', () => {
   renderToast('Sesión expirada — inicia sesión de nuevo', 'info');
 });
 
+// Badge de versión fijo abajo-derecha (comprobar refresh/deploy).
+function renderVersionBadge() {
+  if (document.getElementById('version-badge')) return;
+  const el = document.createElement('div');
+  el.id = 'version-badge';
+  el.textContent = 'v' + ENOTE_VERSION;
+  document.body.appendChild(el);
+}
+
 async function init() {
   clearTimeout(window.__bootFailsafe);
+  renderVersionBadge();
   sessionStorage.removeItem('_sw_reloading'); // limpiar flag de reload-recovery
   document.getElementById('app').innerHTML = `
     <div id="view-login"       class="view"></div>

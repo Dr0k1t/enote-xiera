@@ -47,19 +47,11 @@
   v(1.5mm)
 }
 
-// ---- Corazón (SVG inline, réplica del logo) ----
-#let corazon = ```<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M 40 80 C 25 70, 15 45, 25 30 C 35 15, 60 10, 75 25 C 85 35, 80 50, 70 50 C 60 50, 50 35, 55 25 C 60 15, 75 15, 85 25 C 95 35, 95 55, 80 70 C 65 85, 45 85, 40 80 Z" fill="none" stroke="#1a1a1a" stroke-width="1.5"/></svg>```.text
-
 // =========================================================================
-// HEADER
+// HEADER — logo real de marca (recoloreado a tinta por scripts/make-logo.js)
 // =========================================================================
 #align(center)[
-  #grid(columns: (auto, auto), align: horizon, gutter: 2mm,
-    text(size: 26pt, weight: 300, tracking: 6pt)[X I E R A],
-    box(width: 9mm, image(bytes(corazon), format: "svg")),
-  )
-  #v(-1mm)
-  #text(size: 7pt, tracking: 4pt, weight: 500)[P A L '  A L M A]
+  #image("/assets/typst/logo-xiera.png", width: 62%)
   #v(2mm)
   #text(size: 9pt)[
     \@#inp("instagram")  ·  #inp("phone")  ·  #inp("facebook")

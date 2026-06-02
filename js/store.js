@@ -27,7 +27,9 @@ async function processImages(imagenes) {
   const processed = [];
   for (const img of imagenes) {
     if (typeof img === 'string') {
-      processed.push(img);
+      // No persistir URLs efímeras (blob:/data:): mueren al recargar y dejan
+      // notas con imágenes irrecuperables. Solo URLs http(s) de Storage.
+      if (!img.startsWith('blob:') && !img.startsWith('data:')) processed.push(img);
       continue;
     }
 

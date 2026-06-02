@@ -7,6 +7,8 @@ import { BUSINESS_INFO } from './config.js';
 
 const WASM_URL = '/assets/typst/typst_ts_web_compiler_bg.wasm';
 const TEMPLATE_URL = '/templates/nota.typ';
+const LOGO_URL = '/assets/typst/logo-xiera.png';
+const LOGO_VFS_PATH = '/assets/typst/logo-xiera.png'; // ruta que referencia nota.typ via image()
 const FONTS = [
   '/assets/typst/fonts/Jost-VF.ttf',
   '/assets/typst/fonts/Caveat-VF.ttf',
@@ -31,6 +33,13 @@ function ensureReady() {
     );
     // Fuerza la inicialización del compilador ahora (descarga/instancia el WASM).
     await $typst.getCompiler();
+    // El logo se referencia con image() en nota.typ → debe estar en el VFS del
+    // compiler (no se resuelve por fetch). Inyectar sus bytes vía mapShadow.
+    const res = await fetch(LOGO_URL);
+    if (res.ok) {
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      await $typst.mapShadow(LOGO_VFS_PATH, bytes);
+    }
   })();
   return _ready;
 }

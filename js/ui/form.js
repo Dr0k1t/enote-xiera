@@ -216,7 +216,7 @@ function renderImageUploadSection(note, r) {
 
   const thumbs = existing.map((img, idx) => `
     <div class="image-preview-item" data-image-id="${esc(img.id)}">
-      <img src="${esc(img.url)}" data-canonical-url="${esc(img.url)}" alt="Miniatura ${idx + 1}" width="60" height="60" style="object-fit:cover;border-radius:4px;">
+      <img src="${esc(img.url)}" data-canonical-url="${esc(img.url)}" alt="Miniatura ${idx + 1}" width="60" height="60" style="object-fit:cover;border-radius:4px;" onerror="this.onerror=null;this.classList.add('img-thumb-broken');this.removeAttribute('src')" title="Imagen no disponible">
       ${canUpload ? `<button type="button" class="btn-remove-image" data-image-id="${esc(img.id)}" data-image-url="${esc(img.url)}" aria-label="Eliminar imagen ${idx + 1}">✕</button>` : ''}
     </div>`).join('');
 

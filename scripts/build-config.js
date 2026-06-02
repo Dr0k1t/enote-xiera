@@ -36,7 +36,7 @@ function loadEnv() {
   return {
     SUPABASE_URL: stripBom(process.env.SUPABASE_URL || envFile.SUPABASE_URL || ''),
     SUPABASE_ANON_KEY: stripBom(process.env.SUPABASE_ANON_KEY || envFile.SUPABASE_ANON_KEY || ''),
-    ENOTE_VERSION: stripBom(process.env.ENOTE_VERSION || envFile.ENOTE_VERSION || '1.5.0'),
+    ENOTE_VERSION: stripBom(process.env.ENOTE_VERSION || envFile.ENOTE_VERSION || '1.6.0'),
   };
 }
 
@@ -95,6 +95,17 @@ async function main() {
     if (next !== sw) {
       fs.writeFileSync(SW_PATH, next, 'utf8');
       console.log('[build-config] sw.js ENOTE_VERSION =>', ENOTE_VERSION);
+    }
+  }
+
+  // Inyectar ENOTE_VERSION en js/config.js para exponerla al runtime (badge de versión).
+  const CONFIG_PATH = path.join(ROOT, 'js', 'config.js');
+  if (fs.existsSync(CONFIG_PATH)) {
+    let cfg = fs.readFileSync(CONFIG_PATH, 'utf8');
+    const next = cfg.replace(/export const ENOTE_VERSION = '[^']+'/, `export const ENOTE_VERSION = '${ENOTE_VERSION}'`);
+    if (next !== cfg) {
+      fs.writeFileSync(CONFIG_PATH, next, 'utf8');
+      console.log('[build-config] config.js ENOTE_VERSION =>', ENOTE_VERSION);
     }
   }
 

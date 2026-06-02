@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.5.0 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.6.0 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+
+**v1.6.0:** (1) Refresh ⟳ 1-clic — `refreshApp` postea `SKIP_WAITING` a `reg.waiting` (antes quedaba colgado, requería 2-3 clics). (2) Badge de versión fijo abajo-derecha (`#version-badge`, `ENOTE_VERSION` expuesta en `config.js`). (3) Header del PDF usa el logo real de marca (`assets/typst/logo-xiera.png`, recoloreado a tinta por `scripts/make-logo.js`). (4) Placeholder para imágenes rotas en thumbnails del form (`onerror` → `.img-thumb-broken`) + hardening: `processImages` no persiste URLs `blob:`/`data:`.
 
 **v1.5.0:** Recibo PDF vectorial con Typst (WASM) en cliente — reemplaza ruta principal de `window.print()`. Output determinista compartible via `navigator.share` (WhatsApp/Archivos). Fallback a clon+`window.print()` si Typst no disponible/falla. Compiler WASM (~27MB) gitignoreado, descargado en build, warm-cacheado diferido (no bloquea boot/offline-first).
 

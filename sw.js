@@ -1,5 +1,5 @@
 // F5.1: versión inyectada por scripts/build-config.js. Default 1.3.2 si no se inyecta.
-const ENOTE_VERSION = '1.5.0';
+const ENOTE_VERSION = '1.6.0';
 const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
 
 // Assets de Typst (recibo PDF). NO van en el precache de install: el compiler
@@ -10,6 +10,7 @@ const TYPST_ASSETS = [
   '/assets/typst/typst_ts_web_compiler_bg.wasm',
   '/assets/typst/fonts/Jost-VF.ttf',
   '/assets/typst/fonts/Caveat-VF.ttf',
+  '/assets/typst/logo-xiera.png',
   '/templates/nota.typ',
 ];
 const STATIC_ASSETS = [
