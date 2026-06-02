@@ -1,6 +1,6 @@
 // Versión de Enote — reescrita por scripts/build-config.js (env ENOTE_VERSION).
 // Expuesta al runtime para el badge de versión (abajo-derecha).
-export const ENOTE_VERSION = '1.6.0';
+export const ENOTE_VERSION = '1.6.1';
 
 export const CONFIG = {
   clientName:     'Xiera',

@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.6.0 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.6.1 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+
+**v1.6.1 (hotfix):** El PDF caía al fallback `window.print()` en todos los dispositivos tras v1.6.0. Causa: el warm-cache (`{cache:'reload'}`) metía el `nota.typ` nuevo (con `image()` del logo) en la caché del SW mientras `typstReceipt.js` seguía viejo (sin `mapShadow`) → compilación fallaba ("failed to load file"). Fix: `typstReceipt.js` ahora es **autocontenido** — template + logo (base64) inline vía `js/typstAssets.js` (generado por build-config desde `templates/nota.typ` + `assets/typst/logo-xiera.png`). Sin fetch de assets cacheables que puedan desincronizarse del JS → skew imposible.
 
 **v1.6.0:** (1) Refresh ⟳ 1-clic — `refreshApp` postea `SKIP_WAITING` a `reg.waiting` (antes quedaba colgado, requería 2-3 clics). (2) Badge de versión fijo abajo-derecha (`#version-badge`, `ENOTE_VERSION` expuesta en `config.js`). (3) Header del PDF usa el logo real de marca (`assets/typst/logo-xiera.png`, recoloreado a tinta por `scripts/make-logo.js`). (4) Placeholder para imágenes rotas en thumbnails del form (`onerror` → `.img-thumb-broken`) + hardening: `processImages` no persiste URLs `blob:`/`data:`.
 

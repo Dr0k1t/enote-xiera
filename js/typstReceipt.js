@@ -4,10 +4,13 @@
 // El compiler WASM (~27MB) se carga lazy y se cachea por el SW (warm-cache diferido).
 import { $typst, TypstSnippet } from './vendor/typst.ts.esm.js';
 import { BUSINESS_INFO } from './config.js';
+// Template + logo INLINE (generados por build-config.js desde templates/nota.typ y
+// assets/typst/logo-xiera.png). Autocontenido: el JS y su template/logo viajan juntos,
+// imposibilitando el skew de versiones que rompía la compilación (bug v1.6.0, donde el
+// warm-cache metía un template nuevo en una caché con typstReceipt.js viejo).
+import { NOTA_TEMPLATE, LOGO_B64 } from './typstAssets.js';
 
 const WASM_URL = '/assets/typst/typst_ts_web_compiler_bg.wasm';
-const TEMPLATE_URL = '/templates/nota.typ';
-const LOGO_URL = '/assets/typst/logo-xiera.png';
 const LOGO_VFS_PATH = '/assets/typst/logo-xiera.png'; // ruta que referencia nota.typ via image()
 const FONTS = [
   '/assets/typst/fonts/Jost-VF.ttf',
@@ -15,7 +18,13 @@ const FONTS = [
 ];
 
 let _ready = null;   // single-flight init
-let _template = null;
+
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
 
 /**
  * Inicializa el compilador Typst una sola vez (idempotente).
@@ -34,22 +43,12 @@ function ensureReady() {
     // Fuerza la inicialización del compilador ahora (descarga/instancia el WASM).
     await $typst.getCompiler();
     // El logo se referencia con image() en nota.typ → debe estar en el VFS del
-    // compiler (no se resuelve por fetch). Inyectar sus bytes vía mapShadow.
-    const res = await fetch(LOGO_URL);
-    if (res.ok) {
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      await $typst.mapShadow(LOGO_VFS_PATH, bytes);
+    // compiler. Bytes inline (no fetch) → siempre consistente con el template.
+    if (LOGO_B64) {
+      await $typst.mapShadow(LOGO_VFS_PATH, b64ToBytes(LOGO_B64));
     }
   })();
   return _ready;
-}
-
-async function getTemplate() {
-  if (_template) return _template;
-  const res = await fetch(TEMPLATE_URL);
-  if (!res.ok) throw new Error(`Template HTTP ${res.status}`);
-  _template = await res.text();
-  return _template;
 }
 
 /**
@@ -131,9 +130,8 @@ export function noteToInputs(note) {
  */
 export async function generateReceiptPdf(note) {
   await ensureReady();
-  const mainContent = await getTemplate();
   const inputs = noteToInputs(note);
-  const pdf = await $typst.pdf({ mainContent, inputs });
+  const pdf = await $typst.pdf({ mainContent: NOTA_TEMPLATE, inputs });
   if (!pdf) throw new Error('Typst no devolvió PDF');
   return pdf;
 }
