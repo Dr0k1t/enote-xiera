@@ -328,6 +328,11 @@ a { color: var(--color-primary); text-decoration: none; }
   min-width: 140px;
 }
 
+.filter-year,
+.filter-month {
+  min-width: 110px;
+}
+
 .toolbar-actions { margin-left: auto; }
 
 /* === NOTES GRID === */

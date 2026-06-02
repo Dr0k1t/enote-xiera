@@ -283,7 +283,7 @@ function setupEventDelegation() {
   dash.addEventListener('click', safeHandler(handleDashboardClick));
 
   dash.addEventListener('change', async e => {
-    if (e.target.closest('.filter-estatus') || e.target.closest('.filter-destino')) {
+    if (e.target.closest('.filter-estatus') || e.target.closest('.filter-destino') || e.target.closest('.filter-year') || e.target.closest('.filter-month')) {
       currentPage = 1;
       await applyFilters();
     } else if (e.target.closest('.status-select')) {
@@ -378,8 +378,12 @@ async function showDashboard() {
   const total = notes.length;
   const totalPages = Math.max(1, Math.ceil(total / CONFIG.PAGE_SIZE));
   const pageNotes = notes.slice(0, CONFIG.PAGE_SIZE);
+  const availableYears = notes.reduce((acc, n) => {
+    if (n.fecha) { const y = String(n.fecha).substring(0, 4); if (y) acc.add(y); }
+    return acc;
+  }, new Set());
   document.getElementById('view-dashboard').innerHTML = renderDashboardView(
-    pageNotes, currentSession, total, currentPage, totalPages
+    pageNotes, currentSession, total, currentPage, totalPages, false, [...availableYears]
   );
   showView('dashboard');
   updateInstallButton();
@@ -426,10 +430,14 @@ async function getFilteredNotes() {
   let notes = await getBaseNotes();
   const statusFilter  = document.querySelector('.filter-estatus')?.value  ?? '';
   const destinoFilter = document.querySelector('.filter-destino')?.value  ?? '';
+  const yearFilter    = document.querySelector('.filter-year')?.value    ?? '';
+  const monthFilter   = document.querySelector('.filter-month')?.value   ?? '';
   const searchFilter  = (document.querySelector('.filter-search')?.value ?? '').trim().toLowerCase();
 
   if (statusFilter)  notes = notes.filter(n => n.estatus === statusFilter);
   if (destinoFilter) notes = notes.filter(n => n.destino === destinoFilter);
+  if (yearFilter)    notes = notes.filter(n => String(n.fecha || '').startsWith(yearFilter + '-'));
+  if (monthFilter)   notes = notes.filter(n => String(n.fecha || '').substring(5, 7) === monthFilter);
   if (searchFilter) {
     notes = notes.filter(n =>
       n.numero.toLowerCase().includes(searchFilter) ||
@@ -449,6 +457,8 @@ async function applyFilters() {
   const hasFilters = !!(
     document.querySelector('.filter-estatus')?.value ||
     document.querySelector('.filter-destino')?.value ||
+    document.querySelector('.filter-year')?.value ||
+    document.querySelector('.filter-month')?.value ||
     document.querySelector('.filter-search')?.value?.trim()
   );
   const total = filtered.length;
@@ -475,6 +485,10 @@ async function handleDashboardClick(e) {
     if (est) est.value = '';
     const dest = document.querySelector('.filter-destino');
     if (dest) dest.value = '';
+    const y = document.querySelector('.filter-year');
+    if (y) y.value = '';
+    const m = document.querySelector('.filter-month');
+    if (m) m.value = '';
     currentPage = 1;
     await applyFilters();
     return;

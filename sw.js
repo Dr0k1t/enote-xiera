@@ -1,5 +1,5 @@
 // F5.1: versión inyectada por scripts/build-config.js. Default 1.3.2 si no se inyecta.
-const ENOTE_VERSION = '1.6.1';
+const ENOTE_VERSION = '1.7.0';
 const CACHE_VERSION = 'enote-' + ENOTE_VERSION;
 
 // Assets de Typst (recibo PDF). NO van en el precache de install: el compiler
