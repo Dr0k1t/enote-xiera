@@ -202,22 +202,11 @@ export async function createNote(fields, session) {
 
   await supabase.auth.getSession();
 
-  const { data: maxNote } = await supabase
-    .from('notes')
-    .select('numero')
-    .order('numero', { ascending: false })
-    .limit(1);
-  const maxNum = maxNote?.[0]?.numero
-    ? parseInt(String(maxNote[0].numero).replace('#', '')) || 0
-    : 0;
-  const numero = '#' + String(maxNum + 1).padStart(4, '0');
-
   const imagenes = await processImages(fields.imagenes);
 
   const { data, error } = await supabase
     .from('notes')
     .insert([{
-      numero,
       fecha: fields.fecha,
       destino: fields.destino,
       productos: [],           // columna dormida — UI ya no expone productos
