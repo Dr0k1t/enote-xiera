@@ -11,7 +11,7 @@ export function renderNoteForm(note, session) {
   const today = new Date().toISOString().slice(0, 10);
   const fecha = isEdit ? note.fecha : today;
   
-  // CORRECCIÓN: Para nuevas notas, el destino siempre debe ser Planta de Producción por defecto.
+  // Para nuevas notas el destino es '' (vacío, usuario debe seleccionar).
   const destino = isEdit ? note.destino : CONFIG.defaultDestino;
 
   const obs = isEdit ? note.observaciones : '';
@@ -146,24 +146,24 @@ export function renderNoteForm(note, session) {
             <div class="form-group">
               <label class="form-label" for="nf-costo-pastel">Costo pastel</label>
               <input class="form-input nf-financiero-input" id="nf-costo-pastel" name="costoPastel"
-                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.costoPastel ? note.costoPastel : ''}" placeholder="0">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.costoPastel != null ? note.costoPastel : '0'}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-deposito-equipo">Depósito equipo</label>
               <input class="form-input nf-financiero-input" id="nf-deposito-equipo" name="depositoEquipo"
-                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.depositoEquipo ? note.depositoEquipo : ''}" placeholder="0">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.depositoEquipo != null ? note.depositoEquipo : '0'}">
             </div>
           </div>
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label" for="nf-arreglos-figura">Arreglos y figura</label>
               <input class="form-input nf-financiero-input" id="nf-arreglos-figura" name="arreglosFigura"
-                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.arreglosFigura ? note.arreglosFigura : ''}" placeholder="0">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.arreglosFigura != null ? note.arreglosFigura : '0'}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-servicio-domicilio">Servicio a domicilio</label>
               <input class="form-input nf-financiero-input" id="nf-servicio-domicilio" name="servicioDomicilio"
-                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.servicioDomicilio ? note.servicioDomicilio : ''}" placeholder="0">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.servicioDomicilio != null ? note.servicioDomicilio : '0'}">
             </div>
           </div>
           <div class="form-group" style="background:var(--color-surface);padding:var(--space-3);border-radius:var(--radius-md);border:1px solid var(--color-border)">
@@ -173,7 +173,7 @@ export function renderNoteForm(note, session) {
             <div class="form-group">
               <label class="form-label" for="nf-anticipo">Anticipo</label>
               <input class="form-input nf-financiero-input" id="nf-anticipo" name="anticipo"
-                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.anticipo ? note.anticipo : ''}" placeholder="0">
+                type="number" step="0.01" min="0" inputmode="decimal" value="${isEdit && note.anticipo != null ? note.anticipo : '0'}">
             </div>
             <div class="form-group">
               <label class="form-label" for="nf-metodo-pago">Método de pago</label>

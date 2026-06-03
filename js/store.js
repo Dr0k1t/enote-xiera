@@ -2,7 +2,7 @@
 import { CONFIG } from './config.js';
 import { supabase, uploadImage } from './supabase.js';
 import { cacheImages, saveImageToCache, isOnline, getOfflineNotes, getOfflineNote } from './offline.js';
-import { canModifyNote } from './auth.js';
+import { canModifyNote, canDelete } from './auth.js';
 
 /**
  * Mapea errores de Supabase a mensajes amigables sin exponer estructura interna.
@@ -152,7 +152,9 @@ export function validateNoteFields(fields) {
   if (!fields.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fields.fecha)) {
     errors.push('Fecha inválida (YYYY-MM-DD)');
   }
-  if (!fields.destino || !CONFIG.locations.includes(fields.destino)) {
+  if (!fields.destino) {
+    errors.push('Selecciona un destino');
+  } else if (!CONFIG.locations.includes(fields.destino)) {
     errors.push(`Destino inválido. Debe ser: ${CONFIG.locations.join(', ')}`);
   }
   // Una nota debe tener contenido: datos de pastel, cliente, texto o costo.
@@ -281,6 +283,13 @@ export async function updateNote(id, fields, session) {
   const { _force: forceRaw, _localModifiedEn: localModifiedEn, ...cleanFields } = fields;
   const force = forceRaw === true;
 
+  // Defensa en profundidad: repartidor solo puede modificar tomada/tomadaPor/tomadaEn.
+  if (session?.role === 'repartidor') {
+    const allowed = new Set(['tomada', 'tomadaPor', 'tomadaEn']);
+    const forbidden = Object.keys(cleanFields).filter(k => !allowed.has(k));
+    if (forbidden.length) throw new Error('Permisos insuficientes');
+  }
+
   // Validación parcial: si vienen campos críticos, exigir que sean válidos.
   if (cleanFields.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(cleanFields.fecha)) {
     throw new Error('Fecha inválida (YYYY-MM-DD)');
@@ -373,6 +382,7 @@ export async function deleteNote(id, session) {
   await supabase.auth.getSession();
 
   if (session) {
+    if (!canDelete(session)) throw new Error('Permisos insuficientes');
     const existing = await getNote(id);
     if (!existing) throw new Error('Nota no encontrada');
     if (!canModifyNote(session, existing)) throw new Error('Permisos insuficientes');

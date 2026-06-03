@@ -124,6 +124,7 @@ export function renderDetailView(note, session) {
               ).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
             </tr>
             ${note.anticipo ? `<tr><td>Anticipo (${esc(note.metodoPago || '')})</td><td style="text-align:right">-$${note.anticipo.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td></tr>` : ''}
+            ${note.concepto ? `<tr><td>Concepto</td><td style="text-align:right">${esc(note.concepto)}</td></tr>` : ''}
             <tr style="background:var(--color-surface);font-weight:bold">
               <td>SALDO A PAGAR</td>
               <td style="text-align:right">$${(

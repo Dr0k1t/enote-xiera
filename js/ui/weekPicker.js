@@ -35,7 +35,8 @@ function formatWeekLabel(startStr, endStr) {
   if (sm === em) {
     return `${sd} \u2014 ${ed} ${MONTHS_SHORT[sm - 1]} ${sy}`;
   }
-  return `${sd} ${MONTHS_SHORT[sm - 1]} \u2014 ${ed} ${MONTHS_SHORT[em - 1]} ${ey}`;
+  // Incluir a\u00f1o de inicio para semanas inter-a\u00f1o (ej: "27 dic 2025 \u2014 2 ene 2026")
+  return `${sd} ${MONTHS_SHORT[sm - 1]} ${sy} \u2014 ${ed} ${MONTHS_SHORT[em - 1]} ${ey}`;
 }
 
 function isInWeek(dateStr, startStr, endStr) {
@@ -44,7 +45,9 @@ function isInWeek(dateStr, startStr, endStr) {
 }
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  // Usar fecha local de México (UTC-6) para que el highlight "hoy" sea correcto
+  // para los usuarios en Ocotlán — toISOString() usa UTC y falla ~1h/día.
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
 }
 
 export function renderWeekPickerButton(selectedStart, selectedEnd) {

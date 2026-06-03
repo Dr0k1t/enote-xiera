@@ -6,7 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.6.1 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.7.1 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+
+**v1.7.1:** Selector de semana tipo calendario reemplaza dropdowns de año/mes. `js/ui/weekPicker.js` nuevo módulo — `renderWeekPickerButton`, `toggleCalendarPanel`, `getWeekRange`. Panel flotante `.calendar-panel` con navegación mensual; click en cualquier día selecciona la semana completa (Lun–Dom). Filtro emite `change` en hidden inputs `.filter-week-start`/`.filter-week-end`; `app.js` los lee para pasar `weekStart`/`weekEnd` a `getFilteredNotes()`. Reset de semana vía `.btn-week-clear`.
+
+**v1.7.0:** Rol `planta` ahora ve **todas las notas** de todas las plantas (antes solo veía su destino). Filtros de año/mes agregados al dashboard (reemplazados por semana en v1.7.1). `config.js` exporta `ALL_YEARS` y `MONTHS_LABELS`. `getBaseNotes()` ya no filtra por `destino` para rol planta.
 
 **v1.6.1 (hotfix):** El PDF caía al fallback `window.print()` en todos los dispositivos tras v1.6.0. Causa: el warm-cache (`{cache:'reload'}`) metía el `nota.typ` nuevo (con `image()` del logo) en la caché del SW mientras `typstReceipt.js` seguía viejo (sin `mapShadow`) → compilación fallaba ("failed to load file"). Fix: `typstReceipt.js` ahora es **autocontenido** — template + logo (base64) inline vía `js/typstAssets.js` (generado por build-config desde `templates/nota.typ` + `assets/typst/logo-xiera.png`). Sin fetch de assets cacheables que puedan desincronizarse del JS → skew imposible.
 
@@ -85,8 +89,10 @@ SPA vanilla JS (`index.html` → `js/app.js` como ES module). Sin frameworks ni 
 | `ui/dashboard.js` | Grid + filtros + barra paginacion. |
 | `ui/form.js` | Formulario crear/editar nota. `getFormData()` con optional chaining en fecha/destino/observaciones. `pastelCantidad`/`pisos` usan `!= null` (no falsy). |
 | `ui/detail.js` | Detalle + diff view + delete confirm + **conflict view**. Renderiza como modal via `openModal(renderDetailView(note, session))` (v1.4.1). |
+| `ui/weekPicker.js` | (v1.7.1) Selector de semana tipo calendario. `renderWeekPickerButton(start, end)` → HTML. `toggleCalendarPanel(btn)` abre/cierra panel flotante. `getWeekRange(date)` → `{startStr, endStr}`. `closeCalendarPanel()` + `resetWeekPicker()`. Panel se posiciona con `requestAnimationFrame` para evitar overflow. |
 | `ui/repartidor.js` | Vista repartidor. |
 | `ui/print.js` | `printReceipt()` — orquestador. **Ruta principal (v1.5.0):** dynamic-import de `typstReceipt.js` → PDF Typst → `shareOrDownloadPdf`. Muestra toast "Generando PDF…" persistente. **Fallback** `printViaBrowser()` (clon HTML en `<body>` + `window.print()`, v1.4.2) si Typst no disponible (offline sin cache) o falla. Conserva `renderPrintableReceipt()` (usado por fallback + detail.js). |
+| `typstAssets.js` | **Generado** por `scripts/build-config.js` (v1.6.1). Exporta `TYPST_TEMPLATE` (string Typst inline) y `LOGO_BASE64` (PNG en base64). Elimina fetch de assets cacheables — `typstReceipt.js` los importa directamente → skew SW imposible. Gitignoreado igual que `supabase.js`. |
 | `typstReceipt.js` | (v1.5.0) Generación PDF con Typst WASM. Dynamic-import desde `print.js` (no carga en boot). `ensureReady()` single-flight: `setCompilerInitOptions({getModule})` + `disableDefaultFontAssets()` + `preloadFontFromUrl` (Jost/Caveat). `noteToInputs(note)` mapea Note → strings de `sys.inputs` (replica formateo de `renderPrintableReceipt`: fecha UTC, montos es-MX). `generateReceiptPdf(note) → Uint8Array`. `shareOrDownloadPdf()`: `navigator.share({files})` (File directo, esquiva bug WKWebView blob #216918) o descarga `<a download>`. `typstAvailable()` HEAD-check de assets. |
 
 ### Vendor
@@ -143,10 +149,10 @@ Evento DOM → app.js (safeHandler) → store.js (Supabase + handleApiError)
 - **Fechas:** ISO en store; `es-MX` en UI. `formatFecha()` usa UTC para evitar shift de dia por timezone.
 - **Estatus workflow:** `Nueva` → sobrescritura. `En Proceso`/`Completada` → confirmacion + diff visible.
 - **Detail view:** Renderiza como modal: `openModal(renderDetailView(note, session))` (v1.4.1). `currentDetailNoteId` mantiene ID abierto para `showImagePreview`.
-- **Rol `planta`:** Auto-transiciona `Nueva→En Proceso` al abrir detalle. Usa `_force: true` para evitar conflict spurious.
+- **Rol `planta`:** Auto-transiciona `Nueva→En Proceso` al abrir detalle. Usa `_force: true` para evitar conflict spurious. Desde v1.7.0 ve **todas** las notas (sin filtro por `destino`).
 - **Rol `repartidor`:** Vista `view-repartidor`. Toggle `tomada` via `store.toggleTomada()`.
 - **`pendingFormData`:** Tercer estado en `app.js` para flujo diff/conflict. Estructura `{ noteId, fields, action }`.
-- **Filtros:** `getBaseNotes()` (filtro por rol/destino) → `getFilteredNotes()` (filtros UI) → `slice` por pagina.
+- **Filtros:** `getBaseNotes()` (filtro por rol — planta v1.7.0+ ve todas) → `getFilteredNotes()` (filtros UI: búsqueda, estatus, semana `weekStart`/`weekEnd`) → `slice` por pagina. Filtro semana usa `weekPicker.js`; `app.js` lee `.filter-week-start`/`.filter-week-end` y los pasa a `getFilteredNotes()`.
 - **Paginacion:** Client-side. `CONFIG.PAGE_SIZE = 20`. Reset pagina 1 cuando cambian filtros.
 - **Conflict detection:** `app.js` pasa `editingNoteModifiedEn` como `_localModifiedEn` a `updateNote`. Si servidor mas nuevo → `{ conflict, serverNote }` → `renderConflictView`. Botones: **Sobrescribir** (re-llama con `_force: true`) o **Mantener servidor** (descarta cambios).
 - **Validacion backend:** `validateNoteFields()` valida `fecha`, `destino` (whitelist), `productos` no vacio, `observaciones` ≤ 2000.

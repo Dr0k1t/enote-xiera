@@ -317,6 +317,19 @@ function setupEventDelegation() {
     }
   }));
 
+  // Inputs financieros: focus limpia el '0' placeholder; blur lo restaura si vacío.
+  modal.addEventListener('focusin', e => {
+    if (e.target.classList?.contains('nf-financiero-input') && e.target.value === '0') {
+      e.target.value = '';
+    }
+  });
+  modal.addEventListener('focusout', e => {
+    if (e.target.classList?.contains('nf-financiero-input') && e.target.value === '') {
+      e.target.value = '0';
+      updateFinancialTotals();
+    }
+  });
+
   modal.addEventListener('change', e => {
     if (e.target.id === 'nf-imagenes') {
       const fileCount = e.target.files.length;
@@ -430,6 +443,8 @@ async function getBaseNotes() {
     void preCacheAllImages(notes);
   }
   if (!canSeeAll(currentSession)) {
+    // Narrowing intencional: roles sin canSeeAll (ej. planta con destino) solo ven
+    // notas de su destino asignado, incluso las que ellos crearon para otros destinos.
     notes = notes.filter(n => n.destino === currentSession.destino);
   }
   return notes;
@@ -637,14 +652,7 @@ async function showForm(noteId) {
     document.querySelectorAll('.nf-financiero-input').forEach(input => {
       input.addEventListener('input', updateFinancialTotals);
     });
-    const mp = document.getElementById('nf-metodo-pago');
-    const cg = document.querySelector('.nf-concepto-group');
-    if (mp && cg) {
-      mp.addEventListener('change', () => {
-        cg.style.display = mp.value === 'Transferencia' ? '' : 'none';
-        if (mp.value !== 'Transferencia') document.getElementById('nf-concepto').value = '';
-      });
-    }
+    // El toggle de .nf-concepto-group ya lo maneja la delegación 'change' del modal.
   }, 0);
 }
 

@@ -31,15 +31,9 @@
   v(1mm)
 }
 
+// campo() usa hw() para que los valores aparezcan manuscritos (Caveat azul 18pt),
+// replicando la apariencia de nota hecha a mano. Labels permanecen en Jost.
 #let campo(label, valor) = {
-  grid(columns: (auto, 1fr), gutter: 2mm,
-    text(weight: 500)[#label],
-    text(font: mano, size: 12pt)[#valor],
-  )
-  v(1.5mm)
-}
-
-#let campoHw(label, valor) = {
   grid(columns: (auto, 1fr), gutter: 2mm,
     text(weight: 500)[#label],
     hw(valor),

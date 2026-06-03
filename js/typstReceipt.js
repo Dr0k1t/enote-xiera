@@ -119,6 +119,7 @@ export function noteToInputs(note) {
     total: money(total),
     anticipo: money(note.anticipo),
     metodoPago: note.metodoPago || '',
+    concepto: note.concepto || '',
     saldo: money(saldo),
   };
 }
