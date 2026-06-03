@@ -93,8 +93,8 @@ a { color: var(--color-primary); text-decoration: none; }
 .form-textarea {
   display: block;
   width: 100%;
-  font-family: var(--font-note-content);
-  font-size: 1.1rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
   color: var(--color-text-dark);
   background: var(--color-surface);
   border: 1.5px solid var(--color-border);
@@ -524,8 +524,7 @@ a { color: var(--color-primary); text-decoration: none; }
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-family: var(--font-note-content);
-  font-size: 1rem;
+  font-size: 0.82rem;
   color: var(--color-text-muted);
 }
 /* Indicador de Nota Nueva */
@@ -906,7 +905,7 @@ a { color: var(--color-primary); text-decoration: none; }
   color: var(--color-text-muted);
   margin-bottom: var(--space-1);
 }
-.detail-meta-value { font-family: var(--font-note-content); font-size: 1.05rem; color: var(--color-text-dark); font-weight: 500; }
+.detail-meta-value { font-size: 0.95rem; color: var(--color-text-dark); font-weight: 500; }
 
 .detail-section { margin-bottom: var(--space-5); }
 
@@ -947,8 +946,7 @@ a { color: var(--color-primary); text-decoration: none; }
 .detail-products-table tr:last-child td { border-bottom: none; }
 
 .detail-obs {
-  font-family: var(--font-note-content);
-  font-size: 1.05rem;
+  font-size: 0.92rem;
   color: var(--color-text-dark);
   line-height: 1.6;
   padding: var(--space-4) var(--space-5);

@@ -34,7 +34,7 @@
 #let campo(label, valor) = {
   grid(columns: (auto, 1fr), gutter: 2mm,
     text(weight: 500)[#label],
-    text[#valor],
+    text(font: mano, size: 12pt)[#valor],
   )
   v(1.5mm)
 }
