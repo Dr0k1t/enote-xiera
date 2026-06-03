@@ -215,6 +215,12 @@ export async function syncPendingNotes(createNoteFn, userId, onPermanentFailure)
   _syncing = true;
   try {
     const pending = await getPendingNotes(userId);
+    // Ordenar por createdAt ascendente para garantizar folios secuenciales en orden FIFO
+    pending.sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return ta - tb;
+    });
     for (const item of pending) {
       let success = false;
       let permanentError = null;
