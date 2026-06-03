@@ -614,9 +614,9 @@ async function handleDashboardClick(e) {
     return;
   }
 
-  // Notas pendientes (offline, sin id real): solo "Ver" está disponible
+  // Notas pendientes (offline, sin id real): cualquier click en la tarjeta abre detalle
   const pendingCard = e.target.closest('[data-pending="true"]');
-  if (pendingCard && e.target.closest('.btn-ver')) {
+  if (pendingCard) {
     const pendingId = pendingCard.dataset.noteId;
     const pendingNote = _pendingById[pendingId];
     if (pendingNote) {
@@ -638,6 +638,11 @@ async function handleDashboardClick(e) {
   if (e.target.closest('.btn-eliminar')) {
     if (!canDelete(currentSession)) { renderToast('Permisos insuficientes', 'error'); return; }
     await confirmDelete(noteId); return;
+  }
+
+  // Cualquier otro click en la tarjeta → abrir detalle (tarjeta seleccionable)
+  if (!e.target.closest('.status-select') && !e.target.closest('.status-confirm-bar')) {
+    await showDetail(noteId);
   }
 }
 

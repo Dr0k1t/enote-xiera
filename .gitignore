@@ -24,3 +24,10 @@ supabase/.temp/
 
 # Planes locales de Claude
 .opencode/
+
+# LaTeX build artifacts
+docs/*.aux
+docs/*.log
+docs/*.out
+docs/*.synctex.gz
+docs/*.toc
