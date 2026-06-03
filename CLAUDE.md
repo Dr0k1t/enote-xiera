@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digitales, multi-usuario, workflow estatus.
 
-**Estado actual:** v1.7.1 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+**Estado actual:** v1.8.0 en produccion. Supabase-only (demo eliminado). Deploy Vercel: https://enote-xiera.vercel.app
+
+**v1.8.0:** (1) Cache de notas base en memoria (`_dashboardNotes`) — filtros/búsqueda/paginación son client-side sobre el cache, no re-consultan la red. 1 fetch al entrar al dashboard; invalidación explícita tras mutaciones/refresh/reconexión/logout. (2) Folio asignado por el servidor — se eliminó el cálculo `MAX(numero)+1` client-side (no atómico). El trigger `trg_assign_folio` en Supabase asigna el folio con `SEQUENCE` atómico. Cliente ya no envía `numero` en el INSERT. (3) Notas offline visibles — las notas creadas sin conexión aparecen en el dashboard con folio "— Sin folio" y badge "Sin folio" (estilo punteado/atenuado); solo permiten "Ver" (no editar/eliminar/imprimir); al sincronizar reciben su folio real y desaparecen del estado pendiente. (4) Cola offline FIFO — `syncPendingNotes` ordena por `createdAt` ascendente antes del loop, garantizando que los folios quedan en el mismo orden de creación. **IMPORTANTE:** La migración SQL del trigger debe aplicarse en Supabase ANTES de deployar esta versión (ver sección Backend).
 
 **v1.7.1:** Selector de semana tipo calendario reemplaza dropdowns de año/mes. `js/ui/weekPicker.js` nuevo módulo — `renderWeekPickerButton`, `toggleCalendarPanel`, `getWeekRange`. Panel flotante `.calendar-panel` con navegación mensual; click en cualquier día selecciona la semana completa (Lun–Dom). Filtro emite `change` en hidden inputs `.filter-week-start`/`.filter-week-end`; `app.js` los lee para pasar `weekStart`/`weekEnd` a `getFilteredNotes()`. Reset de semana vía `.btn-week-clear`.
 
@@ -198,6 +200,40 @@ Evento DOM → app.js (safeHandler) → store.js (Supabase + handleApiError)
 - **Proyecto:** `https://ovlhabedefwbajrnfpup.supabase.co`
 - **Auth:** Email + contrasena. Confirm email OFF.
 - **RLS:** Activo en `profiles`, `notes`, `routes`
+
+### Migración v1.8.0 — Folio atómico (APLICAR ANTES DE DEPLOY)
+
+⚠️ **Este SQL debe ejecutarse en Supabase SQL Editor ANTES de deployar v1.8.0.** Si el trigger no existe, todos los INSERTs de notas fallarán (`not_null_violation` en columna `numero`).
+
+```sql
+-- 1. Crear secuencia empezando desde el folio máximo actual
+CREATE SEQUENCE IF NOT EXISTS notes_folio_seq;
+SELECT setval('notes_folio_seq',
+  COALESCE(
+    (SELECT MAX(NULLIF(regexp_replace(numero, '\D', '', 'g'), '')::int) FROM notes),
+    0
+  )
+);
+
+-- 2. Función que asigna el folio si viene vacío
+CREATE OR REPLACE FUNCTION assign_folio() RETURNS trigger AS $$
+BEGIN
+  IF NEW.numero IS NULL OR NEW.numero = '' THEN
+    NEW.numero := '#' || lpad(nextval('notes_folio_seq')::text, 4, '0');
+  END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+-- 3. Trigger BEFORE INSERT
+CREATE TRIGGER trg_assign_folio
+  BEFORE INSERT ON notes
+  FOR EACH ROW EXECUTE FUNCTION assign_folio();
+
+-- 4. Constraint UNIQUE como defensa extra
+ALTER TABLE notes ADD CONSTRAINT notes_numero_unique UNIQUE (numero);
+```
+
+Verificar con: `SELECT nextval('notes_folio_seq');` (debe devolver el siguiente folio libre).
 
 ### Agregar usuario
 
