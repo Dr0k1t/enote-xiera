@@ -136,6 +136,10 @@
   [( \$ #hw(inp("anticipo")) )],
   text(size: 8pt, fill: gray)[#inp("metodoPago")],
 )
+#if inp("concepto") != "" [
+  #v(2mm)
+  #campo("CONCEPTO:", inp("concepto"))
+]
 #v(2mm)
 #grid(columns: (1fr, auto), align: (left, right),
   text(weight: 500)[SALDO A PAGAR:],

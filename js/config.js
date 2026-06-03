@@ -35,7 +35,7 @@ export const CONFIG = {
   roles: {
     admin:      { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: true  },
     planta:     { canCreate: false, canEdit: false, canDelete: false, canSeeAll: true  },
-    sucursal:   { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: false },
+    sucursal:   { canCreate: true,  canEdit: true,  canDelete: true,  canSeeAll: true  },
     repartidor: { canCreate: false, canEdit: false, canDelete: false, canSeeAll: true  },
   },
 };

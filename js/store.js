@@ -90,6 +90,7 @@ function mapDbNote(note) {
     servicioDomicilio: note.servicio_domicilio ?? 0,
     anticipo: note.anticipo ?? 0,
     metodoPago: note.metodo_pago || '',
+    concepto: note.concepto || '',
   };
 }
 
@@ -166,7 +167,7 @@ export function validateNoteFields(fields) {
   if (fields.observaciones && fields.observaciones.length > 2000) {
     errors.push('Observaciones demasiado largas (máx 2000 caracteres)');
   }
-  const textFields = ['clienteNombre', 'clienteDireccion', 'clienteTelefono', 'sabor', 'modelo', 'texto', 'colores', 'direccionEntrega', 'horaEntrega'];
+  const textFields = ['clienteNombre', 'clienteDireccion', 'clienteTelefono', 'sabor', 'modelo', 'texto', 'colores', 'direccionEntrega', 'horaEntrega', 'concepto'];
   for (const f of textFields) {
     if (fields[f] && String(fields[f]).length > TEXT_FIELD_MAX) {
       errors.push(`Campo "${f}" demasiado largo (máx ${TEXT_FIELD_MAX} caracteres)`);
@@ -244,6 +245,7 @@ export async function createNote(fields, session) {
       servicio_domicilio: fields.servicioDomicilio ?? 0,
       anticipo: fields.anticipo ?? 0,
       metodo_pago: fields.metodoPago || '',
+      concepto: fields.concepto || '',
     }])
     .select()
     .single();
@@ -258,7 +260,7 @@ const CONTENT_FIELDS = [
   'pastelCantidad', 'pisos', 'sabor', 'kilos', 'modelo', 'texto', 'colores',
   'horaEntrega', 'horaPeriodo', 'direccionEntrega',
   'costoPastel', 'depositoEquipo', 'arreglosFigura', 'servicioDomicilio',
-  'anticipo', 'metodoPago',
+  'anticipo', 'metodoPago', 'concepto',
 ];
 
 function fieldsTouchContent(fields) {
@@ -342,7 +344,7 @@ export async function updateNote(id, fields, session) {
     'pastelCantidad', 'pisos', 'sabor', 'kilos', 'modelo', 'texto', 'colores',
     'horaEntrega', 'horaPeriodo', 'direccionEntrega',
     'costoPastel', 'depositoEquipo', 'arreglosFigura', 'servicioDomicilio',
-    'anticipo', 'metodoPago',
+    'anticipo', 'metodoPago', 'concepto',
   ]);
   const dbFields = {};
   for (const [key, val] of Object.entries(cleanFields)) {

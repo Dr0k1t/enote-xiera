@@ -47,9 +47,7 @@ export async function logout() {
  */
 export function canModifyNote(session, note) {
   if (!session || !note) return false;
-  if (session.role === 'admin') return true;
-  if (session.role === 'sucursal' &&
-      (note.destino === session.destino || note.creadoPor === session.username)) return true;
+  if (session.role === 'admin' || session.role === 'sucursal') return true;
   if (session.role === 'planta' && note.destino === session.destino) return true;
   if (session.role === 'repartidor') return true;
   return false;

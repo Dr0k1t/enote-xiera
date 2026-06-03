@@ -35,6 +35,7 @@
 
   --font-heading: 'Cormorant Garamond', Georgia, serif;
   --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-note-content: 'Caveat', cursive;
 
   --space-1: 4px;
   --space-2: 8px;

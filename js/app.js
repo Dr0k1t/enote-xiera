@@ -329,6 +329,18 @@ function setupEventDelegation() {
         }
       }
     }
+    if (e.target.id === 'nf-metodo-pago') {
+      const grupo = document.querySelector('.nf-concepto-group');
+      const input = document.getElementById('nf-concepto');
+      if (grupo) {
+        if (e.target.value === 'Transferencia') {
+          grupo.style.display = '';
+        } else {
+          grupo.style.display = 'none';
+          if (input) input.value = '';
+        }
+      }
+    }
   });
 
 
@@ -418,7 +430,7 @@ async function getBaseNotes() {
     void preCacheAllImages(notes);
   }
   if (!canSeeAll(currentSession)) {
-    notes = notes.filter(n => n.destino === currentSession.destino || n.creadoPor === currentSession.username);
+    notes = notes.filter(n => n.destino === currentSession.destino);
   }
   return notes;
 }

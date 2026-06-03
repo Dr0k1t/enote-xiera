@@ -257,7 +257,11 @@ export function renderPrintableReceipt(note) {
         <div class="receipt-total-row" style="margin-top:5px;">
           <div class="receipt-total-label">SALDO A PAGAR:</div>
           <div class="receipt-total-money" style="justify-content:flex-end;padding-right:15px;"><span class="receipt-hw">${saldo.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span></div>
-        </div>
+        </div>${note.concepto ? `
+        <div class="receipt-field" style="margin-top:10px;">
+          <div class="receipt-field-label">CONCEPTO:</div>
+          <div class="receipt-field-value">${esc(note.concepto)}</div>
+        </div>` : ''}
       </div>
 
     </div>

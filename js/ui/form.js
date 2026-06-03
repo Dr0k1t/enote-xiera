@@ -185,6 +185,12 @@ export function renderNoteForm(note, session) {
               </select>
             </div>
           </div>
+          <div class="form-group nf-concepto-group"${isEdit && note.metodoPago === 'Transferencia' ? '' : ' style="display:none"'}>
+            <label class="form-label" for="nf-concepto">Concepto de transferencia</label>
+            <input class="form-input" id="nf-concepto" name="concepto"
+              placeholder="Ej: Pago pastel boda Ramírez"
+              value="${isEdit && note.concepto ? esc(note.concepto) : ''}">
+          </div>
           <div class="form-group" style="background:var(--color-surface);padding:var(--space-3);border-radius:var(--radius-md);border:1px solid var(--color-border)">
             <strong>SALDO A PAGAR: \$<span id="nf-saldo-value">0</span></strong>
           </div>
@@ -272,6 +278,7 @@ export function getFormData() {
     servicioDomicilio: +form.querySelector('[name="servicioDomicilio"]')?.value || 0,
     anticipo: +form.querySelector('[name="anticipo"]')?.value || 0,
     metodoPago: form.querySelector('[name="metodoPago"]')?.value || '',
+    concepto: (form.querySelector('[name="concepto"]')?.value || '').trim(),
   };
 }
 
