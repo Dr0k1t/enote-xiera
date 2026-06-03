@@ -7,9 +7,15 @@ import { renderPrintableReceipt } from './print.js';
  */
 export function renderDetailView(note, session) {
   const r = role(session);
-  const editBtn = r.canEdit
+  const editBtn = (r.canEdit && !note._pending)
     ? `<button class="btn btn-secondary btn-sm btn-editar" data-note-id="${note.id}" aria-label="Editar esta nota">Editar</button>`
     : '';
+
+  const pendingBanner = note._pending ? `
+  <div class="pending-sync-banner">
+    <span>⏳</span>
+    <p>Esta nota aún no se ha sincronizado. Se enviará automáticamente cuando haya conexión y recibirá su folio.</p>
+  </div>` : '';
 
   const obsContent = note.observaciones
     ? esc(note.observaciones)
@@ -33,12 +39,13 @@ export function renderDetailView(note, session) {
     <div class="modal-header">
       <h2 class="modal-title" id="detail-title">Detalle ${esc(note.numero)}</h2>
       <div class="detail-header-actions">
-        <button class="btn btn-secondary btn-sm btn-imprimir" aria-label="Imprimir esta nota">Imprimir</button>
+        ${note._pending ? '' : '<button class="btn btn-secondary btn-sm btn-imprimir" aria-label="Imprimir esta nota">Imprimir</button>'}
         ${editBtn}
         <button type="button" class="btn btn-ghost btn-icon btn-cancelar-modal" aria-label="Cerrar detalle">✕</button>
       </div>
     </div>
     <div class="modal-body">
+  ${pendingBanner}
   <div class="detail-wrapper ${images.length > 0 ? 'detail-layout' : ''}">
     <article class="detail-card">
       <header class="detail-header">

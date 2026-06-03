@@ -635,6 +635,30 @@ a { color: var(--color-primary); text-decoration: none; }
   color: var(--color-status-cancelada-text);
   border-color: var(--color-status-cancelada-border);
 }
+.badge--pending {
+  background: #f5a623;
+  color: #fff;
+}
+.note-card--pending {
+  opacity: 0.85;
+  border-style: dashed;
+}
+.pending-sync-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #666);
+}
+.pending-sync-banner {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.875rem;
+  color: #7c5a00;
+}
 
 /* === MODAL === */
 .modal-overlay {

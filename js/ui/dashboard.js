@@ -97,7 +97,9 @@ function renderEmptyState(hasFilters = false) {
 
 export function renderNoteCard(note, session) {
   const r = role(session);
-  const badge = `<span class="badge badge--${esc(statusClass(note.estatus))}">${esc(note.estatus)}</span>`;
+  const badge = note._pending
+    ? `<span class="badge badge--pending">Sin folio</span>`
+    : `<span class="badge badge--${esc(statusClass(note.estatus))}">${esc(note.estatus)}</span>`;
 
   const isPlanta = session.role === 'planta';
   const isUnreadNew      = isPlanta && !!note.unreadNew;
@@ -107,7 +109,14 @@ export function renderNoteCard(note, session) {
   if (isUnreadModified) cardClass += ' indicator-modified';
 
   let footer;
-  if (isPlanta) {
+  if (note._pending) {
+    // Nota offline pendiente: solo lectura
+    footer = `
+    <div class="note-card__actions">
+      <span class="pending-sync-label">⏳ Sincronizando…</span>
+      <button class="btn btn-ghost btn-sm btn-ver" aria-label="Ver detalle">Ver</button>
+    </div>`;
+  } else if (isPlanta) {
     let statusCtrl;
     if (note.estatus === 'Cancelada') {
       statusCtrl = `<span class="status-static-text">Cancelada</span>`;
@@ -161,7 +170,7 @@ export function renderNoteCard(note, session) {
     ${cardBody}`;
 
   return `
-  <article class="${cardClass}" data-note-id="${note.id}">
+  <article class="${cardClass}${note._pending ? ' note-card--pending' : ''}" data-note-id="${note.id}"${note._pending ? ' data-pending="true"' : ''}>
     <div class="note-card__top">
       <div class="note-card__numero">${esc(note.numero)}</div>
       ${badge}
