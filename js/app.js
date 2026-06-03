@@ -637,6 +637,14 @@ async function showForm(noteId) {
     document.querySelectorAll('.nf-financiero-input').forEach(input => {
       input.addEventListener('input', updateFinancialTotals);
     });
+    const mp = document.getElementById('nf-metodo-pago');
+    const cg = document.querySelector('.nf-concepto-group');
+    if (mp && cg) {
+      mp.addEventListener('change', () => {
+        cg.style.display = mp.value === 'Transferencia' ? '' : 'none';
+        if (mp.value !== 'Transferencia') document.getElementById('nf-concepto').value = '';
+      });
+    }
   }, 0);
 }
 
