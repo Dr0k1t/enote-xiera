@@ -671,6 +671,7 @@ async function handleStatusChangeInit(noteId, newStatus, cardEl) {
 
 async function handleConfirmStatus(noteId, newStatus) {
   await updateNote(noteId, { estatus: newStatus, _force: true }, currentSession);
+  _dashboardNotes = null; // invalidar cache: estatus de nota cambió
   await applyFilters();
   renderToast(`Estado cambiado a "${newStatus}"`, 'success');
 }
@@ -699,6 +700,7 @@ async function showDetail(noteId) {
       try {
         const result = await updateNote(noteId, updates, currentSession);
         if (result?.new) note = result.new;
+        _dashboardNotes = null; // invalidar cache: auto-transición de estatus/unread
         await applyFilters();
       } catch (err) {
         console.warn('Auto-transición fallida:', err.message);
@@ -857,6 +859,11 @@ async function handleModalClick(e) {
 
   // Detalle (renderizado dentro del modal): imprimir / editar / ver imagen.
   if (e.target.closest('.btn-imprimir')) {
+    if (currentDetailNoteId === null) {
+      // Nota pendiente offline — sin folio real, no se puede imprimir
+      renderToast('La nota aún no se ha sincronizado — espera la conexión para imprimir', 'info');
+      return;
+    }
     const note = await getNote(currentDetailNoteId);
     if (note) await printReceipt(note);
     return;
