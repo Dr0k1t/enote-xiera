@@ -64,6 +64,8 @@ function mapDbNote(note) {
   const { productos: _productos, ...rest } = note;
   return {
     ...rest,
+    // numero viene del trigger server-side (SEQUENCE). Fallback '' si trigger no existe en DB.
+    numero: note.numero ?? '',
     imagenes,
     unreadNew: note.unread_new,
     unreadModified: note.unread_modified,
