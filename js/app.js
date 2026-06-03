@@ -4,7 +4,7 @@ import { getNotes, getNote, createNote, updateNote, deleteNote, toggleTomada, va
 import { login, requireAuth, canSeeAll, canCreate, canEdit, canDelete, logout, clearSession } from './auth.js';
 import { compressImage, MAX_IMAGES_PER_NOTE } from './imageUtils.js';
 import { log } from './logger.js';
-import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount, preCacheAllImages } from './offline.js';
+import { syncPendingNotes, isOnline, createNoteOffline, syncNotesToCache, getPendingCount, preCacheAllImages, getPendingNotes } from './offline.js';
 
 import {
   showView, openModal, closeModal, renderToast, formatFecha, resolveImageUrl,
@@ -32,6 +32,8 @@ let currentPage         = 1;
 let deferredPrompt      = null;
 let isInstalled         = false;
 let _repartidorNotes    = []; // notas renderizadas en vista repartidor (para UI optimista en toggle tomada)
+let _dashboardNotes     = null; // cache de notas base en memoria (evita round-trip a Supabase en cada filtro/página)
+let _pendingById        = {}; // mapa id → nota sintética para notas offline pendientes
 
 // ─── Service Worker ───────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -141,6 +143,7 @@ async function refreshApp() {
       const sel = document.getElementById('repartidor-sucursal');
       await renderNotasRepartidor(sel?.value || '');
     } else {
+      _dashboardNotes = null; // invalidar cache para fetch fresco
       await applyFilters(); // preserva filtros/búsqueda; re-consulta vía getBaseNotes
     }
     renderToast('Actualizado', 'success', 1800);
@@ -260,7 +263,7 @@ async function init() {
         const msg = reason ? `Nota offline no se pudo enviar: ${reason}` : 'Nota offline no se pudo enviar — revisa tu conexión';
         renderToast(msg, 'error', 10000);
       });
-      void getBaseNotes(); // re-cachea notes + imágenes tras sync
+      _dashboardNotes = null; void getBaseNotes(); // re-cachea notes + imágenes tras sync
       await updateOfflineBadge();
       updateInstallButton();
     }
@@ -400,7 +403,7 @@ async function routeByRole() {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 async function showDashboard() {
   currentPage = 1;
-  const notes = await getBaseNotes();
+  const notes = await getBaseNotes({ force: true });
   const total = notes.length;
   const totalPages = Math.max(1, Math.ceil(total / CONFIG.PAGE_SIZE));
   const pageNotes = notes.slice(0, CONFIG.PAGE_SIZE);
@@ -436,7 +439,13 @@ async function updateOfflineBadge() {
   }
 }
 
-async function getBaseNotes() {
+async function getBaseNotes({ force = false } = {}) {
+  // Devolver cache inmediatamente si existe y no se fuerza refresco
+  if (_dashboardNotes !== null && !force) {
+    return _dashboardNotes;
+  }
+
+  // Fetch fresco desde Supabase (o IndexedDB offline via getNotes)
   let notes = await getNotes();
   if (isOnline()) {
     void syncNotesToCache(notes);
@@ -447,6 +456,68 @@ async function getBaseNotes() {
     // notas de su destino asignado, incluso las que ellos crearon para otros destinos.
     notes = notes.filter(n => n.destino === currentSession.destino);
   }
+
+  // Parte B4: merge de notas offline pendientes al inicio del array
+  _pendingById = {};
+  try {
+    const pendingItems = await getPendingNotes(currentSession?.userId);
+    if (pendingItems.length > 0) {
+      // Ordenar por createdAt descendente (más recientes primero)
+      const sorted = [...pendingItems].sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+      const syntheticNotes = sorted.map(item => {
+        const synth = {
+          id: 'pending-' + item.localId,
+          numero: 'Pendiente',
+          estatus: 'Nueva',
+          _pending: true,
+          _localId: item.localId,
+          fecha: item.fecha || '',
+          destino: item.destino || '',
+          clienteNombre: item.clienteNombre || '',
+          sabor: item.sabor || '',
+          modelo: item.modelo || '',
+          texto: item.texto || '',
+          observaciones: item.observaciones || '',
+          costoPastel: item.costoPastel ?? 0,
+          depositoEquipo: item.depositoEquipo ?? 0,
+          arreglosFigura: item.arreglosFigura ?? 0,
+          servicioDomicilio: item.servicioDomicilio ?? 0,
+          anticipo: item.anticipo ?? 0,
+          metodoPago: item.metodoPago || '',
+          concepto: item.concepto || '',
+          pastelCantidad: item.pastelCantidad ?? 1,
+          pisos: item.pisos ?? null,
+          kilos: item.kilos || '',
+          colores: item.colores || '',
+          horaEntrega: item.horaEntrega || '',
+          horaPeriodo: item.horaPeriodo || 'AM',
+          clienteDireccion: item.clienteDireccion || '',
+          clienteTelefono: item.clienteTelefono || '',
+          direccionEntrega: item.direccionEntrega || '',
+          imagenes: [],
+          unreadNew: false,
+          unreadModified: false,
+          prioridad: -1, // para que aparezcan primero en cualquier ordenamiento
+          creadoPor: item._session?.username || '',
+          creadoEn: item.createdAt || new Date().toISOString(),
+          modificadoPor: '',
+          modificadoEn: item.createdAt || new Date().toISOString(),
+          tomada: false, tomadaPor: null, tomadaEn: null,
+        };
+        _pendingById[synth.id] = synth;
+        return synth;
+      });
+      notes = [...syntheticNotes, ...notes];
+    }
+  } catch (err) {
+    console.warn('getBaseNotes: error leyendo pendientes offline', err);
+  }
+
+  _dashboardNotes = notes;
   return notes;
 }
 
@@ -539,6 +610,18 @@ async function handleDashboardClick(e) {
     const select = card?.querySelector('.status-select');
     if (select && select.dataset.prevValue) select.value = select.dataset.prevValue;
     bar?.remove();
+    return;
+  }
+
+  // Notas pendientes (offline, sin id real): solo "Ver" está disponible
+  const pendingCard = e.target.closest('[data-pending="true"]');
+  if (pendingCard && e.target.closest('.btn-ver')) {
+    const pendingId = pendingCard.dataset.noteId;
+    const pendingNote = _pendingById[pendingId];
+    if (pendingNote) {
+      currentDetailNoteId = null; // no hay id real
+      openModal(renderDetailView(pendingNote, currentSession));
+    }
     return;
   }
 
@@ -727,6 +810,7 @@ async function handleFormSubmit(action) {
       log.noteCreated(note);
       closeModal();
       editingNoteId = null;
+      _dashboardNotes = null; // invalidar cache: nota nueva no está en él
       if (action === 'preview') {
         await showDetail(note.id);
       } else {
@@ -750,6 +834,7 @@ async function commitUpdate(noteId, fields, action) {
     }
     if (result?.new) log.noteUpdated(result.new);
     closeModal();
+    _dashboardNotes = null; // invalidar cache: nota actualizada en él puede haber cambiado
     if (action === 'preview') {
       await showDetail(noteId);
     } else {
@@ -840,6 +925,7 @@ async function handleModalClick(e) {
       const result = await updateNote(noteId, { ...fields, _force: true }, currentSession);
       if (result?.new) log.noteUpdated(result.new);
       closeModal();
+      _dashboardNotes = null; // invalidar cache: nota sobrescrita
       if (action === 'preview') {
         await showDetail(noteId);
       } else {
@@ -871,6 +957,7 @@ async function handleModalClick(e) {
     try {
       await deleteNote(noteId, currentSession);
       closeModal();
+      _dashboardNotes = null; // invalidar cache: nota eliminada
       await showDashboard();
       renderToast('Nota eliminada', 'info');
     } catch (err) {
@@ -1015,6 +1102,8 @@ async function handleLogout() {
   currentSession  = null;
   editingNoteId   = null;
   pendingFormData = null;
+  _dashboardNotes = null; // limpiar cache al cerrar sesión
+  _pendingById    = {};
   document.getElementById('view-dashboard').innerHTML  = '';
   document.getElementById('view-detail').innerHTML     = '';
   document.getElementById('view-repartidor').innerHTML = '';
