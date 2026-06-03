@@ -292,6 +292,7 @@ function setupEventDelegation() {
       await applyFilters();
     } else if (e.target.closest('.status-select')) {
       const card = e.target.closest('[data-note-id]');
+      if (card?.dataset?.pending) return; // notas offline pendientes: solo-lectura
       const id = card ? parseInt(card.dataset.noteId) : NaN;
       if (isNaN(id)) return;
       await handleStatusChangeInit(id, e.target.value, card);
@@ -873,6 +874,7 @@ async function handleModalClick(e) {
     const btn = e.target.closest('.btn-editar');
     const rawId = btn.dataset.noteId;
     if (rawId) {
+      if (typeof rawId === 'string' && rawId.startsWith('pending-')) return; // nota pendiente: no editable
       const id = isNaN(rawId) ? rawId : Number(rawId);
       await showForm(id);
     }

@@ -34,10 +34,12 @@ export function renderDetailView(note, session) {
       </div>
     </section>` : '';
 
+  const modalTitle = note._pending ? 'Nota sin sincronizar' : `Detalle ${esc(note.numero)}`;
+
   return `
   <div class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="detail-title">
     <div class="modal-header">
-      <h2 class="modal-title" id="detail-title">Detalle ${esc(note.numero)}</h2>
+      <h2 class="modal-title" id="detail-title">${modalTitle}</h2>
       <div class="detail-header-actions">
         ${note._pending ? '' : '<button class="btn btn-secondary btn-sm btn-imprimir" aria-label="Imprimir esta nota">Imprimir</button>'}
         ${editBtn}
@@ -52,7 +54,7 @@ export function renderDetailView(note, session) {
         <div class="detail-brand-name">Xiera</div>
         <div style="text-align: right;">
           <div class="detail-brand-sub">Nota de Remisión</div>
-          <div class="detail-numero">${esc(note.numero)}</div>
+          <div class="detail-numero">${note._pending ? '— Sin folio' : esc(note.numero)}</div>
         </div>
       </header>
 
