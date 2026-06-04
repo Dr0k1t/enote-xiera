@@ -21,14 +21,10 @@ Enote — notas de remision para Xiera (panaderia, Ocotlan, Jalisco). Notas digi
 **v1.5.0:** Recibo PDF vectorial con Typst (WASM) en cliente — reemplaza ruta principal de `window.print()`. Output determinista compartible via `navigator.share` (WhatsApp/Archivos). Fallback a clon+`window.print()` si Typst no disponible/falla. Compiler WASM (~27MB) gitignoreado, descargado en build, warm-cacheado diferido (no bloquea boot/offline-first).
 
 Docs:
-- `docs/FASE-0-ESTABILIZACION.md` — COMPLETADO — bugs movil/PWA, seguridad, recorte formulario al recibo
-- `docs/FASE-1-CORE.md` — PENDIENTE — plan para construir `enote-core` (field-engine, JSONB)
-- `docs/FASE-2-CLIENTE-NUEVO.md` — PENDIENTE — primer cliente nuevo, criterio de exito del producto
-- `docs/PLAN-REMEDIACION-V1.3.md` — [ARCHIVADO] plan de correccion de hallazgos de auditoria completa
-- `docs/INFORME-AUDITORIA-V1.3.md` — hallazgos completos de auditoria (8 categorias, ~120 issues)
-- `docs/ROADMAP-PRODUCCION-V1.2.md` — [ARCHIVADO] spec v1.2 (schema SQL, RLS, roles, deploy)
-- `docs/SPRINT-PRODUCCION-V1.2.md` — [ARCHIVADO] desglose por semanas v1.2
-- `docs/AUDIT-V1.1.md` — [ARCHIVADO] cierre hardening v1.1
+- `docs/GUIA-USUARIO.md` — manual de uso para el equipo de Xiera (no técnico)
+- `CONTRIBUTING.md` — guía de onboarding para desarrolladores
+- `DESIGN.md` — design system (colores, tipografía, componentes)
+- `PRODUCT.md` — propósito del producto, roles, principios UX
 
 ## Comandos
 
