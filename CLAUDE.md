@@ -231,6 +231,16 @@ ALTER TABLE notes ADD CONSTRAINT notes_numero_unique UNIQUE (numero);
 
 Verificar con: `SELECT nextval('notes_folio_seq');` (debe devolver el siguiente folio libre).
 
+### Migración 0007 — Remediación de seguridad (APLICAR EN SUPABASE)
+
+Ver `supabase/migrations/0007_security_remediation.sql`. Fixes aplicados:
+1. `assign_folio` — `SET search_path = ''` para evitar search_path hijacking
+2. REVOKE EXECUTE de `anon` en 6 funciones SECURITY DEFINER (impedía llamadas RPC sin login)
+3. REVOKE EXECUTE de `authenticated` en `diagnose_enote_401`, `prevent_role_escalation`, `rls_auto_enable`, `set_note_audit_fields` (funciones de debug/trigger, no deben ser RPC públicas)
+4. Eliminar policy legacy `"Give anon users access to JPG images in folder 1ktc4f5_1"` del bucket `imagenes`
+
+**Pendiente manual:** Supabase Dashboard → Authentication → Providers → Email → Password strength → activar "Block compromised passwords".
+
 ### Agregar usuario
 
 1. Supabase → Authentication → Users → Add user
